@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – JobPortal</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="nav-brand">Job<span>Portal</span></a>
+      <div class="nav-links" id="auth-links"></div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <div class="dashboard-layout" id="dashboard-root">
+        <p style="color:var(--text-muted)">Loading…</p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>© <span id="year"></span> JobPortal. All rights reserved.</p>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    updateNavbar();
+
+    if (!getToken()) window.location.href = 'login.html';
+
+    function escHtml(s) {
+      const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+    }
+
+    /* ---- Job Seeker Dashboard ---- */
+    async function renderJobseeker(user) {
+      let apps = [];
+      try {
+        const data = await Applications.getMy();
+        apps = data.applications || [];
+      } catch (_) {}
+
+      const counts = {
+        total:       apps.length,
+        pending:     apps.filter(a => a.status === 'pending').length,
+        shortlisted: apps.filter(a => a.status === 'shortlisted').length,
+        hired:       apps.filter(a => a.status === 'hired').length,
+      };
+
+      const rows = apps.map(a => `
+        <tr>
+          <td><a href="job-detail.html?id=${a.job?._id}">${escHtml(a.job?.title || '')}</a></td>
+          <td>${escHtml(a.job?.company || '')}</td>
+          <td>${escHtml(a.job?.location || '')}</td>
+          <td><span class="status-badge status-${a.status}">${a.status}</span></td>
+          <td>${formatDate(a.createdAt)}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('dashboard-root').innerHTML = `
+        <aside class="sidebar">
+          <div style="font-weight:700;margin-bottom:1rem">👤 ${escHtml(user.name)}</div>
+          <nav class="sidebar-nav">
+            <a href="#applications" class="active" onclick="scrollTo(0,0)">My Applications</a>
+            <a href="index.html">Browse Jobs</a>
+            <a href="#" onclick="logout();return false">Logout</a>
+          </nav>
+        </aside>
+
+        <div class="dashboard-content">
+          <h2>My Dashboard</h2>
+
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-number">${counts.total}</div><div class="stat-label">Total Applications</div></div>
+            <div class="stat-card"><div class="stat-number">${counts.pending}</div><div class="stat-label">Pending</div></div>
+            <div class="stat-card"><div class="stat-number">${counts.shortlisted}</div><div class="stat-label">Shortlisted</div></div>
+            <div class="stat-card"><div class="stat-number">${counts.hired}</div><div class="stat-label">Hired</div></div>
+          </div>
+
+          <h3 style="margin-bottom:1rem">My Applications</h3>
+          ${apps.length === 0
+            ? `<div class="empty-state"><div class="icon">📋</div><p>No applications yet. <a href="index.html">Browse jobs</a> to get started.</p></div>`
+            : `<div class="table-wrap">
+                <table>
+                  <thead><tr><th>Job Title</th><th>Company</th><th>Location</th><th>Status</th><th>Applied</th></tr></thead>
+                  <tbody>${rows}</tbody>
+                </table>
+               </div>`
+          }
+        </div>
+      `;
+    }
+
+    /* ---- Employer Dashboard ---- */
+    async function renderEmployer(user) {
+      let jobs = [];
+      try {
+        const data = await Jobs.getMy();
+        jobs = data.jobs || [];
+      } catch (_) {}
+
+      const totalApps = jobs.reduce((sum, j) => sum + (j.applicationsCount || 0), 0);
+
+      const rows = jobs.map(j => `
+        <tr>
+          <td><a href="job-detail.html?id=${j._id}">${escHtml(j.title)}</a></td>
+          <td>${escHtml(j.location)}</td>
+          <td>${jobTypeBadge(j.jobType)}</td>
+          <td>${j.applicationsCount || 0}</td>
+          <td><span class="status-badge ${j.isActive ? 'status-shortlisted' : 'status-rejected'}">${j.isActive ? 'Active' : 'Closed'}</span></td>
+          <td>${formatDate(j.createdAt)}</td>
+          <td>
+            <a href="job-detail.html?id=${j._id}" class="btn btn-outline btn-sm">View</a>
+            <button class="btn btn-danger btn-sm" onclick="deleteJob('${j._id}', this)" style="margin-left:.4rem">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+
+      document.getElementById('dashboard-root').innerHTML = `
+        <aside class="sidebar">
+          <div style="font-weight:700;margin-bottom:1rem">🏢 ${escHtml(user.company || user.name)}</div>
+          <nav class="sidebar-nav">
+            <a href="#jobs" class="active">My Job Posts</a>
+            <a href="post-job.html">+ Post a Job</a>
+            <a href="index.html">View All Jobs</a>
+            <a href="#" onclick="logout();return false">Logout</a>
+          </nav>
+        </aside>
+
+        <div class="dashboard-content">
+          <h2>Employer Dashboard</h2>
+          <div id="dash-alert" class="alert hidden"></div>
+
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-number">${jobs.length}</div><div class="stat-label">Jobs Posted</div></div>
+            <div class="stat-card"><div class="stat-number">${jobs.filter(j=>j.isActive).length}</div><div class="stat-label">Active Jobs</div></div>
+            <div class="stat-card"><div class="stat-number">${totalApps}</div><div class="stat-label">Total Applicants</div></div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <h3>My Job Postings</h3>
+            <a href="post-job.html" class="btn btn-primary btn-sm">+ Post New Job</a>
+          </div>
+          ${jobs.length === 0
+            ? `<div class="empty-state"><div class="icon">📝</div><p>No jobs posted yet. <a href="post-job.html">Post your first job</a>.</p></div>`
+            : `<div class="table-wrap">
+                <table>
+                  <thead><tr><th>Title</th><th>Location</th><th>Type</th><th>Applicants</th><th>Status</th><th>Posted</th><th>Actions</th></tr></thead>
+                  <tbody id="jobs-tbody">${rows}</tbody>
+                </table>
+               </div>`
+          }
+        </div>
+      `;
+    }
+
+    async function deleteJob(id, btn) {
+      if (!confirm('Are you sure you want to delete this job?')) return;
+      btn.disabled = true;
+      try {
+        await Jobs.remove(id);
+        btn.closest('tr').remove();
+        showAlert('dash-alert', 'Job deleted.', 'success');
+      } catch (err) {
+        showAlert('dash-alert', err.message, 'error');
+        btn.disabled = false;
+      }
+    }
+
+    // Init
+    (async () => {
+      try {
+        const { user } = await Auth.getMe();
+        if (user.role === 'employer') {
+          await renderEmployer(user);
+        } else {
+          await renderJobseeker(user);
+        }
+      } catch (err) {
+        logout();
+      }
+    })();
+  </script>
+</body>
+</html>

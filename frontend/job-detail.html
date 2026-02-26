@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Detail – JobPortal</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="nav-brand">Job<span>Portal</span></a>
+      <div class="nav-links" id="auth-links"></div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <a href="index.html" style="display:inline-block;margin-bottom:1rem;color:var(--text-muted)">← Back to Jobs</a>
+      <div id="alert-box" class="alert hidden"></div>
+      <div id="job-content">
+        <p style="color:var(--text-muted)">Loading job details…</p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>© <span id="year"></span> JobPortal. All rights reserved.</p>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    updateNavbar();
+
+    const jobId = new URLSearchParams(window.location.search).get('id');
+    if (!jobId) window.location.href = 'index.html';
+
+    function escHtml(s) {
+      const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+    }
+
+    async function loadJob() {
+      try {
+        const { job } = await Jobs.getOne(jobId);
+        const user = getUser();
+        const salary = job.salary ? formatSalary(job.salary) : null;
+
+        document.title = `${job.title} – JobPortal`;
+
+        const reqList = (job.requirements || []).map(r => `<li>• ${escHtml(r)}</li>`).join('');
+        const skillTags = (job.skills || []).map(s => `<span class="tag">${escHtml(s)}</span>`).join('');
+
+        let applySection = '';
+        if (!user) {
+          applySection = `
+            <div class="apply-box">
+              <h3>Ready to Apply?</h3>
+              <p style="margin-bottom:1rem;color:var(--text-muted)">Please log in or sign up to apply for this position.</p>
+              <a href="login.html" class="btn btn-primary">Login to Apply</a>
+              <a href="register.html" class="btn btn-outline" style="margin-left:.5rem">Sign Up</a>
+            </div>`;
+        } else if (user.role === 'jobseeker') {
+          applySection = `
+            <div class="apply-box">
+              <h3>Apply for this Position</h3>
+              <div id="apply-alert" class="alert hidden"></div>
+              <form id="apply-form">
+                <div class="form-group">
+                  <label for="cover-letter">Cover Letter <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+                  <textarea id="cover-letter" placeholder="Tell the employer why you're a great fit…"></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="resume-url">Resume URL <span style="font-weight:400;color:var(--text-muted)">(optional – link to your resume)</span></label>
+                  <input type="url" id="resume-url" placeholder="https://…" />
+                </div>
+                <button type="submit" class="btn btn-primary" id="apply-btn">Submit Application</button>
+              </form>
+            </div>`;
+        }
+
+        document.getElementById('job-content').innerHTML = `
+          <div class="job-detail-container">
+            <div class="job-detail-card">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+                <h1>${escHtml(job.title)}</h1>
+                ${jobTypeBadge(job.jobType)}
+              </div>
+              <div class="job-meta">
+                <span>🏢 ${escHtml(job.company)}</span>
+                <span>📍 ${escHtml(job.location)}</span>
+                ${salary ? `<span>💰 ${salary}</span>` : ''}
+                <span>📁 ${escHtml(job.category)}</span>
+                <span>📅 Posted ${formatDate(job.createdAt)}</span>
+                ${job.deadline ? `<span>⏰ Deadline: ${formatDate(job.deadline)}</span>` : ''}
+                <span>👥 ${job.applicationsCount || 0} applicant(s)</span>
+              </div>
+
+              <div class="section-title">Job Description</div>
+              <p style="white-space:pre-wrap;line-height:1.7">${escHtml(job.description)}</p>
+
+              ${reqList ? `<div class="section-title">Requirements</div><ul style="padding-left:.5rem;line-height:2">${reqList}</ul>` : ''}
+              ${skillTags ? `<div class="section-title">Skills</div><div class="tag-list">${skillTags}</div>` : ''}
+
+              <div class="section-title">About the Employer</div>
+              <p>${escHtml(job.employer?.name || '')} ${job.employer?.company ? '@ ' + escHtml(job.employer.company) : ''}</p>
+
+              ${applySection}
+            </div>
+          </div>
+        `;
+
+        // Apply form handler
+        document.getElementById('apply-form')?.addEventListener('submit', async (ev) => {
+          ev.preventDefault();
+          const btn = document.getElementById('apply-btn');
+          btn.disabled = true;
+          btn.textContent = 'Submitting…';
+          try {
+            await Applications.apply({
+              jobId,
+              coverLetter: document.getElementById('cover-letter')?.value,
+              resumeUrl:   document.getElementById('resume-url')?.value || undefined,
+            });
+            showAlert('apply-alert', '✅ Application submitted successfully!', 'success');
+            document.getElementById('apply-form').reset();
+          } catch (err) {
+            showAlert('apply-alert', err.message, 'error');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = 'Submit Application';
+          }
+        });
+
+      } catch (err) {
+        document.getElementById('job-content').innerHTML =
+          `<p style="color:var(--danger)">${err.message}</p>`;
+      }
+    }
+
+    loadJob();
+  </script>
+</body>
+</html>

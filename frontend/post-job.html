@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post a Job – JobPortal</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="nav-brand">Job<span>Portal</span></a>
+      <div class="nav-links" id="auth-links"></div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container" style="max-width:740px">
+      <h2 style="margin-bottom:1.5rem">Post a New Job</h2>
+
+      <div id="alert-box" class="alert hidden"></div>
+
+      <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;box-shadow:var(--shadow)">
+        <form id="post-job-form">
+
+          <div class="form-group">
+            <label for="title">Job Title *</label>
+            <input type="text" id="title" placeholder="e.g. Senior Frontend Developer" required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="company">Company Name *</label>
+              <input type="text" id="company" placeholder="Your company" required />
+            </div>
+            <div class="form-group">
+              <label for="location">Location *</label>
+              <input type="text" id="location" placeholder="e.g. New York, NY" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="job-type">Job Type *</label>
+              <select id="job-type" required>
+                <option value="full-time">Full-time</option>
+                <option value="part-time">Part-time</option>
+                <option value="contract">Contract</option>
+                <option value="internship">Internship</option>
+                <option value="remote">Remote</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="category">Category *</label>
+              <select id="category" required>
+                <option value="">Select category</option>
+                <option value="Technology">Technology</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Finance">Finance</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Education">Education</option>
+                <option value="Design">Design</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Sales">Sales</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Job Description *</label>
+            <textarea id="description" rows="6" placeholder="Describe the role, responsibilities, and what you're looking for…" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="requirements">Requirements <span style="font-weight:400;color:var(--text-muted)">(one per line)</span></label>
+            <textarea id="requirements" rows="4" placeholder="Bachelor's degree in Computer Science&#10;3+ years of experience&#10;Strong communication skills"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="skills">Required Skills <span style="font-weight:400;color:var(--text-muted)">(comma separated)</span></label>
+            <input type="text" id="skills" placeholder="e.g. JavaScript, React, Node.js" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="salary-min">Salary Min (USD)</label>
+              <input type="number" id="salary-min" placeholder="e.g. 50000" min="0" />
+            </div>
+            <div class="form-group">
+              <label for="salary-max">Salary Max (USD)</label>
+              <input type="number" id="salary-max" placeholder="e.g. 80000" min="0" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="deadline">Application Deadline</label>
+            <input type="date" id="deadline" />
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Publish Job</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>© <span id="year"></span> JobPortal. All rights reserved.</p>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    updateNavbar();
+
+    // Require employer auth
+    if (!getToken()) { window.location.href = 'login.html'; }
+    else {
+      const u = getUser();
+      if (u && u.role !== 'employer') {
+        showAlert('alert-box', 'Only employers can post jobs.', 'error');
+        document.getElementById('post-job-form').style.display = 'none';
+      } else if (u) {
+        // Pre-fill company
+        document.getElementById('company').value = u.company || '';
+      }
+    }
+
+    document.getElementById('post-job-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Publishing…';
+
+      const reqRaw   = document.getElementById('requirements').value;
+      const skillRaw = document.getElementById('skills').value;
+      const salMin   = document.getElementById('salary-min').value;
+      const salMax   = document.getElementById('salary-max').value;
+      const deadline = document.getElementById('deadline').value;
+
+      const payload = {
+        title:       document.getElementById('title').value,
+        company:     document.getElementById('company').value,
+        location:    document.getElementById('location').value,
+        jobType:     document.getElementById('job-type').value,
+        category:    document.getElementById('category').value,
+        description: document.getElementById('description').value,
+        requirements: reqRaw ? reqRaw.split('\n').map(s => s.trim()).filter(Boolean) : [],
+        skills:      skillRaw ? skillRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
+        salary: (salMin || salMax) ? {
+          min:      salMin ? Number(salMin) : undefined,
+          max:      salMax ? Number(salMax) : undefined,
+          currency: 'USD',
+        } : undefined,
+        deadline: deadline || undefined,
+      };
+
+      try {
+        const data = await Jobs.create(payload);
+        showAlert('alert-box', '✅ Job posted successfully!', 'success');
+        document.getElementById('post-job-form').reset();
+        document.getElementById('company').value = getUser()?.company || '';
+        setTimeout(() => { window.location.href = `job-detail.html?id=${data.job._id}`; }, 1500);
+      } catch (err) {
+        showAlert('alert-box', err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Publish Job';
+      }
+    });
+  </script>
+</body>
+</html>

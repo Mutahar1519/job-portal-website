@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – JobPortal</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <h2>Welcome Back 👋</h2>
+
+      <div id="alert-box" class="alert hidden"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Enter your password" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Login</button>
+      </form>
+
+      <p class="subtitle">
+        Don't have an account? <a href="register.html">Sign Up</a>
+      </p>
+      <p class="subtitle" style="margin-top:.5rem">
+        <a href="index.html">← Back to Jobs</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // Redirect if already logged in
+    if (getToken()) window.location.href = 'dashboard.html';
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Logging in…';
+
+      try {
+        const data = await Auth.login({
+          email:    document.getElementById('email').value,
+          password: document.getElementById('password').value,
+        });
+        saveUser(data.token, data.user);
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        showAlert('alert-box', err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Login';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JobPortal – Find Your Dream Job</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="nav-brand">Job<span>Portal</span></a>
+      <div class="nav-links" id="auth-links">
+        <a href="login.html" class="nav-hide-sm">Login</a>
+        <a href="register.html" class="btn-nav">Sign Up</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <h1>Find Your <span>Dream Job</span> Today</h1>
+      <p>Thousands of opportunities from top companies – start your search now.</p>
+      <form class="search-bar" id="search-form">
+        <input type="text" id="search-input" placeholder="Job title, keyword, or company…" />
+        <button type="submit" class="btn btn-primary">Search</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main>
+    <div class="container">
+
+      <!-- Filters -->
+      <div class="filters">
+        <input type="text" id="filter-location" placeholder="📍 Location" style="max-width:200px" />
+        <select id="filter-type">
+          <option value="">All Types</option>
+          <option value="full-time">Full-time</option>
+          <option value="part-time">Part-time</option>
+          <option value="contract">Contract</option>
+          <option value="internship">Internship</option>
+          <option value="remote">Remote</option>
+        </select>
+        <select id="filter-category">
+          <option value="">All Categories</option>
+          <option value="Technology">Technology</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Finance">Finance</option>
+          <option value="Healthcare">Healthcare</option>
+          <option value="Education">Education</option>
+          <option value="Design">Design</option>
+          <option value="Engineering">Engineering</option>
+          <option value="Sales">Sales</option>
+          <option value="Other">Other</option>
+        </select>
+        <span id="results-count" style="margin-left:auto;color:var(--text-muted);font-size:.9rem"></span>
+      </div>
+
+      <!-- Job Grid -->
+      <div class="job-grid" id="job-grid">
+        <p style="color:var(--text-muted);text-align:center;padding:2rem;grid-column:1/-1">Loading jobs…</p>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination"></div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>© <span id="year"></span> JobPortal. All rights reserved.</p>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/main.js"></script>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
