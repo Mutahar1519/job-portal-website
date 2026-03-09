@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Job Portal (LinkedIn/Indeed-style)
 
 Modern full-stack job portal with role-based access for Job Seekers, Employers, and Administrators.
@@ -110,3 +111,6 @@ Includes:
 =======
 # job-portal-website-
 >>>>>>> 723ee7c6e64791c0690dc4826c5fb34e3f2f783e
+=======
+# Enterprise_pro-project
+>>>>>>> 56635c040ce52edd7baec9ce7b67c2d0bbd1d6c2
