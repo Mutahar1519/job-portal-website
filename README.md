@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Job Portal (LinkedIn/Indeed-style)
 
 Modern full-stack job portal with role-based access for Job Seekers, Employers, and Administrators.
@@ -106,3 +107,6 @@ Includes:
 ## Notes
 - The repository already contains advanced features beyond baseline scope (reviews, saved jobs, alerts, shift/escrow workflows).
 - UI is responsive and optimized for desktop/tablet/mobile layouts.
+=======
+# job-portal-website-
+>>>>>>> 723ee7c6e64791c0690dc4826c5fb34e3f2f783e
