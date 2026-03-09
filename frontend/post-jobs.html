@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Post Job | JobPortal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+
+<body class="post-job-page">
+
+   <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="jobs.html" class="nav-link">Jobs</a>
+    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+    <a href="post-jobs.html" id="postJobLink" class="nav-link nav-active">Post Job</a>
+    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+    <a href="login.html" id="loginLink" class="nav-link">Login</a>
+    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+    </a>
+    <button id="themeToggle" class="btn btn-ghost">🌙</button>
+    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+  <main class="container fade-up">
+    <section class="hero post-job-hero">
+      <div class="hero-content">
+        <p class="eyebrow">Employer workspace</p>
+        <h1 class="hero-title">Publish quality roles that attract better applicants</h1>
+        <p class="hero-subtitle">Create clear job posts, add shift details, and use premium placement to reach candidates faster.</p>
+      </div>
+      <div class="hero-panel">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <span class="stat-label">Visibility</span>
+            <span class="stat-value">High</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Review Speed</span>
+            <span class="stat-value">Fast</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Trust</span>
+            <span class="stat-value">Verified</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="post-job-layout">
+      <div class="glass-card">
+        <div class="post-form-head">
+          <h2 class="h2">Post a New Job</h2>
+          <p class="p-muted">Share an opportunity with talent</p>
+        </div>
+
+        <form id="jobForm">
+          <section class="post-form-section">
+            <div class="post-form-section-head">
+              <h3>Basic Information</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Job Title</label>
+                <input type="text" id="jobTitle" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" id="location" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Job Type</label>
+                <input type="text" id="jobType" class="form-input" placeholder="Full-time" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Category</label>
+                <input type="text" id="jobCategory" class="form-input" placeholder="General" required>
+              </div>
+              <div class="form-group" style="grid-column:1/-1;">
+                <label class="form-label">Description</label>
+                <textarea id="jobDescription" class="form-input" rows="5" required></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="post-form-section">
+            <div class="post-form-section-head">
+              <h3>Compensation and Settings</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Application Deadline</label>
+                <input type="datetime-local" id="applicationDeadline" class="form-input">
+                <p class="p-muted" style="margin-top:8px;">Jobs are hidden from applicants after this deadline.</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Salary</label>
+                <input type="text" id="salary" class="form-input">
+              </div>
+              <div class="form-group post-toggle-field">
+                <label class="form-label" for="isPremium">Premium Job ($10)</label>
+                <input type="checkbox" id="isPremium">
+              </div>
+              <div class="form-group post-toggle-field">
+                <label class="form-label" for="isShift">Shift Job (Escrow)</label>
+                <input type="checkbox" id="isShift">
+              </div>
+            </div>
+            <p class="p-muted" id="shiftNotice" style="margin-top:8px;">
+              By posting a shift you pre-pay the shift amount plus platform fee. Funds are released to the worker after you confirm completion or automatically after 24 hours.
+            </p>
+            <p class="p-muted" style="margin-top:8px;">Draft saves automatically in this browser until you post successfully.</p>
+          </section>
+
+          <section id="shiftFields" class="post-form-section" style="display:none;">
+            <div class="post-form-section-head">
+              <h3>Shift Details</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Shift Start</label>
+                <input type="datetime-local" id="shiftStart" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Shift End</label>
+                <input type="datetime-local" id="shiftEnd" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Shift Pay (USD)</label>
+                <input type="number" id="shiftPay" class="form-input" min="1" step="1" placeholder="e.g. 120">
+              </div>
+            </div>
+          </section>
+
+          <button class="btn btn-primary">Post Job</button>
+        </form>
+      </div>
+
+      <aside class="post-job-aside">
+        <div class="glass-card">
+          <p class="eyebrow">Tips</p>
+          <h3>Make your post stand out</h3>
+          <p class="p-muted">Add clear responsibilities, shift pay, and expected timelines to boost applicant quality.</p>
+          <ul class="auth-list">
+            <li>Verified company badge</li>
+            <li>Premium placement options</li>
+            <li>Shift escrow protection</li>
+          </ul>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div id="donationModal" class="modal hidden">
+    <div class="modal-content glass-card">
+      <h3>Support JobPortal</h3>
+      <p class="p-muted">Optional tip to support the platform.</p>
+      <div class="donation-options">
+        <button class="btn btn-outline" type="button" data-amount="0">No thanks</button>
+        <button class="btn btn-outline" type="button" data-amount="200">$2</button>
+        <button class="btn btn-outline" type="button" data-amount="500">$5</button>
+        <button class="btn btn-outline" type="button" data-amount="1000">$10</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/postjob.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/theme.js" defer></script>
+
+</body>
+</html>

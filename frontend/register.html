@@ -1,0 +1,190 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register - Job Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+
+<body class="registration-page auth-page">
+
+   <!-- NAVBAR -->
+  <nav class="navbar">
+      <div class="nav-left">
+        <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+      </div>
+
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="jobs.html" class="nav-link">Jobs</a>
+      <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+      <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+      <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+      <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+      <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+      <a href="login.html" id="loginLink" class="nav-link">Login</a>
+      <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+        <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+      </a>
+      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+      <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+  <div class="registration-container">
+    <div class="auth-shell">
+      <div class="registration-card">
+
+        <div class="auth-tabs" aria-label="Auth links">
+          <a href="login.html" class="auth-tab">Login</a>
+          <a href="register.html" class="auth-tab is-active">Register</a>
+          <a href="forgot-password.html" class="auth-tab">Forgot</a>
+        </div>
+
+        <div class="registration-header">
+          <div class="registration-logo">JP</div>
+          <h1 class="registration-title">Create Account</h1>
+          <p class="registration-subtitle">Join the job community</p>
+        </div>
+
+        <form id="registerForm" class="registration-form">
+          <div class="form-group">
+            <label class="form-label">I am here to</label>
+            <div class="role-options" role="radiogroup" aria-label="Account type">
+              <label class="role-card">
+                <input type="radio" name="accountType" value="job_seeker" checked>
+                <span class="role-content">
+                  <strong>Find a job</strong>
+                  <span class="p-muted">Build your profile and apply fast.</span>
+                </span>
+              </label>
+              <label class="role-card">
+                <input type="radio" name="accountType" value="employer">
+                <span class="role-content">
+                  <strong>Hire talent</strong>
+                  <span class="p-muted">Post jobs and manage applicants.</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="name" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="email" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Phone number</label>
+            <input type="tel" id="phone" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="password" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Confirm password</label>
+            <input type="password" id="confirmPassword" class="form-input" required>
+          </div>
+
+          <div id="jobSeekerFields" class="job-seeker-fields">
+            <div class="form-group">
+              <label class="form-label">Country</label>
+              <input type="text" id="country" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">City</label>
+              <input type="text" id="city" class="form-input" required>
+            </div>
+          </div>
+
+          <div id="employerFields" class="employer-fields hidden">
+            <div class="form-group">
+              <label class="form-label">Company name</label>
+              <input type="text" id="companyName" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Company phone</label>
+              <input type="tel" id="companyPhone" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Company website (optional)</label>
+              <input type="url" id="companyWebsite" class="form-input" placeholder="https://">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Company location</label>
+              <input type="text" id="companyLocation" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Company address / house number</label>
+              <input type="text" id="companyAddress" class="form-input">
+            </div>
+          </div>
+
+          <button class="registration-btn">Register</button>
+        </form>
+
+      </div>
+
+      <aside class="auth-side">
+        <div class="auth-side-card">
+          <p class="eyebrow">Build your profile</p>
+          <h2>Stand out instantly</h2>
+          <p class="p-muted">Upload your resume, get parsed insights, and save roles for rapid apply.</p>
+          <ul class="auth-list">
+            <li>Verified company profiles</li>
+            <li>Premium job alerts</li>
+            <li>Pipeline visibility</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="character-avatar">âœ¨</div>
+  <div id="toast"></div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/register.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/theme.js" defer></script>
+
+</body>
+</html>
+
+

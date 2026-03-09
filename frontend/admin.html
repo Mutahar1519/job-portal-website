@@ -1,0 +1,200 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css">
+</head>
+
+<body class="admin-page">
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="jobs.html" class="nav-link">Jobs</a>
+    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+    <a href="admin.html" id="adminLink" class="nav-link nav-active">Admin</a>
+    <a href="login.html" id="loginLink" class="nav-link">Login</a>
+    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+    </a>
+    <button id="themeToggle" class="btn btn-ghost">ðŸŒ™</button>
+    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+
+  <!-- DASHBOARD -->
+  <main class="container fade-up admin-shell">
+    <section class="admin-header-card">
+      <div class="admin-header-main">
+        <p class="eyebrow">System management</p>
+        <h1 class="hero-title">Admin Dashboard</h1>
+        <p class="hero-subtitle">Oversee jobs, applications, reviews, escrow workflows, and moderation controls in one place.</p>
+      </div>
+      <div class="admin-header-icon" aria-hidden="true"><i class="fa-solid fa-shield-halved"></i></div>
+    </section>
+
+    <section class="admin-stat-grid" id="statsSummary">
+      <article class="admin-stat-card stat-blue">
+        <p class="admin-stat-label">Total Jobs</p>
+        <p id="totalJobs" class="admin-stat-value">0</p>
+      </article>
+      <article class="admin-stat-card stat-purple">
+        <p class="admin-stat-label">Applications</p>
+        <p id="totalApplications" class="admin-stat-value">0</p>
+      </article>
+      <article class="admin-stat-card stat-green">
+        <p class="admin-stat-label">Premium Jobs</p>
+        <p id="premiumJobs" class="admin-stat-value">0</p>
+      </article>
+      <article class="admin-stat-card stat-orange">
+        <p class="admin-stat-label">Normal Jobs</p>
+        <p id="normalJobs" class="admin-stat-value">0</p>
+      </article>
+    </section>
+
+    <section class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Jobs</p>
+          <h2 class="h2">Create or manage job posts</h2>
+        </div>
+        <button class="btn btn-primary" type="button" onclick="loadJobs()">Reload Jobs</button>
+      </div>
+
+      <form id="adminJobForm" class="form-grid admin-job-form">
+        <div class="form-group">
+          <label class="form-label">Job Title</label>
+          <input type="text" id="adminJobTitle" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input type="text" id="adminJobLocation" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Job Type</label>
+          <input type="text" id="adminJobType" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <input type="text" id="adminJobCategory" class="form-input" required>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Description</label>
+          <textarea id="adminJobDescription" class="form-input" rows="4" required></textarea>
+        </div>
+        <div class="form-group admin-check-row">
+          <label class="form-label" for="adminJobPremium">Premium</label>
+          <input type="checkbox" id="adminJobPremium">
+        </div>
+        <div class="admin-form-actions">
+          <button class="btn btn-primary" type="submit" id="adminJobSubmit">Add Job</button>
+          <button class="btn btn-outline" type="button" id="adminJobCancel" style="display:none;">Cancel Edit</button>
+        </div>
+      </form>
+
+      <div id="jobs" class="admin-list"></div>
+    </section>
+
+    <section class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Applications</p>
+          <h3>Candidate pipeline</h3>
+        </div>
+      </div>
+      <div id="applications" class="admin-list"></div>
+    </section>
+
+    <section class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Reviews</p>
+          <h3>Approval queue</h3>
+        </div>
+      </div>
+      <div id="reviewQueue" class="admin-list"></div>
+    </section>
+
+    <section class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Shifts</p>
+          <h3>Escrow operations</h3>
+        </div>
+      </div>
+      <div id="shiftEscrows" class="admin-list"></div>
+    </section>
+
+    <section class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">AI moderation</p>
+          <h3>Moderation settings</h3>
+        </div>
+      </div>
+      <p class="p-muted">Control automatic job approval and AI-assisted moderation checks.</p>
+      <div class="form-group admin-check-row" style="margin-top:12px;">
+        <label class="form-label" for="autoApproveToggle">Enable auto-approval</label>
+        <input type="checkbox" id="autoApproveToggle">
+      </div>
+      <p id="autoApproveMeta" class="p-muted">Loading moderation settings...</p>
+      <button class="btn btn-outline" type="button" id="saveAutoApproveBtn">Save moderation settings</button>
+    </section>
+
+    <section class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Analytics</p>
+          <h3>Monthly platform stats</h3>
+        </div>
+      </div>
+      <canvas id="statsChart" height="220"></canvas>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/admin-guard.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/theme.js" defer></script>
+
+</body>
+</html>
+

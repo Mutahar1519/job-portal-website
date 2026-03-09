@@ -1,0 +1,288 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile | JobPortal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+</head>
+<body class="profile-page">
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="jobs.html" class="nav-link">Jobs</a>
+    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+    <a href="profile.html" id="profileLink" class="nav-link nav-active">Profile</a>
+    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+    <a href="login.html" id="loginLink" class="nav-link">Login</a>
+    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+    </a>
+    <button id="themeToggle" class="btn btn-ghost">ðŸŒ™</button>
+    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+  <main class="container fade-up">
+    <section class="hero profile-hero profile-hero-premium">
+      <div class="hero-content">
+        <p class="eyebrow">Career profile</p>
+        <h1 class="hero-title">Build a profile that gets noticed by the right employers</h1>
+        <p class="hero-subtitle">Keep your personal details, resume links, and professional highlights ready for faster shortlisting.</p>
+        <div class="hero-actions">
+          <a class="btn btn-outline" href="resume.html"><i class="fa-solid fa-file-lines"></i> Update resume</a>
+          <a class="btn btn-primary" href="jobs.html"><i class="fa-solid fa-magnifying-glass"></i> Explore jobs</a>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="glass-card profile-card">
+          <div id="profileHeroAvatar" class="profile-avatar">JP</div>
+          <div>
+            <h2 id="profileName" class="h2">Your name</h2>
+            <p id="profileEmail" class="p-muted">email@example.com</p>
+            <p id="profileRole" class="p-muted">Candidate</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="profile-tabs" aria-label="Profile sections">
+      <a href="#profile-edit-panel" class="profile-tab is-active"><i class="fa-solid fa-user-pen"></i> Edit Profile</a>
+      <a href="#profile-public-panel" class="profile-tab"><i class="fa-solid fa-id-badge"></i> Public View</a>
+      <a href="#profile-activity-panel" class="profile-tab"><i class="fa-solid fa-chart-column"></i> Activity</a>
+      <a href="#quick-links" class="profile-tab"><i class="fa-solid fa-link"></i> Quick Links</a>
+    </section>
+
+    <section id="profile-edit-panel" class="section-block profile-panel">
+      <div class="section-head">
+        <p class="eyebrow">Profile</p>
+        <h2 class="section-title">Edit your profile</h2>
+        <p class="p-muted">Keep your profile fresh so employers can understand you quickly.</p>
+      </div>
+      <div class="profile-layout">
+        <div class="glass-card profile-editor">
+          <form id="profileForm" class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="profileFullName">Full name</label>
+              <input id="profileFullName" class="form-input" type="text" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profilePhone">Phone</label>
+              <input id="profilePhone" class="form-input" type="tel" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profileCountry">Country</label>
+              <input id="profileCountry" class="form-input" type="text" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profileCity">City</label>
+              <input id="profileCity" class="form-input" type="text" />
+            </div>
+
+            <div id="jobSeekerFields">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <p class="p-muted">Personal info</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="profileDob">Date of birth</label>
+              <input id="profileDob" class="form-input" type="date" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profileGender">Gender (optional)</label>
+              <select id="profileGender" class="form-input">
+                <option value="">Prefer not to say</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="non_binary">Non-binary</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label class="form-label" for="profileAddress">Address</label>
+              <input id="profileAddress" class="form-input" type="text" placeholder="Street, house number" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profileLinkedIn">LinkedIn URL</label>
+              <input id="profileLinkedIn" class="form-input" type="url" placeholder="https://" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profilePortfolio">Portfolio URL</label>
+              <input id="profilePortfolio" class="form-input" type="url" placeholder="https://" />
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <p class="p-muted">Professional info</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="profileJobTitle">Job title</label>
+              <input id="profileJobTitle" class="form-input" type="text" placeholder="Frontend Developer" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profileSkills">Skills</label>
+              <input id="profileSkills" class="form-input" type="text" placeholder="React, UX, SQL" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profileExperience">Years of experience</label>
+              <input id="profileExperience" class="form-input" type="number" min="0" step="1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profileCurrentCompany">Current company</label>
+              <input id="profileCurrentCompany" class="form-input" type="text" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profileExpectedSalary">Expected salary</label>
+              <input id="profileExpectedSalary" class="form-input" type="text" placeholder="$60k - $80k" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profilePreferredType">Preferred job type</label>
+              <select id="profilePreferredType" class="form-input">
+                <option value="">Select</option>
+                <option value="full-time">Full-time</option>
+                <option value="part-time">Part-time</option>
+                <option value="contract">Contract</option>
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profileLocation">Preferred location</label>
+              <input id="profileLocation" class="form-input" type="text" placeholder="City, Country" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profilePhoto">Profile photo URL</label>
+              <input id="profilePhoto" class="form-input" type="url" placeholder="https://" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profilePhotoFile">Upload photo</label>
+              <input id="profilePhotoFile" class="form-input" type="file" accept="image/*" />
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label class="form-label" for="profileBio">Bio</label>
+              <textarea id="profileBio" class="form-input" rows="4" placeholder="Short summary about your experience"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profileResume">Resume link</label>
+              <input id="profileResume" class="form-input" type="url" placeholder="https://" />
+            </div>
+            </div>
+            <div class="form-group form-actions">
+              <button class="btn btn-primary" type="submit">Save changes</button>
+              <a class="btn btn-outline" href="resume.html">Upload resume</a>
+            </div>
+          </form>
+        </div>
+
+        <div id="profile-public-panel" class="glass-card profile-preview-card">
+          <h3 class="section-title">Public profile</h3>
+          <div class="profile-preview">
+            <div id="profileAvatarWrap" class="profile-avatar-wrap"></div>
+            <div>
+              <h3 id="profilePreviewName">Your name</h3>
+              <p id="profilePreviewTitle" class="p-muted"></p>
+              <div class="profile-meta">
+                <span id="profilePreviewLocation" class="p-muted"></span>
+                <a id="profilePreviewResume" class="profile-link" href="#" target="_blank" rel="noopener">Resume</a>
+              </div>
+              <p id="profilePreviewJobType" class="p-muted"></p>
+              <div id="profilePreviewSkills" class="pill-row"></div>
+              <p id="profilePreviewBio" class="p-muted"></p>
+            </div>
+          </div>
+          <div class="profile-note">
+            <span class="pill">Visible to employers when you apply</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="profile-activity-panel" class="section-block profile-panel">
+      <div class="section-head">
+        <p class="eyebrow">Overview</p>
+        <h2 class="section-title">Your activity snapshot</h2>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <span class="stat-label">Applications</span>
+          <span id="profileApplications" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Saved jobs</span>
+          <span id="profileSaved" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Shift alerts</span>
+          <span id="profileShiftAlerts" class="stat-value">0</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="quick-links" class="section-block profile-panel">
+      <div class="section-head">
+        <p class="eyebrow">Quick links</p>
+        <h2 class="section-title">Keep your momentum</h2>
+      </div>
+      <div class="menu-grid">
+        <a class="menu-card" href="dashboard.html">
+          <h3>Application dashboard</h3>
+          <p class="p-muted">Monitor every application in one view.</p>
+        </a>
+        <a class="menu-card" href="resume.html">
+          <h3>Resume parser</h3>
+          <p class="p-muted">Update your resume and parsed skills.</p>
+        </a>
+        <a class="menu-card" href="company.html">
+          <h3>Company profile</h3>
+          <p class="p-muted">Showcase your team and brand.</p>
+        </a>
+        <a class="menu-card" href="employer.html">
+          <h3>Employer pipeline</h3>
+          <p class="p-muted">Move candidates through your stages.</p>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/profile.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/section-tabs.js"></script>
+  <script src="js/theme.js" defer></script>
+</body>
+</html>
+

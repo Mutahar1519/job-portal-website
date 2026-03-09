@@ -1,0 +1,234 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Applications | JobPortal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+</head>
+<body class="dashboard-page">
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="jobs.html" class="nav-link">Jobs</a>
+    <a href="dashboard.html" id="dashboardLink" class="nav-link nav-active">Dashboard</a>
+    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+    <a href="login.html" id="loginLink" class="nav-link">Login</a>
+    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+    </a>
+    <button id="themeToggle" class="btn btn-ghost">ðŸŒ™</button>
+    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+  <main class="container fade-up">
+    <section class="hero dashboard-hero">
+      <div class="hero-content">
+        <p class="eyebrow">Candidate dashboard</p>
+        <h1 class="hero-title">Track progress, alerts, and applications from one workspace</h1>
+        <p class="hero-subtitle">Monitor hiring status, manage saved jobs, and respond to shift alerts faster.</p>
+        <div class="hero-actions">
+          <a class="btn btn-outline" href="jobs.html"><i class="fa-solid fa-magnifying-glass"></i> Explore jobs</a>
+          <a class="btn btn-outline" href="resume.html"><i class="fa-solid fa-file-lines"></i> Resume parser</a>
+          <a class="btn btn-primary" href="post-jobs.html"><i class="fa-solid fa-briefcase"></i> Post a job</a>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="glass dashboard-summary-card">
+          <p class="eyebrow">Live overview</p>
+          <p class="p-muted">Your application activity updates in real time.</p>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <span class="stat-label">Total</span>
+            <span id="statTotal" class="stat-value">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Pending</span>
+            <span id="statPending" class="stat-value">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Reviewed</span>
+            <span id="statReviewed" class="stat-value">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Accepted</span>
+            <span id="statAccepted" class="stat-value">0</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="dashboard-tabs" aria-label="Dashboard sections">
+      <a href="#dashboard-overview" class="dashboard-tab is-active"><i class="fa-solid fa-chart-simple"></i> Overview</a>
+      <a href="#applications-panel" class="dashboard-tab"><i class="fa-solid fa-file-lines"></i> Applications</a>
+      <a href="#saved-jobs-panel" class="dashboard-tab"><i class="fa-solid fa-bookmark"></i> Saved Jobs</a>
+      <a href="#shift-alerts" class="dashboard-tab"><i class="fa-solid fa-bell"></i> Alerts</a>
+    </section>
+
+    <section id="dashboard-overview" class="section-block quick-actions">
+      <a class="action-card" href="#shift-alerts">
+        <div>
+          <p class="eyebrow">Alerts</p>
+          <h3>Shift alerts</h3>
+          <p class="p-muted">View urgent opportunities as soon as they appear.</p>
+        </div>
+        <span class="action-arrow">â†’</span>
+      </a>
+      <a class="action-card" href="#alerts-panel">
+        <div>
+          <p class="eyebrow">Saved</p>
+          <h3>Job alerts</h3>
+          <p class="p-muted">Manage keywords, location targets, and frequency.</p>
+        </div>
+        <span class="action-arrow">â†’</span>
+      </a>
+      <a class="action-card" href="#saved-jobs-panel">
+        <div>
+          <p class="eyebrow">Library</p>
+          <h3>Saved jobs</h3>
+          <p class="p-muted">Keep shortlisted roles ready for quick apply.</p>
+        </div>
+        <span class="action-arrow">â†’</span>
+      </a>
+    </section>
+
+    <section class="filters filters-card">
+      <div class="filter-group">
+        <label class="filter-label" for="searchInput">Search</label>
+        <input id="searchInput" class="filter-input" type="text" placeholder="Search by title or location" />
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="statusFilter">Status</label>
+        <select id="statusFilter" class="filter-input">
+          <option value="all">All</option>
+          <option value="pending">Pending</option>
+          <option value="reviewed">Reviewed</option>
+          <option value="accepted">Accepted</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="sortBy">Sort</label>
+        <select id="sortBy" class="filter-input">
+          <option value="recent">Most recent</option>
+          <option value="oldest">Oldest</option>
+          <option value="title">Title</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="section-block dashboard-panel" id="applications-panel">
+      <div class="section-head">
+        <p class="eyebrow">Pipeline</p>
+        <h2 class="section-title">Applications</h2>
+        <p class="p-muted">Stay on top of every stage with quick actions and clear status.</p>
+      </div>
+      <div id="applications" class="app-grid"></div>
+    </section>
+
+    <section id="saved-jobs-panel" class="section-block dashboard-panel">
+      <div class="section-head">
+        <p class="eyebrow">Saved</p>
+        <h2 class="section-title">Saved jobs</h2>
+      </div>
+      <div id="savedJobs" class="jobs-grid"></div>
+    </section>
+
+    <section id="shift-alerts" class="section-block dashboard-panel">
+      <div class="section-head">
+        <p class="eyebrow">Alerts</p>
+        <h2 class="section-title">Shift alerts</h2>
+      </div>
+      <div class="shift-alert-summary">
+        <div class="shift-alert-count">
+          New shift alerts: <span id="shiftAlertCount">0</span>
+        </div>
+        <button id="refreshShiftAlerts" class="btn btn-outline" type="button">Refresh</button>
+      </div>
+      <div id="shiftAlerts" class="shift-alert-list"></div>
+    </section>
+
+    <section id="alerts-panel" class="section-block dashboard-panel">
+      <div class="section-head">
+        <p class="eyebrow">Alerts</p>
+        <h2 class="section-title">Job alerts</h2>
+      </div>
+      <div class="glass-card">
+        <form id="alertForm" class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="alertKeyword">Keyword</label>
+            <input id="alertKeyword" class="form-input" type="text" placeholder="Design, React, Product" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="alertLocation">Location</label>
+            <input id="alertLocation" class="form-input" type="text" placeholder="Remote, London" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="alertCategory">Category</label>
+            <input id="alertCategory" class="form-input" type="text" placeholder="IT, Marketing" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="alertType">Job type</label>
+            <input id="alertType" class="form-input" type="text" placeholder="Full-time" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="alertFrequency">Frequency</label>
+            <select id="alertFrequency" class="form-input">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </div>
+          <div class="form-group form-actions">
+            <button class="btn btn-primary" type="submit">Create alert</button>
+          </div>
+        </form>
+      </div>
+      <div id="alertsList" class="alert-list"></div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/section-tabs.js"></script>
+  <script src="js/theme.js" defer></script>
+</body>
+</html>
+

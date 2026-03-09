@@ -1,0 +1,101 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify Email | JobPortal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body class="registration-page auth-page">
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="jobs.html" class="nav-link">Jobs</a>
+    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+    <a href="login.html" id="loginLink" class="nav-link">Login</a>
+    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+    </a>
+    <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+  <div class="registration-container">
+    <div class="auth-shell">
+      <div class="registration-card">
+        <div class="registration-header">
+          <div class="registration-logo">JP</div>
+          <h1 class="registration-title">Verify your email</h1>
+          <p class="registration-subtitle" id="verifyStatus">Checking your verification link...</p>
+        </div>
+
+        <div class="form-group">
+          <p class="p-muted" id="verifyMessage"></p>
+        </div>
+
+        <div class="form-group form-actions">
+          <a class="btn btn-primary" href="login.html">Go to login</a>
+        </div>
+      </div>
+
+      <aside class="auth-side">
+        <div class="auth-side-card">
+          <p class="eyebrow">Secure access</p>
+          <h2>Verified accounts only</h2>
+          <p class="p-muted">Verification keeps spam out and protects employers and candidates.</p>
+          <ul class="auth-list">
+            <li>Trusted employers</li>
+            <li>Cleaner job listings</li>
+            <li>Better response rates</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/verify-email.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/theme.js" defer></script>
+</body>
+</html>
+
+

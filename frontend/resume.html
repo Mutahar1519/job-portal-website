@@ -1,0 +1,128 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resume Parser | JobPortal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+</head>
+<body class="resume-page">
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="jobs.html" class="nav-link">Jobs</a>
+    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+    <a href="login.html" id="loginLink" class="nav-link">Login</a>
+    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+    </a>
+    <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+  <main class="container fade-up">
+    <section class="hero resume-hero-premium">
+      <div class="hero-content">
+        <p class="eyebrow">Resume intelligence</p>
+        <h1 class="hero-title">Turn your resume into searchable hiring signals</h1>
+        <p class="hero-subtitle">Upload a clean PDF and let the platform extract key text and skill signals for faster matching.</p>
+        <p id="resumeStatus" class="p-muted"></p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="jobs.html"><i class="fa-solid fa-rocket"></i> Find matching jobs</a>
+          <a class="btn btn-outline" href="profile.html"><i class="fa-solid fa-user"></i> Back to profile</a>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="glass" style="padding:18px;">
+          <div class="p-muted">Tip</div>
+          <div class="h2" style="margin:8px 0;">Use a clean text PDF</div>
+          <p class="p-muted">Text-based resumes parse best. Image-only scanned files may return limited text.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="resume-tabs" aria-label="Resume sections">
+      <a href="#resumeForm" class="resume-tab is-active"><i class="fa-solid fa-upload"></i> Upload</a>
+      <a href="#resumeStats" class="resume-tab"><i class="fa-solid fa-chart-simple"></i> Insights</a>
+      <a href="#resumePreview" class="resume-tab"><i class="fa-solid fa-file-lines"></i> Parsed Text</a>
+    </section>
+
+    <section class="resume-layout">
+      <div class="glass-card resume-panel">
+        <h2 class="section-title">Upload resume</h2>
+        <p class="p-muted">Only PDF files are supported. Keep formatting simple for best extraction quality.</p>
+        <form id="resumeForm" class="form-grid" enctype="multipart/form-data">
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label" for="resumeFile">PDF file</label>
+            <input id="resumeFile" class="form-input" type="file" accept=".pdf" required />
+          </div>
+          <div class="form-group form-actions">
+            <button class="btn btn-primary" type="submit">Upload</button>
+          </div>
+        </form>
+        <div id="resumeMeta" class="p-muted" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="glass-card resume-insights resume-panel">
+        <h2 class="section-title">AI resume insights</h2>
+        <p class="p-muted">Quick signals from your parsed resume to improve job matching.</p>
+        <div id="resumeStats" class="stat-grid"></div>
+        <div>
+          <p class="eyebrow" style="margin-top:12px;">Top skills</p>
+          <div id="resumeSkills" class="pill-row"></div>
+        </div>
+      </div>
+
+      <div class="glass-card resume-preview resume-panel">
+        <h2 class="section-title">Parsed text</h2>
+        <div id="resumePreview" class="resume-text"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/resume.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/section-tabs.js"></script>
+  <script src="js/theme.js" defer></script>
+</body>
+</html>
+
+

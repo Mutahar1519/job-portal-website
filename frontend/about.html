@@ -1,0 +1,156 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Us | JobPortal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+</head>
+
+<body class="about-page">
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="jobs.html" class="nav-link">Jobs</a>
+    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+    <a href="login.html" id="loginLink" class="nav-link">Login</a>
+    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+    </a>
+    <button id="themeToggle" class="btn btn-ghost">ðŸŒ™</button>
+    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+  <main class="container fade-up">
+    <section class="hero">
+      <p class="eyebrow">About JobPortal</p>
+      <h1 class="hero-title">A focused hiring platform built for clarity.</h1>
+      <p class="hero-subtitle">
+        We help teams and candidates move faster with verified postings, clean workflows, and a simpler path to hire.
+      </p>
+      <div class="pill-row">
+        <span class="pill">Verified employers</span>
+        <span class="pill">Escrow-backed shifts</span>
+        <span class="pill">Fast screening</span>
+      </div>
+    </section>
+
+    <section class="about-tabs" aria-label="About sections">
+      <a href="#why" class="about-tab is-active"><i class="fa-solid fa-bullseye"></i> Why</a>
+      <a href="#mission" class="about-tab"><i class="fa-solid fa-lightbulb"></i> Mission</a>
+      <a href="#team" class="about-tab"><i class="fa-solid fa-people-group"></i> Team</a>
+    </section>
+
+    <section id="why" class="section-block about-panel">
+      <div class="section-head">
+        <p class="eyebrow">Why we exist</p>
+        <h2 class="section-title">Less noise. More signal.</h2>
+        <p class="p-muted">
+          Job seekers and hiring teams deserve a product that respects their time. We focus on high-quality listings and
+          a clean hiring pipeline that keeps momentum strong.
+        </p>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>Trusted postings</h3>
+          <p class="p-muted">Verification and spam prevention keep listings credible.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Action-ready workflows</h3>
+          <p class="p-muted">Shortlist, chat, and schedule without switching tools.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Fair access</h3>
+          <p class="p-muted">Candidates can browse freely and apply with a single account.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="mission" class="section-block about-panel">
+      <div class="section-head">
+        <p class="eyebrow">Our mission</p>
+        <h2 class="section-title">Make hiring feel focused and fair</h2>
+        <p class="p-muted">
+          We are building a practical hiring layer where high-intent candidates and teams can connect quickly,
+          collaborate clearly, and close roles with confidence.
+        </p>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>Speed with trust</h3>
+          <p class="p-muted">Fast decisions supported by verification and moderation safeguards.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Simple workflows</h3>
+          <p class="p-muted">Everything from search to shortlist to chat in one coherent flow.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Better outcomes</h3>
+          <p class="p-muted">Higher quality matches through clearer job data and profile signals.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="team" class="section-block about-panel">
+      <div class="section-head">
+        <p class="eyebrow">The team</p>
+        <h2 class="section-title">Built for real hiring teams</h2>
+        <p class="p-muted">We design every screen to remove friction and deliver results.</p>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-card">
+          <h3>Hiring partners</h3>
+          <p class="p-muted">Tools to move from posting to offer quickly.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Job seekers</h3>
+          <p class="p-muted">Clear requirements, safe offers, and faster responses.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Operations</h3>
+          <p class="p-muted">Audit-friendly logs and shift protection.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="about.html">About</a>
+      </div>
+    </div>
+    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/section-tabs.js"></script>
+  <script src="js/theme.js" defer></script>
+</body>
+</html>
+

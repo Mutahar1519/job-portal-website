@@ -1,0 +1,182 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employer Pipeline | JobPortal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+</head>
+<body class="employer-page">
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="jobs.html" class="nav-link">Jobs</a>
+    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+    <a href="login.html" id="loginLink" class="nav-link">Login</a>
+    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+    </a>
+    <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+  <main class="container fade-up">
+    <section class="hero employer-hero-premium">
+      <div class="hero-content">
+        <p class="eyebrow">Recruitment pipeline</p>
+        <h1 class="hero-title">Move candidates through each hiring stage with clarity</h1>
+        <p class="hero-subtitle">Review applications, update pipeline stages, and collaborate through centralized messaging.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="post-jobs.html"><i class="fa-solid fa-plus"></i> Create new job</a>
+          <a class="btn btn-outline" href="company.html"><i class="fa-solid fa-building"></i> Company profile</a>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="glass" style="padding:18px;">
+          <div class="p-muted">Tip</div>
+          <div class="h2" style="margin:8px 0;">Keep decisions visible</div>
+          <p class="p-muted">Update stages after each interview so your team stays aligned and responsive.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="employer-tabs" aria-label="Employer sections">
+      <a href="#employer-jobs" class="employer-tab is-active"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+      <a href="#employer-analytics" class="employer-tab"><i class="fa-solid fa-chart-line"></i> Analytics</a>
+      <a href="#employer-pipeline" class="employer-tab"><i class="fa-solid fa-users"></i> Pipeline</a>
+      <a href="#employer-messages" class="employer-tab"><i class="fa-solid fa-comments"></i> Messages</a>
+    </section>
+
+    <section id="employer-jobs" class="section-block employer-panel">
+      <div class="section-head">
+        <p class="eyebrow">Jobs</p>
+        <h2 class="section-title">Select a job</h2>
+      </div>
+      <div class="pipeline-toolbar">
+        <div class="toolbar-group">
+          <label class="filter-label" for="jobSelect">Active role</label>
+          <select id="jobSelect" class="form-input"></select>
+        </div>
+        <div class="toolbar-actions">
+          <button id="refreshJobs" class="btn btn-outline" type="button">Refresh</button>
+          <a class="btn btn-primary" href="post-jobs.html">Post a job</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="employer-analytics" class="section-block employer-panel">
+      <div class="section-head">
+        <p class="eyebrow">Analytics</p>
+        <h2 class="section-title">Employer stats</h2>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <span class="stat-label">Total jobs</span>
+          <span id="employerTotalJobs" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Applications</span>
+          <span id="employerTotalApplications" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Saved by candidates</span>
+          <span id="employerTotalSaves" class="stat-value">0</span>
+        </div>
+      </div>
+      <div id="pipelineSummary" class="pipeline-summary"></div>
+    </section>
+
+    <section class="pipeline-layout employer-panel">
+      <div id="employer-pipeline" class="pipeline-board employer-pipeline-board">
+        <div class="pipeline-column" data-stage="new">
+          <h3>New</h3>
+          <div class="pipeline-list" id="stage-new"></div>
+        </div>
+        <div class="pipeline-column" data-stage="screening">
+          <h3>Screening</h3>
+          <div class="pipeline-list" id="stage-screening"></div>
+        </div>
+        <div class="pipeline-column" data-stage="interview">
+          <h3>Interview</h3>
+          <div class="pipeline-list" id="stage-interview"></div>
+        </div>
+        <div class="pipeline-column" data-stage="offer">
+          <h3>Offer</h3>
+          <div class="pipeline-list" id="stage-offer"></div>
+        </div>
+        <div class="pipeline-column" data-stage="hired">
+          <h3>Hired</h3>
+          <div class="pipeline-list" id="stage-hired"></div>
+        </div>
+        <div class="pipeline-column" data-stage="rejected">
+          <h3>Rejected</h3>
+          <div class="pipeline-list" id="stage-rejected"></div>
+        </div>
+      </div>
+
+      <aside id="employer-messages" class="message-panel employer-message-panel">
+        <div class="message-header">
+          <div>
+            <h3>Messages</h3>
+            <p id="messageMeta" class="p-muted">Select an application to view messages.</p>
+          </div>
+          <button id="refreshMessages" class="btn btn-outline" type="button">Refresh</button>
+        </div>
+        <div id="candidateProfile" class="candidate-profile">
+          <p class="p-muted">Select a candidate to view profile.</p>
+        </div>
+        <div id="messageList" class="message-list"></div>
+        <form id="messageForm" class="message-form">
+          <textarea id="messageInput" class="form-input" rows="3" placeholder="Write a message"></textarea>
+          <button class="btn btn-primary" type="submit">Send</button>
+        </form>
+      </aside>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/employer.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/section-tabs.js"></script>
+  <script src="js/theme.js" defer></script>
+</body>
+</html>
+
+

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search Jobs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body class="jobs-page">
+
+ <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="jobs.html" class="nav-active nav-link">Jobs</a>
+    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+    <a href="login.html" id="loginLink" class="nav-link">Login</a>
+    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+    </a>
+    <button id="themeToggle" class="btn btn-ghost">🌙</button>
+    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+<main class="container jobs-page-layout">
+<section class="job-search-section">
+  <div class="search-header">
+    <div>
+      <p class="eyebrow">Career discovery</p>
+      <h2 class="job-search-title">Find roles that match your skills and goals</h2>
+      <p class="p-muted">Use smart filters to discover verified opportunities faster.</p>
+    </div>
+    <div class="search-meta">
+      <span class="pill">Verified employers</span>
+      <span class="pill">Shift alerts</span>
+      <span class="pill">Remote-ready</span>
+    </div>
+  </div>
+
+  <div class="job-search-form">
+    <div class="form-field">
+      <label for="searchInput">Role or keyword</label>
+      <input type="text" id="searchInput" placeholder="Design lead, React, Product">
+    </div>
+    <div class="form-field">
+      <label for="categoryFilter">Category</label>
+      <select id="categoryFilter">
+        <option value="">All Categories</option>
+        <option value="IT">IT</option>
+        <option value="Design">Design</option>
+        <option value="Marketing">Marketing</option>
+      </select>
+    </div>
+    <button class="job-search-btn" onclick="loadJobs()">Search</button>
+  </div>
+
+  <div class="search-actions">
+    <button id="toggleFilters" class="btn btn-ghost" type="button">More filters</button>
+    <button id="clearFilters" class="btn btn-outline" type="button">Clear filters</button>
+  </div>
+
+  <div id="advancedFilters" class="advanced-filters hidden">
+    <div class="form-field">
+      <label for="locationFilter">Location</label>
+      <input type="text" id="locationFilter" placeholder="Remote, London">
+    </div>
+    <div class="form-field">
+      <label for="typeFilter">Job type</label>
+      <select id="typeFilter">
+        <option value="">Any</option>
+        <option value="Full-time">Full-time</option>
+        <option value="Part-time">Part-time</option>
+        <option value="Contract">Contract</option>
+        <option value="Internship">Internship</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label for="experienceFilter">Experience</label>
+      <select id="experienceFilter">
+        <option value="">Any</option>
+        <option value="junior">Junior</option>
+        <option value="mid">Mid</option>
+        <option value="senior">Senior</option>
+        <option value="lead">Lead</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label for="salaryFilter">Salary</label>
+      <select id="salaryFilter">
+        <option value="">Any</option>
+        <option value="0-50000">Up to $50k</option>
+        <option value="50000-100000">$50k - $100k</option>
+        <option value="100000+">$100k+</option>
+        <option value="shift">Shift pay listed</option>
+      </select>
+    </div>
+    <label class="filter-check">
+      <input type="checkbox" id="remoteOnly" />
+      Remote only
+    </label>
+  </div>
+
+  <div id="recentSearches" class="recent-searches"></div>
+</section>
+
+<section class="jobs-results-bar" aria-live="polite">
+  <div>
+    <p class="eyebrow">Search results</p>
+    <h3 class="jobs-results-title"><span id="jobsResultCount">0</span> roles found</h3>
+  </div>
+  <p id="jobsResultHint" class="p-muted">Refine filters to get more relevant matches.</p>
+</section>
+
+<div id="jobs" class="jobs-grid"></div>
+<div id="jobsSkeleton" class="skeleton-grid hidden"></div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div>
+      <div class="logo">JobPortal</div>
+      <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <p class="p-muted">Email: support@jobportal.com</p>
+      <p class="p-muted">Phone: +1 (555) 210-8899</p>
+    </div>
+    <div>
+      <h4>Links</h4>
+      <a href="jobs.html">Jobs</a>
+      <a href="post-jobs.html">Post Job</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 JobPortal. All rights reserved.</div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/jobs-search.js"></script>
+<script src="js/navbar.js"></script>
+<script src="js/auth-ui.js"></script>
+<script src="js/theme.js" defer></script>
+<script src="js/utils.js"></script>
+<script src="js/support-chat.js"></script>
+
+</body>
+</html>

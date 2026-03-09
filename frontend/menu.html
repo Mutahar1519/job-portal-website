@@ -1,0 +1,297 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menu | JobPortal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+</head>
+<body class="menu-page">
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="jobs.html" class="nav-link">Jobs</a>
+    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+    <a href="menu.html" id="menuLink" class="nav-link nav-active">Menu</a>
+    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+    <a href="login.html" id="loginLink" class="nav-link">Login</a>
+    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+    </a>
+    <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+  <main class="container fade-up">
+    <section class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">Menu</p>
+        <h1 class="hero-title">Everything in one place</h1>
+        <p class="hero-subtitle">Jump to the most important areas in your hiring and job search journey.</p>
+        <div class="menu-actions">
+          <a class="menu-pill" href="menu.html#salary">Salary</a>
+          <a class="menu-pill" href="menu.html#reviews">Reviews</a>
+          <a class="menu-pill" href="menu.html#settings">Settings</a>
+          <a class="menu-pill" href="menu.html#help">Help</a>
+          <a class="menu-pill" href="menu.html#privacy">Privacy</a>
+          <a class="menu-pill" href="menu.html#terms">Terms</a>
+          <a class="menu-pill" href="menu.html#trust">Trust Center</a>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="glass" style="padding:18px;">
+          <div class="p-muted">Tip</div>
+          <div class="h2" style="margin:8px 0;">Stay on track</div>
+          <p class="p-muted">Save jobs to get instant alerts and return later.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="menu-tabs" aria-label="Menu quick sections">
+      <a href="#reviews" class="menu-tab is-active"><i class="fa-solid fa-star"></i> Reviews</a>
+      <a href="#salary" class="menu-tab"><i class="fa-solid fa-sack-dollar"></i> Salary</a>
+      <a href="#settings" class="menu-tab"><i class="fa-solid fa-gear"></i> Settings</a>
+      <a href="#help" class="menu-tab"><i class="fa-solid fa-circle-question"></i> Help</a>
+      <a href="#trust" class="menu-tab"><i class="fa-solid fa-shield-halved"></i> Trust</a>
+    </section>
+
+    <section class="section-block menu-panel">
+      <div class="section-head">
+        <p class="eyebrow">Browse</p>
+        <h2 class="section-title">Candidates</h2>
+      </div>
+      <div class="menu-grid">
+        <a class="menu-card" href="jobs.html">
+          <h3>Find jobs</h3>
+          <p class="p-muted">Explore roles with smart filters and saved states.</p>
+        </a>
+        <a class="menu-card" href="dashboard.html">
+          <h3>Applications</h3>
+          <p class="p-muted">Track every application and shift update.</p>
+        </a>
+        <a class="menu-card" href="resume.html">
+          <h3>Resume parser</h3>
+          <p class="p-muted">Upload and parse your resume in seconds.</p>
+        </a>
+      </div>
+    </section>
+
+    <section class="section-block menu-panel">
+      <div class="section-head">
+        <p class="eyebrow">Build</p>
+        <h2 class="section-title">Employers</h2>
+      </div>
+      <div class="menu-grid">
+        <a class="menu-card" href="post-jobs.html">
+          <h3>Post a job</h3>
+          <p class="p-muted">Launch a standard or shift job instantly.</p>
+        </a>
+        <a class="menu-card" href="company.html">
+          <h3>Company profile</h3>
+          <p class="p-muted">Create a brand profile for your listings.</p>
+        </a>
+        <a class="menu-card" href="employer.html">
+          <h3>Employer pipeline</h3>
+          <p class="p-muted">Review, message, and hire from one view.</p>
+        </a>
+      </div>
+    </section>
+
+    <section id="reviews" class="section-block menu-panel">
+      <div class="section-head">
+        <p class="eyebrow">Reviews</p>
+        <h2 class="section-title">Company reviews</h2>
+        <p class="p-muted">See verified feedback and share your experience.</p>
+      </div>
+      <div class="menu-grid">
+        <a class="menu-card" href="menu.html#my-reviews" id="my-reviews">
+          <h3>My reviews</h3>
+          <p class="p-muted">Track and edit your published reviews.</p>
+        </a>
+        <a class="menu-card" href="company.html">
+          <h3>Browse companies</h3>
+          <p class="p-muted">Compare culture, benefits, and ratings.</p>
+        </a>
+        <a class="menu-card" href="menu.html#trust">
+          <h3>Review guidelines</h3>
+          <p class="p-muted">Read trust and moderation policies.</p>
+        </a>
+      </div>
+    </section>
+
+    <section id="salary" class="section-block menu-panel">
+      <div class="section-head">
+        <p class="eyebrow">Salary</p>
+        <h2 class="section-title">Salary insights</h2>
+        <p class="p-muted">Transparent ranges and role benchmarks.</p>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-card">
+          <h3>Role benchmarks</h3>
+          <p class="p-muted">See typical ranges by role and experience.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Location insights</h3>
+          <p class="p-muted">Compare pay ranges by city and remote bands.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Shift rates</h3>
+          <p class="p-muted">Hourly rates and escrow fees for shifts.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="settings" class="section-block menu-panel">
+      <div class="section-head">
+        <p class="eyebrow">Account</p>
+        <h2 class="section-title">Settings</h2>
+        <p class="p-muted">Control notifications, privacy, and security.</p>
+      </div>
+      <div class="menu-grid">
+        <a class="menu-card" href="profile.html">
+          <h3>Profile</h3>
+          <p class="p-muted">Update your profile, resume, and skills.</p>
+        </a>
+        <a class="menu-card" href="dashboard.html">
+          <h3>Alerts</h3>
+          <p class="p-muted">Manage job alerts and shift notifications.</p>
+        </a>
+        <a class="menu-card" href="menu.html#privacy">
+          <h3>Privacy controls</h3>
+          <p class="p-muted">Choose what is visible to employers.</p>
+        </a>
+      </div>
+    </section>
+
+    <section id="help" class="section-block menu-panel">
+      <div class="section-head">
+        <p class="eyebrow">Support</p>
+        <h2 class="section-title">Help center</h2>
+        <p class="p-muted">Find answers fast or reach the support team.</p>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-card">
+          <h3>Getting started</h3>
+          <p class="p-muted">Guides for candidates and employers.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Payment & escrow</h3>
+          <p class="p-muted">How shift escrow and payouts work.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Contact support</h3>
+          <p class="p-muted">We reply in less than 24 hours.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="terms" class="section-block menu-panel">
+      <div class="section-head">
+        <p class="eyebrow">Legal</p>
+        <h2 class="section-title">Terms</h2>
+        <p class="p-muted">Clear, human-readable policies.</p>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-card">
+          <h3>Terms of service</h3>
+          <p class="p-muted">How the platform is used and protected.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Employer agreement</h3>
+          <p class="p-muted">Posting guidelines and escrow responsibilities.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Candidate agreement</h3>
+          <p class="p-muted">Application and messaging policies.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy" class="section-block menu-panel">
+      <div class="section-head">
+        <p class="eyebrow">Privacy</p>
+        <h2 class="section-title">Privacy center</h2>
+        <p class="p-muted">Your data, your control.</p>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-card">
+          <h3>Data preferences</h3>
+          <p class="p-muted">Manage what you share and with whom.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Cookie settings</h3>
+          <p class="p-muted">Control optional analytics cookies.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Delete account</h3>
+          <p class="p-muted">Request account removal and export.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="trust" class="section-block menu-panel">
+      <div class="section-head">
+        <p class="eyebrow">Trust</p>
+        <h2 class="section-title">Trust center</h2>
+        <p class="p-muted">Verification, moderation, and security updates.</p>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-card">
+          <h3>Verification</h3>
+          <p class="p-muted">How we verify employers and reviews.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Security</h3>
+          <p class="p-muted">Platform security commitments.</p>
+        </div>
+        <div class="menu-card">
+          <h3>Moderation</h3>
+          <p class="p-muted">Policies against spam and fraud.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/section-tabs.js"></script>
+  <script src="js/theme.js" defer></script>
+</body>
+</html>
+
+

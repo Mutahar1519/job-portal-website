@@ -1,0 +1,572 @@
+(() => {
+  const adminToken = localStorage.getItem("token");
+  const rawUser = localStorage.getItem("user");
+  let adminUser = null;
+  if (rawUser) {
+    try {
+      adminUser = JSON.parse(rawUser);
+    } catch (err) {
+      console.error("Invalid JSON in localStorage.user", err);
+      localStorage.removeItem("user");
+    }
+  }
+
+  if (!adminToken || !adminUser || !adminUser.is_admin) {
+    alert("Access denied");
+    window.location.href = "index.html";
+    return;
+  }
+
+  const adminAuthFetch = window.authFetch
+    ? window.authFetch
+    : (url, options = {}) => {
+        return fetch(url, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${adminToken}`
+          }
+        });
+      };
+
+  let adminJobsCache = [];
+  let editJobId = null;
+
+  const adminJobForm = document.getElementById("adminJobForm");
+  const adminJobTitle = document.getElementById("adminJobTitle");
+  const adminJobLocation = document.getElementById("adminJobLocation");
+  const adminJobType = document.getElementById("adminJobType");
+  const adminJobCategory = document.getElementById("adminJobCategory");
+  const adminJobDescription = document.getElementById("adminJobDescription");
+  const adminJobPremium = document.getElementById("adminJobPremium");
+  const adminJobSubmit = document.getElementById("adminJobSubmit");
+  const adminJobCancel = document.getElementById("adminJobCancel");
+  const autoApproveToggle = document.getElementById("autoApproveToggle");
+  const autoApproveMeta = document.getElementById("autoApproveMeta");
+  const saveAutoApproveBtn = document.getElementById("saveAutoApproveBtn");
+
+  const params = new URLSearchParams(window.location.search);
+  const paymentStatus = params.get("payment");
+  const sessionId = params.get("session_id");
+  const mode = params.get("mode");
+  const paidJobId = params.get("jobId");
+
+  if (paymentStatus === "success" && mode === "upgrade" && sessionId && paidJobId) {
+    adminAuthFetch(`${API}/payments/confirm`, {
+      method: "POST",
+      body: JSON.stringify({
+        sessionId,
+        mode: "upgrade",
+        jobId: paidJobId
+      })
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Payment confirmation failed");
+        return;
+      }
+      alert("Job upgraded to premium ✅");
+      window.history.replaceState({}, document.title, "admin.html");
+      loadJobs();
+    });
+  }
+
+  function loadJobs() {
+    adminAuthFetch(`${API}/admin/jobs`)
+      .then(res => res.json())
+      .then(jobs => {
+        adminJobsCache = jobs;
+        const jobsContainer = document.getElementById("jobs");
+        if (!jobsContainer) return;
+
+        if (!jobs.length) {
+          jobsContainer.innerHTML = '<p class="empty-state">No jobs found.</p>';
+          return;
+        }
+
+        jobsContainer.innerHTML = "";
+
+        jobs.forEach(job => {
+          const shiftBadge = job.is_shift ? "🕒 Shift" : "";
+          const shiftPaid = job.shift_paid ? "(Paid)" : "";
+          const shiftAction = job.is_shift
+            ? `<button class="btn btn-outline" onclick="resendShiftAlerts(${job.id}, '${job.shift_paid ? "paid" : "posted"}')">Resend Shift Alerts</button>`
+            : "";
+          const moderationScore = Number.isFinite(Number(job.moderation_score))
+            ? Number(job.moderation_score)
+            : null;
+          const moderationStatus = (job.moderation_status || "pending_manual_review").replace(/_/g, " ");
+          const moderationReason = (job.moderation_reason || "No moderation notes").trim();
+          const aiFlag = moderationReason.toLowerCase().includes("ai") ? "🤖" : "";
+          const moderationMeta = `
+            <div class="p-muted" style="margin-top:6px;">
+              Moderation: <strong>${moderationStatus}</strong>
+              ${moderationScore !== null ? `• Score: <strong>${moderationScore}</strong>` : ""}
+              ${aiFlag}
+            </div>
+            <div class="p-muted" style="margin-top:4px;">Reason: ${moderationReason}</div>
+          `;
+
+          jobsContainer.innerHTML += `
+            <article class="job-card admin-record">
+              <div class="admin-record-head">
+                <div>
+                  <h4>${job.title}</h4>
+                  <p class="p-muted">${job.location || "No location"} • ${job.job_type || job.jobType || "General"} • ${job.category || "General"}</p>
+                </div>
+                <div class="admin-record-badges">
+                  ${job.is_premium ? '<span class="tag-pill bg-amber-100 text-amber-700">Premium</span>' : ""}
+                  ${shiftBadge ? '<span class="tag-pill bg-cyan-100 text-cyan-700">Shift</span>' : ""}
+                  ${shiftPaid ? '<span class="tag-pill bg-green-100 text-green-700">Paid</span>' : ""}
+                  <span class="tag-pill ${job.is_approved ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}">${job.is_approved ? "Approved" : "Pending"}</span>
+                </div>
+              </div>
+              ${moderationMeta}
+              <div class="admin-record-actions">
+                <button class="btn btn-outline" onclick="editJob('${job.id}')">Edit</button>
+                <button class="btn btn-outline" onclick="approveJob('${job.id}')">Approve</button>
+                <button class="btn btn-outline" onclick="makePremium('${job.id}')">Premium</button>
+                <button class="btn btn-outline" onclick="viewJobApplications('${job.id}')">Applications</button>
+                <button class="btn btn-outline" onclick="deleteJob('${job.id}')">Delete</button>
+                ${shiftAction}
+              </div>
+            </article>
+          `;
+        });
+      });
+  }
+
+  function loadApplications() {
+    adminAuthFetch(`${API}/applications/admin`)
+      .then(res => res.json())
+      .then(apps => {
+        renderApplications(apps, "Applications");
+      });
+  }
+
+  function loadReviewQueue() {
+    adminAuthFetch(`${API}/admin/reviews?status=pending`)
+      .then(res => res.json())
+      .then(reviews => {
+        const container = document.getElementById("reviewQueue");
+        if (!container) return;
+
+        if (!reviews.length) {
+          container.innerHTML = "<p>No pending reviews</p>";
+          return;
+        }
+
+        container.innerHTML = "";
+        reviews.forEach(review => {
+          const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
+          container.innerHTML += `
+            <div class="review-card">
+              <div class="review-header">
+                <div>
+                  <h4>${review.name}</h4>
+                  <p class="meta">${review.role}</p>
+                </div>
+                <span class="review-stars">${stars}</span>
+              </div>
+              <p class="review-message">${review.message}</p>
+              <div style="margin-top:12px; display:flex; gap:10px;">
+                <button class="btn btn-primary" onclick="approveReview(${review.id})">Approve</button>
+                <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+              </div>
+            </div>
+          `;
+        });
+      });
+  }
+
+  function loadShiftEscrows() {
+    adminAuthFetch(`${API}/admin/shifts`)
+      .then(res => res.json())
+      .then(rows => {
+        const container = document.getElementById("shiftEscrows");
+        if (!container) return;
+
+        if (!rows.length) {
+          container.innerHTML = "<p>No shift escrows yet</p>";
+          return;
+        }
+
+        container.innerHTML = "";
+        rows.forEach(row => {
+          const created = row.created_at ? new Date(row.created_at).toLocaleString() : "";
+          const releaseAt = row.release_at ? new Date(row.release_at).toLocaleString() : "";
+          const status = row.status || "";
+          const amount = row.total_cents ? `$${(row.total_cents / 100).toFixed(2)}` : "";
+          const reason = row.dispute_reason ? `<div class="p-muted">Reason: ${row.dispute_reason}</div>` : "";
+
+          container.innerHTML += `
+            <div class="job-card">
+              <h4>${row.job_title || "Shift"}</h4>
+              <p>Client: ${row.client_name || ""} • Worker: ${row.worker_name || ""}</p>
+              <p>Status: <strong>${status}</strong> ${amount ? "• " + amount : ""}</p>
+              <p class="p-muted">Created: ${created}${releaseAt ? " • Release at: " + releaseAt : ""}</p>
+              ${reason}
+              <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-outline" onclick="disputeShift(${row.id})">Dispute</button>
+                <button class="btn btn-outline" onclick="refundShift(${row.id})">Refund</button>
+                <button class="btn btn-outline" onclick="releaseShift(${row.id})">Release</button>
+                <button class="btn btn-outline" onclick="resendShiftAlerts(${row.job_id}, 'paid')">Resend alerts</button>
+              </div>
+            </div>
+          `;
+        });
+      });
+  }
+
+  function viewJobApplications(jobId) {
+    adminAuthFetch(`${API}/admin/jobs/${jobId}/applications`)
+      .then(res => res.json())
+      .then(apps => renderApplications(apps, `Applications for Job #${jobId}`));
+  }
+
+  function renderApplications(apps, title) {
+    const container = document.getElementById("applications");
+    if (!container) return;
+
+    if (!apps.length) {
+      container.innerHTML = "<p>No applications found</p>";
+      return;
+    }
+
+    container.innerHTML = `<h4 style="margin-bottom:10px;">${title}</h4>`;
+    apps.forEach(app => {
+      const created = app.created_at
+        ? new Date(app.created_at).toLocaleDateString()
+        : "";
+
+      const cvLink = app.cv_path
+        ? `<a href="${app.cv_path}" target="_blank" class="apply-btn">CV</a>`
+        : "";
+
+      const jobTitle = app.job_title ? app.job_title : "";
+      const applicantName = app.full_name || app.user_name || "";
+      const applicantEmail = app.email || app.user_email || "";
+
+      container.innerHTML += `
+        <article class="job-card admin-record">
+          ${jobTitle ? `<h4>${jobTitle}</h4>` : ""}
+          <p>${applicantName} ${applicantEmail ? "• " + applicantEmail : ""}</p>
+          <p>Status: <strong>${app.status}</strong></p>
+          <p>Applied: ${created}</p>
+          ${cvLink}
+          <div class="admin-record-actions" style="margin-top:10px;">
+            <select id="status-${app.id}" class="form-input">
+              <option value="pending" ${app.status === "pending" ? "selected" : ""}>Pending</option>
+              <option value="reviewed" ${app.status === "reviewed" ? "selected" : ""}>Reviewed</option>
+              <option value="accepted" ${app.status === "accepted" ? "selected" : ""}>Accepted</option>
+              <option value="rejected" ${app.status === "rejected" ? "selected" : ""}>Rejected</option>
+            </select>
+            <button class="btn btn-outline" onclick="updateApplicationStatus(${app.id})">Update</button>
+          </div>
+        </article>
+      `;
+    });
+  }
+
+  function approveJob(id) {
+    adminAuthFetch(`${API}/admin/jobs/${id}/approve`, {
+      method: "PUT"
+    }).then(() => loadJobs());
+  }
+
+  function deleteJob(id) {
+    if (!confirm("Delete this job?")) return;
+
+    adminAuthFetch(`${API}/admin/jobs/${id}`, {
+      method: "DELETE"
+    }).then(() => loadJobs());
+  }
+
+  function makePremium(id) {
+    adminAuthFetch(`${API}/payments/create-checkout-session`, {
+      method: "POST",
+      body: JSON.stringify({ mode: "upgrade", jobId: id })
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        alert(data.message || "Failed to start payment");
+        return;
+      }
+      window.location.href = data.url;
+    });
+  }
+
+  function editJob(id) {
+    const job = adminJobsCache.find(item => String(item.id) === String(id));
+    if (!job) return;
+
+    editJobId = id;
+    adminJobTitle.value = job.title || "";
+    adminJobLocation.value = job.location || "";
+    adminJobType.value = job.job_type || job.jobType || "";
+    adminJobCategory.value = job.category || "";
+    adminJobDescription.value = job.description || "";
+    adminJobPremium.checked = !!job.is_premium;
+
+    adminJobSubmit.textContent = "Update Job";
+    adminJobCancel.style.display = "inline-flex";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetAdminJobForm() {
+    editJobId = null;
+    adminJobForm.reset();
+    adminJobSubmit.textContent = "Add Job";
+    adminJobCancel.style.display = "none";
+  }
+
+  function updateApplicationStatus(id) {
+    const select = document.getElementById(`status-${id}`);
+    if (!select) return;
+
+    adminAuthFetch(`${API}/applications/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status: select.value })
+    }).then(() => loadApplications());
+  }
+
+  function approveReview(id) {
+    adminAuthFetch(`${API}/admin/reviews/${id}/approve`, {
+      method: "PUT"
+    }).then(() => loadReviewQueue());
+  }
+
+  function deleteReview(id) {
+    adminAuthFetch(`${API}/admin/reviews/${id}`, {
+      method: "DELETE"
+    }).then(() => loadReviewQueue());
+  }
+
+  function disputeShift(id) {
+    const reason = prompt("Dispute reason (optional):") || "";
+    const note = prompt("Internal note (optional):") || "";
+
+    adminAuthFetch(`${API}/admin/shifts/${id}/dispute`, {
+      method: "PUT",
+      body: JSON.stringify({ reason, note })
+    }).then(() => loadShiftEscrows());
+  }
+
+  function refundShift(id) {
+    if (!confirm("Refund this shift escrow?")) return;
+
+    adminAuthFetch(`${API}/admin/shifts/${id}/refund`, {
+      method: "PUT"
+    }).then(() => loadShiftEscrows());
+  }
+
+  function releaseShift(id) {
+    if (!confirm("Release this shift escrow?")) return;
+
+    adminAuthFetch(`${API}/admin/shifts/${id}/release`, {
+      method: "PUT"
+    }).then(() => loadShiftEscrows());
+  }
+
+  function resendShiftAlerts(jobId, status) {
+    if (!confirm("Resend shift alerts to matching workers?")) return;
+
+    adminAuthFetch(`${API}/admin/shifts/${jobId}/notify`, {
+      method: "POST",
+      body: JSON.stringify({ status })
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to resend alerts");
+        return;
+      }
+      alert("Shift alerts sent ✅");
+    });
+  }
+
+  if (adminJobForm) {
+    adminJobForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const payload = {
+        title: adminJobTitle.value.trim(),
+        location: adminJobLocation.value.trim(),
+        job_type: adminJobType.value.trim(),
+        category: adminJobCategory.value.trim(),
+        description: adminJobDescription.value.trim(),
+        is_premium: adminJobPremium.checked
+      };
+
+      const url = editJobId
+        ? `${API}/admin/jobs/${editJobId}`
+        : `${API}/admin/jobs`;
+
+      const method = editJobId ? "PUT" : "POST";
+
+      adminAuthFetch(url, {
+        method,
+        body: JSON.stringify(payload)
+      }).then(() => {
+        resetAdminJobForm();
+        loadJobs();
+      });
+    });
+  }
+
+  if (adminJobCancel) {
+    adminJobCancel.addEventListener("click", resetAdminJobForm);
+  }
+
+  function loadStats() {
+    adminAuthFetch(`${API}/admin/stats`)
+      .then(res => res.json())
+      .then(stats => {
+        const totalJobs = document.getElementById("totalJobs");
+        const totalApplications = document.getElementById("totalApplications");
+        const premiumJobs = document.getElementById("premiumJobs");
+        const normalJobs = document.getElementById("normalJobs");
+
+        if (totalJobs) totalJobs.textContent = stats.totalJobs || 0;
+        if (totalApplications) totalApplications.textContent = stats.totalApplications || 0;
+        if (premiumJobs) premiumJobs.textContent = stats.premiumJobs || 0;
+        if (normalJobs) normalJobs.textContent = stats.normalJobs || 0;
+
+        drawStatsChart(stats);
+      });
+  }
+
+  function drawStatsChart(stats) {
+    const canvas = document.getElementById("statsChart");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width = canvas.clientWidth || 600;
+    const height = canvas.height = canvas.clientHeight || 220;
+
+    const jobs = stats.monthlyJobs || [];
+    const apps = stats.monthlyApplications || [];
+
+    const months = Array.from(
+      new Set([...
+        jobs.map(row => row.month),
+        apps.map(row => row.month)
+      ])
+    ).sort();
+
+    const jobMap = new Map(jobs.map(row => [row.month, row.count]));
+    const appMap = new Map(apps.map(row => [row.month, row.count]));
+
+    const values = months.map(month => ({
+      month,
+      jobs: jobMap.get(month) || 0,
+      apps: appMap.get(month) || 0
+    }));
+
+    const maxValue = Math.max(1, ...values.map(v => Math.max(v.jobs, v.apps)));
+    const padding = 30;
+    const chartWidth = width - padding * 2;
+    const chartHeight = height - padding * 2;
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "rgba(248, 250, 252, 1)";
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.45)";
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, height - padding);
+    ctx.lineTo(width - padding, height - padding);
+    ctx.stroke();
+
+    const groupWidth = values.length ? chartWidth / values.length : chartWidth;
+    const barWidth = Math.max(8, groupWidth / 3);
+
+    values.forEach((item, index) => {
+      const baseX = padding + index * groupWidth + groupWidth / 2;
+      const jobsHeight = (item.jobs / maxValue) * chartHeight;
+      const appsHeight = (item.apps / maxValue) * chartHeight;
+
+      ctx.fillStyle = "#22c55e";
+      ctx.fillRect(baseX - barWidth - 2, height - padding - jobsHeight, barWidth, jobsHeight);
+
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(baseX + 2, height - padding - appsHeight, barWidth, appsHeight);
+
+      ctx.fillStyle = "#475569";
+      ctx.font = "10px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(item.month, baseX, height - padding + 12);
+    });
+
+    ctx.fillStyle = "#334155";
+    ctx.font = "11px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText("Jobs", padding, padding - 8);
+    ctx.fillStyle = "#22c55e";
+    ctx.fillRect(padding + 30, padding - 16, 10, 10);
+    ctx.fillStyle = "#334155";
+    ctx.fillText("Applications", padding + 50, padding - 8);
+    ctx.fillStyle = "#38bdf8";
+    ctx.fillRect(padding + 125, padding - 16, 10, 10);
+  }
+
+  function loadModerationSettings() {
+    if (!autoApproveToggle || !autoApproveMeta) return;
+
+    adminAuthFetch(`${API}/admin/settings/auto-approval`)
+      .then(res => res.json())
+      .then(data => {
+        autoApproveToggle.checked = !!data.enabled;
+        autoApproveMeta.textContent = `Moderation provider: ${data.ai_provider || "heuristic-only"}`;
+      })
+      .catch((err) => {
+        console.error(err);
+        autoApproveMeta.textContent = "Failed to load moderation settings";
+      });
+  }
+
+  function saveModerationSettings() {
+    if (!autoApproveToggle) return;
+
+    adminAuthFetch(`${API}/admin/settings/auto-approval`, {
+      method: "PUT",
+      body: JSON.stringify({ enabled: autoApproveToggle.checked })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert(data.error || "Failed to save moderation settings");
+          return;
+        }
+        alert(data.message || "Moderation settings updated");
+        loadModerationSettings();
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Failed to save moderation settings");
+      });
+  }
+
+  window.loadJobs = loadJobs;
+  window.approveJob = approveJob;
+  window.deleteJob = deleteJob;
+  window.makePremium = makePremium;
+  window.editJob = editJob;
+  window.viewJobApplications = viewJobApplications;
+  window.updateApplicationStatus = updateApplicationStatus;
+  window.approveReview = approveReview;
+  window.deleteReview = deleteReview;
+  window.disputeShift = disputeShift;
+  window.refundShift = refundShift;
+  window.releaseShift = releaseShift;
+  window.resendShiftAlerts = resendShiftAlerts;
+
+  saveAutoApproveBtn?.addEventListener("click", saveModerationSettings);
+
+  loadJobs();
+  loadApplications();
+  loadReviewQueue();
+  loadShiftEscrows();
+  loadStats();
+  loadModerationSettings();
+})();

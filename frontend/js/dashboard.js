@@ -1,0 +1,531 @@
+document.addEventListener("DOMContentLoaded", async () => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("Login required");
+    window.location.href = "login.html";
+    return;
+  }
+
+  const container = document.getElementById("applications");
+  const searchInput = document.getElementById("searchInput");
+  const statusFilter = document.getElementById("statusFilter");
+  const sortBy = document.getElementById("sortBy");
+  const savedContainer = document.getElementById("savedJobs");
+  const alertsList = document.getElementById("alertsList");
+  const alertForm = document.getElementById("alertForm");
+  const shiftAlertsList = document.getElementById("shiftAlerts");
+  const shiftAlertCount = document.getElementById("shiftAlertCount");
+  const refreshShiftAlerts = document.getElementById("refreshShiftAlerts");
+
+  if (!container) return;
+
+  let allApps = [];
+  let alerts = [];
+
+  const statusOrder = ["pending", "reviewed", "accepted", "rejected"];
+
+  const pipelineLabel = (stage) => {
+    const value = (stage || "new").toString().toLowerCase();
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  };
+
+  const formatDeadlineMeta = (app) => {
+    if (!app.application_deadline) {
+      return '<span class="meta">Deadline: Open</span>';
+    }
+
+    const deadlineDate = new Date(app.application_deadline);
+    if (Number.isNaN(deadlineDate.valueOf())) {
+      return '<span class="meta">Deadline: Not available</span>';
+    }
+
+    const isOpen = Number(app.is_open_for_applications) === 1;
+    const formatted = deadlineDate.toLocaleString();
+
+    if (!isOpen) {
+      return `<span class="meta">Deadline passed: ${formatted}</span>`;
+    }
+
+    return `<span class="meta">Apply by: ${formatted}</span>`;
+  };
+
+  const normalizeStatus = (value) => {
+    return (value || "").toLowerCase();
+  };
+
+  const setStats = (apps) => {
+    const statTotal = document.getElementById("statTotal");
+    const statPending = document.getElementById("statPending");
+    const statReviewed = document.getElementById("statReviewed");
+    const statAccepted = document.getElementById("statAccepted");
+
+    const counts = apps.reduce(
+      (acc, app) => {
+        const status = normalizeStatus(app.status);
+        acc.total += 1;
+        if (status === "pending") acc.pending += 1;
+        if (status === "reviewed") acc.reviewed += 1;
+        if (status === "accepted") acc.accepted += 1;
+        return acc;
+      },
+      { total: 0, pending: 0, reviewed: 0, accepted: 0 }
+    );
+
+    if (statTotal) statTotal.textContent = counts.total;
+    if (statPending) statPending.textContent = counts.pending;
+    if (statReviewed) statReviewed.textContent = counts.reviewed;
+    if (statAccepted) statAccepted.textContent = counts.accepted;
+  };
+
+  const renderApplications = (apps) => {
+    if (!apps.length) {
+      container.innerHTML = "<p class=\"empty-state\">No applications match your filters.</p>";
+      return;
+    }
+
+    container.innerHTML = "";
+    const formatShiftMeta = (app) => {
+      if (!app.is_shift) return "";
+      const pay = app.shift_pay_cents ? `$${(app.shift_pay_cents / 100).toFixed(2)}` : "";
+      const start = app.shift_start ? new Date(app.shift_start).toLocaleString() : "";
+      const end = app.shift_end ? new Date(app.shift_end).toLocaleString() : "";
+      const time = start && end ? `${start} - ${end}` : start || end;
+      const parts = [pay, time].filter(Boolean).join(" • ");
+      return parts ? `<div class="p-muted">${parts}</div>` : "";
+    };
+
+    const renderShiftActions = (app) => {
+      if (!app.is_shift || !app.escrow_id) return "";
+      if (app.escrow_status !== "awaiting_confirmation") return "";
+      if (app.worker_confirmed) {
+        return "<div class=\"p-muted\">You confirmed completion.</div>";
+      }
+      return `
+        <button class="btn btn-outline" type="button" data-action="worker-confirm" data-job-id="${app.job_id}">
+          Confirm shift completion
+        </button>
+      `;
+    };
+
+    const renderShiftBadge = (app) => {
+      if (!app.is_shift) return "";
+      const status = (app.escrow_status || app.shift_status || "open").toLowerCase();
+      const label = status.replace(/_/g, " ");
+      return `<span class="status-pill status-${status}">${label}</span>`;
+    };
+
+    apps.forEach(app => {
+      const created = app.created_at ? new Date(app.created_at).toLocaleDateString() : "";
+      const status = normalizeStatus(app.status);
+      const statusIndex = Math.max(0, statusOrder.indexOf(status));
+      const stage = (app.pipeline_stage || "new").toLowerCase();
+
+      const cvLink = app.cv_path
+        ? `<a href="${app.cv_path}" target="_blank" class="btn btn-outline">View CV</a>`
+        : "";
+
+      container.innerHTML += `
+        <article class="app-card">
+          <div class="app-card__header">
+            <div>
+              <h3>${app.title}</h3>
+              <p class="meta">${app.location || ""} ${app.job_type ? "• " + app.job_type : ""}</p>
+              <p class="meta">Pipeline stage: ${pipelineLabel(stage)}</p>
+            </div>
+            <div class="status-stack">
+              <span class="status-pill status-${status}">${app.status}</span>
+              ${renderShiftBadge(app)}
+            </div>
+          </div>
+          <div class="app-timeline">
+            ${statusOrder
+              .map((step, index) => {
+                const stepLabel = step.charAt(0).toUpperCase() + step.slice(1);
+                const activeClass = index <= statusIndex ? "active" : "";
+                return `<span class="timeline-dot ${activeClass}">${stepLabel}</span>`;
+              })
+              .join("")}
+          </div>
+          ${app.is_shift ? `<div class="shift-meta">${formatShiftMeta(app)}</div>` : ""}
+          <div class="app-card__footer">
+            <span class="meta">Applied: ${created}</span>
+            ${formatDeadlineMeta(app)}
+            <div class="actions">
+              ${renderShiftActions(app)}
+              ${cvLink}
+            </div>
+          </div>
+        </article>
+      `;
+    });
+  };
+
+  const applyFilters = () => {
+    const term = (searchInput?.value || "").trim().toLowerCase();
+    const status = statusFilter?.value || "all";
+    const sort = sortBy?.value || "recent";
+
+    let filtered = [...allApps];
+
+    if (term) {
+      filtered = filtered.filter(app => {
+        const title = (app.title || "").toLowerCase();
+        const location = (app.location || "").toLowerCase();
+        return title.includes(term) || location.includes(term);
+      });
+    }
+
+    if (status !== "all") {
+      filtered = filtered.filter(app => normalizeStatus(app.status) === status);
+    }
+
+    if (sort === "recent") {
+      filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+
+    if (sort === "oldest") {
+      filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    }
+
+    if (sort === "title") {
+      filtered.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    }
+
+    renderApplications(filtered);
+  };
+
+  const renderSavedJobs = (jobs) => {
+    if (!savedContainer) return;
+
+    if (!jobs.length) {
+      savedContainer.innerHTML = "<p class=\"empty-state\">No saved jobs yet.</p>";
+      return;
+    }
+
+    savedContainer.innerHTML = "";
+    jobs.forEach(job => {
+      const premiumBadge = job.is_premium
+        ? '<span class="badge badge-premium">Premium</span>'
+        : "";
+
+      const company = job.company_name ? ` • ${job.company_name}` : "";
+      const jobType = job.job_type || job.jobType || "";
+
+      savedContainer.innerHTML += `
+        <article class="job-card">
+          <h3>${job.title} ${premiumBadge}</h3>
+          <p class="meta">${job.location || ""}${jobType ? " • " + jobType : ""}${company}</p>
+          <div class="job-card-actions">
+            <a href="apply.html?jobId=${job.id}" class="apply-btn" data-job-id="${job.id}">Apply</a>
+            <button class="btn btn-outline save-btn" type="button" data-save-id="${job.id}" data-saved="1">Remove</button>
+          </div>
+        </article>
+      `;
+    });
+  };
+
+  const loadSavedJobs = async () => {
+    if (!savedContainer) return;
+    try {
+      const res = await authFetch(`${API}/saved-jobs`);
+      const jobs = await res.json();
+      if (!res.ok) {
+        savedContainer.innerHTML = "<p class=\"empty-state\">Failed to load saved jobs.</p>";
+        return;
+      }
+      renderSavedJobs(jobs || []);
+    } catch (err) {
+      console.error(err);
+      savedContainer.innerHTML = "<p class=\"empty-state\">Server error.</p>";
+    }
+  };
+
+  const renderAlerts = (list) => {
+    if (!alertsList) return;
+
+    if (!list.length) {
+      alertsList.innerHTML = "<p class=\"empty-state\">No alerts yet.</p>";
+      return;
+    }
+
+    alertsList.innerHTML = "";
+    list.forEach(alert => {
+      const filters = [
+        alert.keyword ? `Keyword: ${alert.keyword}` : "",
+        alert.location ? `Location: ${alert.location}` : "",
+        alert.category ? `Category: ${alert.category}` : "",
+        alert.job_type ? `Type: ${alert.job_type}` : ""
+      ].filter(Boolean).join(" | ");
+
+      alertsList.innerHTML += `
+        <div class="alert-card">
+          <div>
+            <div class="alert-title">${filters || "All jobs"}</div>
+            <div class="p-muted">Frequency: ${alert.frequency}</div>
+          </div>
+          <div class="alert-actions">
+            <button class="btn btn-outline" type="button" data-action="toggle" data-id="${alert.id}">
+              ${alert.is_active ? "Deactivate" : "Activate"}
+            </button>
+            <button class="btn btn-outline" type="button" data-action="delete" data-id="${alert.id}">Delete</button>
+          </div>
+        </div>
+      `;
+    });
+  };
+
+  const loadAlerts = async () => {
+    if (!alertsList) return;
+    try {
+      const res = await authFetch(`${API}/job-alerts`);
+      const data = await res.json();
+      if (!res.ok) {
+        alertsList.innerHTML = "<p class=\"empty-state\">Failed to load alerts.</p>";
+        return;
+      }
+      alerts = data || [];
+      renderAlerts(alerts);
+    } catch (err) {
+      console.error(err);
+      alertsList.innerHTML = "<p class=\"empty-state\">Server error.</p>";
+    }
+  };
+
+  const renderShiftAlerts = (items) => {
+    if (!shiftAlertsList) return;
+
+    if (!items.length) {
+      shiftAlertsList.innerHTML = "<p class=\"empty-state\">No shift alerts yet.</p>";
+      if (shiftAlertCount) shiftAlertCount.textContent = "0";
+      return;
+    }
+
+    const unread = items.filter(item => !item.is_read).length;
+    if (shiftAlertCount) shiftAlertCount.textContent = String(unread);
+
+    shiftAlertsList.innerHTML = "";
+    items.forEach(item => {
+      const pay = item.shift_pay_cents ? `$${(item.shift_pay_cents / 100).toFixed(2)}` : "";
+      const start = item.shift_start ? new Date(item.shift_start).toLocaleString() : "";
+      const end = item.shift_end ? new Date(item.shift_end).toLocaleString() : "";
+      const time = start && end ? `${start} - ${end}` : start || end;
+      const meta = [pay, time, item.location].filter(Boolean).join(" • ");
+      const status = (item.status || "posted").replace(/_/g, " ");
+
+      shiftAlertsList.innerHTML += `
+        <div class="shift-alert-card ${item.is_read ? "" : "unread"}">
+          <div>
+            <div class="shift-alert-title">${item.title}</div>
+            <div class="p-muted">${meta}</div>
+            <div class="p-muted">Status: ${status}</div>
+          </div>
+          <div class="shift-alert-actions">
+            <a class="btn btn-outline" href="apply.html?jobId=${item.job_id}">Apply</a>
+            <button class="btn btn-outline" type="button" data-action="read" data-id="${item.id}">
+              Mark read
+            </button>
+          </div>
+        </div>
+      `;
+    });
+  };
+
+  const loadShiftAlerts = async () => {
+    if (!shiftAlertsList) return;
+    try {
+      const res = await authFetch(`${API}/job-alerts/shift-notifications`);
+      const data = await res.json();
+      if (!res.ok) {
+        shiftAlertsList.innerHTML = "<p class=\"empty-state\">Failed to load shift alerts.</p>";
+        return;
+      }
+      renderShiftAlerts(data || []);
+    } catch (err) {
+      console.error(err);
+      shiftAlertsList.innerHTML = "<p class=\"empty-state\">Server error.</p>";
+    }
+  };
+
+  try {
+    const res = await authFetch(`${API}/applications/my`);
+    const apps = await res.json();
+
+    if (!res.ok) {
+      container.innerHTML = "<p class=\"empty-state\">Failed to load applications</p>";
+      return;
+    }
+
+    allApps = apps || [];
+    setStats(allApps);
+    applyFilters();
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = "<p class=\"empty-state\">Server error</p>";
+  }
+
+  await loadSavedJobs();
+  await loadAlerts();
+  await loadShiftAlerts();
+
+  searchInput?.addEventListener("input", applyFilters);
+  statusFilter?.addEventListener("change", applyFilters);
+  sortBy?.addEventListener("change", applyFilters);
+
+  savedContainer?.addEventListener("click", async (event) => {
+    const button = event.target.closest(".save-btn");
+    if (!button) return;
+
+    const jobId = button.getAttribute("data-save-id");
+    if (!jobId) return;
+
+    try {
+      const res = await authFetch(`${API}/saved-jobs/${jobId}`, {
+        method: "DELETE"
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to remove saved job");
+        return;
+      }
+
+      await loadSavedJobs();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove saved job");
+    }
+  });
+
+  container?.addEventListener("click", async (event) => {
+    const action = event.target.getAttribute("data-action");
+    const jobId = event.target.getAttribute("data-job-id");
+    if (action !== "worker-confirm" || !jobId) return;
+
+    try {
+      const res = await authFetch(`${API}/shifts/${jobId}/worker-confirm`, {
+        method: "POST"
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to confirm shift");
+        return;
+      }
+      alert(data.message || "Shift confirmed");
+      const refresh = await authFetch(`${API}/applications/my`);
+      allApps = await refresh.json();
+      setStats(allApps);
+      applyFilters();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to confirm shift");
+    }
+  });
+
+  alertForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const payload = {
+      keyword: document.getElementById("alertKeyword").value.trim(),
+      location: document.getElementById("alertLocation").value.trim(),
+      category: document.getElementById("alertCategory").value.trim(),
+      job_type: document.getElementById("alertType").value.trim(),
+      frequency: document.getElementById("alertFrequency").value
+    };
+
+    try {
+      const res = await authFetch(`${API}/job-alerts`, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to create alert");
+        return;
+      }
+
+      alertForm.reset();
+      await loadAlerts();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create alert");
+    }
+  });
+
+  alertsList?.addEventListener("click", async (event) => {
+    const action = event.target.getAttribute("data-action");
+    const alertId = event.target.getAttribute("data-id");
+    if (!action || !alertId) return;
+
+    const selected = alerts.find(item => String(item.id) === String(alertId));
+    if (!selected) return;
+
+    if (action === "delete") {
+      try {
+        const res = await authFetch(`${API}/job-alerts/${alertId}`, {
+          method: "DELETE"
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.message || "Failed to delete alert");
+          return;
+        }
+        await loadAlerts();
+      } catch (err) {
+        console.error(err);
+        alert("Failed to delete alert");
+      }
+      return;
+    }
+
+    if (action === "toggle") {
+      const payload = {
+        keyword: selected.keyword || "",
+        location: selected.location || "",
+        category: selected.category || "",
+        job_type: selected.job_type || "",
+        frequency: selected.frequency || "daily",
+        is_active: selected.is_active ? 0 : 1
+      };
+
+      try {
+        const res = await authFetch(`${API}/job-alerts/${alertId}`, {
+          method: "PUT",
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.message || "Failed to update alert");
+          return;
+        }
+        await loadAlerts();
+      } catch (err) {
+        console.error(err);
+        alert("Failed to update alert");
+      }
+    }
+  });
+
+  refreshShiftAlerts?.addEventListener("click", loadShiftAlerts);
+
+  shiftAlertsList?.addEventListener("click", async (event) => {
+    const action = event.target.getAttribute("data-action");
+    const id = event.target.getAttribute("data-id");
+    if (action !== "read" || !id) return;
+
+    try {
+      const res = await authFetch(`${API}/job-alerts/shift-notifications/${id}/read`, {
+        method: "PUT"
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to mark read");
+        return;
+      }
+      await loadShiftAlerts();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to mark read");
+    }
+  });
+});

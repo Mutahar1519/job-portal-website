@@ -1,0 +1,169 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Company Profile | JobPortal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+</head>
+<body class="company-page">
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="jobs.html" class="nav-link">Jobs</a>
+    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+    <a href="login.html" id="loginLink" class="nav-link">Login</a>
+    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+    </a>
+    <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+  <main class="container fade-up">
+    <section class="hero company-hero-premium">
+      <div class="hero-content">
+        <p class="eyebrow">Employer branding</p>
+        <h1 class="hero-title">Build a trusted company profile that increases candidate confidence</h1>
+        <p class="hero-subtitle">Publish complete company details, improve credibility, and help applicants make faster decisions.</p>
+        <p id="companyMode" class="p-muted"></p>
+        <p id="companyShare" class="p-muted"></p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="post-jobs.html"><i class="fa-solid fa-briefcase"></i> Post a job</a>
+          <a class="btn btn-outline" href="employer.html"><i class="fa-solid fa-users"></i> Open pipeline</a>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="glass" style="padding:18px;">
+          <div class="p-muted">Tip</div>
+          <div class="h2" style="margin:8px 0;">Stronger profile, better applicants</div>
+          <p class="p-muted">Complete profiles with logo, industry, and location usually get more qualified responses.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="company-tabs" aria-label="Company sections">
+      <a href="#company-details-panel" class="company-tab is-active"><i class="fa-solid fa-pen-to-square"></i> Company Details</a>
+      <a href="#company-preview-panel" class="company-tab"><i class="fa-solid fa-eye"></i> Preview</a>
+      <a href="post-jobs.html" class="company-tab"><i class="fa-solid fa-plus"></i> Post Job</a>
+      <a href="employer.html" class="company-tab"><i class="fa-solid fa-users"></i> Pipeline</a>
+    </section>
+
+    <section id="company-details-panel" class="company-layout company-panel">
+      <div id="companyEditor" class="glass-card company-editor-card">
+        <h2 class="section-title">Company details</h2>
+        <form id="companyForm" class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="companyName">Company name</label>
+            <input id="companyName" class="form-input" type="text" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="companyPhone">Company phone</label>
+            <input id="companyPhone" class="form-input" type="tel" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="companyWebsite">Website</label>
+            <input id="companyWebsite" class="form-input" type="url" placeholder="https://" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="companyLocation">Headquarters location</label>
+            <input id="companyLocation" class="form-input" type="text" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="companyAddress">Company address</label>
+            <input id="companyAddress" class="form-input" type="text" placeholder="Street, house number" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="companySize">Company size</label>
+            <input id="companySize" class="form-input" type="text" placeholder="1-10, 11-50" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="companyIndustry">Industry</label>
+            <input id="companyIndustry" class="form-input" type="text" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="companyFounded">Founded year</label>
+            <input id="companyFounded" class="form-input" type="number" min="1800" max="2100" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="companyLogo">Logo URL</label>
+            <input id="companyLogo" class="form-input" type="url" placeholder="https://" />
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <p class="p-muted">Verification (optional)</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="companyRegistration">Registration number</label>
+            <input id="companyRegistration" class="form-input" type="text" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="companyLinkedIn">LinkedIn company page</label>
+            <input id="companyLinkedIn" class="form-input" type="url" placeholder="https://" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="companyTaxId">Tax ID</label>
+            <input id="companyTaxId" class="form-input" type="text" />
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label" for="companyDescription">Description</label>
+            <textarea id="companyDescription" class="form-input" rows="5"></textarea>
+          </div>
+          <div class="form-group form-actions">
+            <button class="btn btn-primary" type="submit">Save profile</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="company-preview-panel" class="glass-card company-preview company-preview-sticky">
+        <h2 class="section-title">Preview</h2>
+        <div id="companyPreview"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/company.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/section-tabs.js"></script>
+  <script src="js/theme.js" defer></script>
+</body>
+</html>
+
+
