@@ -31,6 +31,7 @@
 
   let adminJobsCache = [];
   let editJobId = null;
+  let reviewStatusFilter = "pending";
 
   const adminJobForm = document.getElementById("adminJobForm");
   const adminJobTitle = document.getElementById("adminJobTitle");
@@ -144,39 +145,75 @@
       });
   }
 
-  function loadReviewQueue() {
-    adminAuthFetch(`${API}/admin/reviews?status=pending`)
+  function loadReviewQueue(status = reviewStatusFilter) {
+    reviewStatusFilter = status;
+
+    adminAuthFetch(`${API}/admin/reviews?status=${encodeURIComponent(reviewStatusFilter)}`)
       .then(res => res.json())
       .then(reviews => {
         const container = document.getElementById("reviewQueue");
         if (!container) return;
 
         if (!reviews.length) {
-          container.innerHTML = "<p>No pending reviews</p>";
+          const labels = {
+            pending: "pending",
+            approved: "published",
+            hidden: "hidden"
+          };
+          container.innerHTML = `<p>No ${labels[reviewStatusFilter] || "matching"} reviews</p>`;
           return;
         }
 
         container.innerHTML = "";
         reviews.forEach(review => {
           const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
+          const created = review.created_at ? new Date(review.created_at).toLocaleString() : "";
+          const emailRow = review.email ? `<p class="meta">${review.email}</p>` : "";
+
+          let actionButtons = `
+            <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+          `;
+
+          if (reviewStatusFilter === "pending") {
+            actionButtons = `
+              <button class="btn btn-primary" onclick="approveReview(${review.id})">Approve</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+            `;
+          } else if (reviewStatusFilter === "approved") {
+            actionButtons = `
+              <button class="btn btn-outline" onclick="hideReview(${review.id})">Hide</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+            `;
+          } else if (reviewStatusFilter === "hidden") {
+            actionButtons = `
+              <button class="btn btn-primary" onclick="unhideReview(${review.id})">Unhide</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+            `;
+          }
+
           container.innerHTML += `
             <div class="review-card">
               <div class="review-header">
                 <div>
                   <h4>${review.name}</h4>
                   <p class="meta">${review.role}</p>
+                  ${emailRow}
                 </div>
                 <span class="review-stars">${stars}</span>
               </div>
               <p class="review-message">${review.message}</p>
+              ${created ? `<p class="meta">Submitted: ${created}</p>` : ""}
               <div style="margin-top:12px; display:flex; gap:10px;">
-                <button class="btn btn-primary" onclick="approveReview(${review.id})">Approve</button>
-                <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+                ${actionButtons}
               </div>
             </div>
           `;
         });
       });
+  }
+
+  function setReviewFilter(status) {
+    loadReviewQueue(status);
   }
 
   function loadShiftEscrows() {
@@ -333,13 +370,27 @@
   function approveReview(id) {
     adminAuthFetch(`${API}/admin/reviews/${id}/approve`, {
       method: "PUT"
-    }).then(() => loadReviewQueue());
+    }).then(() => loadReviewQueue(reviewStatusFilter));
+  }
+
+  function hideReview(id) {
+    adminAuthFetch(`${API}/admin/reviews/${id}/hide`, {
+      method: "PUT"
+    }).then(() => loadReviewQueue(reviewStatusFilter));
+  }
+
+  function unhideReview(id) {
+    adminAuthFetch(`${API}/admin/reviews/${id}/unhide`, {
+      method: "PUT"
+    }).then(() => loadReviewQueue(reviewStatusFilter));
   }
 
   function deleteReview(id) {
+    if (!confirm("Delete this review permanently?")) return;
+
     adminAuthFetch(`${API}/admin/reviews/${id}`, {
       method: "DELETE"
-    }).then(() => loadReviewQueue());
+    }).then(() => loadReviewQueue(reviewStatusFilter));
   }
 
   function disputeShift(id) {
@@ -555,7 +606,10 @@
   window.viewJobApplications = viewJobApplications;
   window.updateApplicationStatus = updateApplicationStatus;
   window.approveReview = approveReview;
+  window.hideReview = hideReview;
+  window.unhideReview = unhideReview;
   window.deleteReview = deleteReview;
+  window.setReviewFilter = setReviewFilter;
   window.disputeShift = disputeShift;
   window.refundShift = refundShift;
   window.releaseShift = releaseShift;
