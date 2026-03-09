@@ -121,7 +121,12 @@
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Reviews</p>
-          <h3>Approval queue</h3>
+          <h3>Moderation queue</h3>
+        </div>
+        <div class="admin-record-actions" style="gap:8px;">
+          <button class="btn btn-outline" type="button" onclick="setReviewFilter('pending')">Pending</button>
+          <button class="btn btn-outline" type="button" onclick="setReviewFilter('approved')">Published</button>
+          <button class="btn btn-outline" type="button" onclick="setReviewFilter('hidden')">Hidden</button>
         </div>
       </div>
       <div id="reviewQueue" class="admin-list"></div>

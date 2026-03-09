@@ -8,7 +8,7 @@ exports.getReviews = (req, res) => {
   const limit = Math.min(Number(req.query.limit || 12), 50);
 
   db.query(
-    "SELECT name, role, rating, message, created_at FROM reviews WHERE approved = 1 ORDER BY created_at DESC LIMIT ?",
+    "SELECT name, role, rating, message, created_at FROM reviews WHERE approved = 1 AND is_hidden = 0 ORDER BY created_at DESC LIMIT ?",
     [limit],
     (err, rows) => {
       if (err) {

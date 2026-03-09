@@ -7,6 +7,16 @@ const { getPlatformSetting, setPlatformSetting, toBooleanSetting } = require("..
 
 const DEFAULT_AUTO_APPROVAL_ENABLED = process.env.AUTO_APPROVE_JOBS !== "false";
 
+// Best-effort schema bootstrap for review moderation state.
+db.query(
+  "ALTER TABLE reviews ADD COLUMN is_hidden TINYINT(1) NOT NULL DEFAULT 0",
+  (err) => {
+    if (err && err.code !== "ER_DUP_FIELDNAME") {
+      console.warn("reviews.is_hidden bootstrap failed:", err.message);
+    }
+  }
+);
+
 router.get("/settings/auto-approval", adminAuth, async (req, res) => {
   const raw = await getPlatformSetting("auto_approve_jobs", String(DEFAULT_AUTO_APPROVAL_ENABLED));
   const enabled = toBooleanSetting(raw, DEFAULT_AUTO_APPROVAL_ENABLED);
@@ -183,12 +193,21 @@ router.get("/stats", adminAuth, (req, res) => {
 
 // REVIEWS (admin)
 router.get("/reviews", adminAuth, (req, res) => {
-  const status = req.query.status || "pending";
-  const approved = status === "approved" ? 1 : 0;
+  const status = String(req.query.status || "pending").toLowerCase();
+  const filters = {
+    pending: "approved = 0",
+    approved: "approved = 1 AND is_hidden = 0",
+    hidden: "approved = 1 AND is_hidden = 1",
+    all: "1 = 1"
+  };
+
+  const where = filters[status] || filters.pending;
 
   db.query(
-    "SELECT id, name, role, email, rating, message, approved, created_at FROM reviews WHERE approved = ? ORDER BY created_at DESC",
-    [approved],
+    `SELECT id, name, role, email, rating, message, approved, is_hidden, created_at
+     FROM reviews
+     WHERE ${where}
+     ORDER BY created_at DESC`,
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
@@ -198,12 +217,36 @@ router.get("/reviews", adminAuth, (req, res) => {
 
 router.put("/reviews/:id/approve", adminAuth, (req, res) => {
   db.query(
-    "UPDATE reviews SET approved = 1 WHERE id = ?",
+    "UPDATE reviews SET approved = 1, is_hidden = 0 WHERE id = ?",
     [req.params.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       if (result.affectedRows === 0) return res.status(404).json({ message: "Review not found" });
       res.json({ message: "Review approved" });
+    }
+  );
+});
+
+router.put("/reviews/:id/hide", adminAuth, (req, res) => {
+  db.query(
+    "UPDATE reviews SET approved = 1, is_hidden = 1 WHERE id = ?",
+    [req.params.id],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0) return res.status(404).json({ message: "Review not found" });
+      res.json({ message: "Review hidden" });
+    }
+  );
+});
+
+router.put("/reviews/:id/unhide", adminAuth, (req, res) => {
+  db.query(
+    "UPDATE reviews SET approved = 1, is_hidden = 0 WHERE id = ?",
+    [req.params.id],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0) return res.status(404).json({ message: "Review not found" });
+      res.json({ message: "Review visible again" });
     }
   );
 });
