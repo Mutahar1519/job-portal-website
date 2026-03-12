@@ -1,5 +1,20 @@
 # Job Portal
 
+Enterprise Job Portal System developed as part of university coursework.
+
+## GitHub Repository
+https://github.com/mzain7610/Enterprise_pro-project
+
+## Team Members
+- Mutahar Yousaf – Backend, Database, Frontend Development
+- Hassan Ahmad – Team Leader
+- Asfand Yar – Meeting Minutes (Secretary)
+- Momina – Documentation and Report Preparation
+- Zain – GitHub Repository Management
+- Khaja – Team Support and Collaboration
+
+
+
 Modern full-stack job portal with role-based access for Job Seekers, Employers, and Administrators.
 
 ## Tech Stack
