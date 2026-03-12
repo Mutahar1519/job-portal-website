@@ -30,6 +30,11 @@ function authFetch(url, options = {}) {
 
   if (token) {
     baseHeaders.Authorization = `Bearer ${token}`;
+    // Debug: log token info (first 20 chars and last 20 chars)
+    const tokenPreview = token.length > 40 ? token.substring(0, 20) + "..." + token.substring(token.length - 20) : token;
+    console.log(`[authFetch] Token attached: ${tokenPreview}, URL: ${url}`);
+  } else {
+    console.warn(`[authFetch] No token found in localStorage for URL: ${url}`);
   }
 
   return fetch(url, {
@@ -37,6 +42,11 @@ function authFetch(url, options = {}) {
     headers: {
       ...baseHeaders
     }
+  }).then(res => {
+    if (!res.ok && res.status === 401) {
+      console.error(`[authFetch] 401 Unauthorized for ${url}. Token may be expired or invalid.`);
+    }
+    return res;
   });
 }
 

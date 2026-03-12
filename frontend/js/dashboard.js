@@ -22,6 +22,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   let allApps = [];
   let alerts = [];
 
+  const jobAlertsList = document.getElementById("jobAlerts");
+  const jobAlertCount = document.getElementById("jobAlertCount");
+  const refreshJobAlerts = document.getElementById("refreshJobAlerts");
+
   const statusOrder = ["pending", "reviewed", "accepted", "rejected"];
 
   const pipelineLabel = (stage) => {
@@ -294,17 +298,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   const renderShiftAlerts = (items) => {
     if (!shiftAlertsList) return;
 
-    if (!items.length) {
-      shiftAlertsList.innerHTML = "<p class=\"empty-state\">No shift alerts yet.</p>";
+    // Filter for only active shift alerts (deadline and shift end still valid)
+    const activeItems = items.filter(item => {
+      const now = new Date();
+      const shiftEnd = item.shift_end ? new Date(item.shift_end) : null;
+      const isOpenForApplications = Number(item.is_open_for_applications) === 1;
+      return shiftEnd && shiftEnd > now && isOpenForApplications;
+    });
+
+    if (!activeItems.length) {
+      shiftAlertsList.innerHTML = "<p class=\"empty-state\">No active shift alerts.</p>";
       if (shiftAlertCount) shiftAlertCount.textContent = "0";
       return;
     }
 
-    const unread = items.filter(item => !item.is_read).length;
+    const unread = activeItems.filter(item => !item.is_read).length;
     if (shiftAlertCount) shiftAlertCount.textContent = String(unread);
 
     shiftAlertsList.innerHTML = "";
-    items.forEach(item => {
+    activeItems.forEach(item => {
       const pay = item.shift_pay_cents ? `$${(item.shift_pay_cents / 100).toFixed(2)}` : "";
       const start = item.shift_start ? new Date(item.shift_start).toLocaleString() : "";
       const end = item.shift_end ? new Date(item.shift_end).toLocaleString() : "";
@@ -346,6 +358,64 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
+  const renderJobAlerts = (items) => {
+    if (!jobAlertsList) return;
+
+    const activeItems = items.filter(item => {
+      const now = new Date();
+      const deadline = item.application_deadline ? new Date(item.application_deadline) : null;
+      const isOpenForApplications = Number(item.is_open_for_applications) === 1;
+      return isOpenForApplications && (!deadline || deadline > now);
+    });
+
+    if (!activeItems.length) {
+      jobAlertsList.innerHTML = "<p class=\"empty-state\">No matching job alerts with valid deadlines.</p>";
+      if (jobAlertCount) jobAlertCount.textContent = "0";
+      return;
+    }
+
+    if (jobAlertCount) jobAlertCount.textContent = String(activeItems.length);
+
+    jobAlertsList.innerHTML = "";
+    activeItems.forEach(item => {
+      const deadline = item.application_deadline ? new Date(item.application_deadline) : null;
+      const deadlineText = deadline ? deadline.toLocaleString() : "Open";
+      const meta = [item.job_type, item.category, item.location].filter(Boolean).join(" • ");
+      const salary = item.salary ? `${item.salary}` : "";
+
+      jobAlertsList.innerHTML += `
+        <div class="job-alert-card">
+          <div>
+            <div class="job-alert-title">${item.title}</div>
+            <div class="p-muted">${meta}</div>
+            ${salary ? `<div class="p-muted">Salary: ${salary}</div>` : ""}
+            <div class="p-muted">Deadline: ${deadlineText}</div>
+          </div>
+          <div class="job-alert-actions">
+            <a class="btn btn-outline" href="job.html?jobId=${item.id}">View</a>
+            <a class="btn btn-outline" href="apply.html?jobId=${item.id}">Apply</a>
+          </div>
+        </div>
+      `;
+    });
+  };
+
+  const loadJobAlerts = async () => {
+    if (!jobAlertsList) return;
+    try {
+      const res = await authFetch(`${API}/job-alerts/job-notifications`);
+      const data = await res.json();
+      if (!res.ok) {
+        jobAlertsList.innerHTML = "<p class=\"empty-state\">Failed to load job alerts.</p>";
+        return;
+      }
+      renderJobAlerts(data || []);
+    } catch (err) {
+      console.error(err);
+      jobAlertsList.innerHTML = "<p class=\"empty-state\">Server error.</p>";
+    }
+  };
+
   try {
     const res = await authFetch(`${API}/applications/my`);
     const apps = await res.json();
@@ -370,6 +440,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   searchInput?.addEventListener("input", applyFilters);
   statusFilter?.addEventListener("change", applyFilters);
   sortBy?.addEventListener("change", applyFilters);
+
+  await loadJobAlerts();
+
+  refreshJobAlerts?.addEventListener("click", loadJobAlerts);
 
   savedContainer?.addEventListener("click", async (event) => {
     const button = event.target.closest(".save-btn");

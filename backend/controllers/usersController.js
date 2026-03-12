@@ -223,6 +223,9 @@ exports.loginUser = (req, res) => {
     }
 
     const user = results[0];
+    if (Number(user.is_blocked) === 1) {
+      return res.status(403).json({ message: "Your account is blocked. Contact support." });
+    }
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -230,9 +233,11 @@ exports.loginUser = (req, res) => {
     }
 
     /* 🔐 CREATE TOKEN */
+    // Use consistent JWT secret
+    const JWT_SECRET = "secret123";
     const token = jwt.sign(
       { id: user.id, is_admin: !!user.is_admin, role: user.role || "job_seeker" },
-      "secret123",
+      JWT_SECRET,
       { expiresIn: "1d" }
     );
 

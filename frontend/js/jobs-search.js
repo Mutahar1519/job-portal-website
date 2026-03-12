@@ -58,9 +58,14 @@ const renderJobCard = (job, options = {}) => {
     : `<span class="company-link">${companyName}</span>`;
   const tagsMarkup = getTagList(job).map(tag => `<span class="job-tag">${tag}</span>`).join("");
   const description = job.description || job.summary || "Explore role details and requirements from this verified employer.";
+  const imageHtml = job.image_url
+    ? `<img class="job-card-image" src="${apiOrigin}${job.image_url}" alt="${job.title}" loading="lazy">`
+    : "";
+  const hasImageClass = job.image_url ? "has-image" : "";
 
   return `
-    <div class="job-card ${premiumClass}">
+    <div class="job-card ${premiumClass} ${hasImageClass}">
+      ${imageHtml}
       <div class="job-card-top">
         <div class="job-card-head">
           ${renderCompanyAvatar(job)}

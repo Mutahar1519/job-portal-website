@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>About Us | JobPortal</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>About Us | JobPortal</title>  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%232563eb' width='100' height='100'/><text x='50' y='65' font-size='50' font-weight='bold' text-anchor='middle' fill='white' font-family='system-ui'>JP</text></svg>">  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
@@ -17,19 +16,19 @@
       <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
     </div>
 
-    <a href="index.html" class="nav-link">Home</a>
-    <a href="jobs.html" class="nav-link">Jobs</a>
-    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
-    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
-    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
-    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
-    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
-    <a href="login.html" id="loginLink" class="nav-link">Login</a>
-    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
-      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
-    </a>
-    <button id="themeToggle" class="btn btn-ghost">ðŸŒ™</button>
-    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="jobs.html" class="nav-link">Jobs</a>
+      <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+      <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+      <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+      <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+      <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+      <a href="login.html" id="loginLink" class="nav-link">Login</a>
+      <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+        <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+      </a>
+      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+      <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
   <main class="container fade-up">
@@ -40,9 +39,9 @@
         We help teams and candidates move faster with verified postings, clean workflows, and a simpler path to hire.
       </p>
       <div class="pill-row">
-        <span class="pill">Verified employers</span>
-        <span class="pill">Escrow-backed shifts</span>
-        <span class="pill">Fast screening</span>
+        <span class="pill tip-word" data-tip="Verified employers have been confirmed by the platform — their identity and business details have been reviewed. Look for the badge on company profiles.">Verified employers</span>
+        <a class="pill tip-word tip-word--link" href="shifts.html" data-tip="Escrow-backed shifts use a secure payment hold: the employer pays upfront and the worker receives the money only after confirming the shift is complete.">Escrow-backed shifts</a>
+        <span class="pill tip-word" data-tip="Fast screening means your application moves through an automated pipeline — Pending → Reviewed → Accepted/Rejected — so you always know your status.">Fast screening</span>
       </div>
     </section>
 
@@ -72,7 +71,7 @@
         </div>
         <div class="feature-card">
           <h3>Fair access</h3>
-          <p class="p-muted">Candidates can browse freely and apply with a single account.</p>
+          <p class="p-muted">Candidates can browse freely and apply with a single account. <a href="register.html" style="color:var(--primary,#2563eb);">Create an account →</a></p>
         </div>
       </div>
     </section>
@@ -93,7 +92,7 @@
         </div>
         <div class="feature-card">
           <h3>Simple workflows</h3>
-          <p class="p-muted">Everything from search to shortlist to chat in one coherent flow.</p>
+          <p class="p-muted">Everything from <a href="jobs.html" style="color:var(--primary,#2563eb);">job search</a> to <span class="tip-word" data-tip="Shortlisting means saving a job so you can return to it and apply later. Use the bookmark icon on any job card.">shortlist</span> to <a href="dashboard.html" style="color:var(--primary,#2563eb);">dashboard</a> in one coherent flow.</p>
         </div>
         <div class="feature-card">
           <h3>Better outcomes</h3>
@@ -146,10 +145,42 @@
     <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
   </footer>
 
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const popup = document.createElement("div");
+    popup.className = "tip-popup";
+    document.body.appendChild(popup);
+    document.querySelectorAll("[data-tip]").forEach(el => {
+      el.addEventListener("mouseenter", () => {
+        popup.textContent = el.dataset.tip;
+        popup.style.display = "block";
+      });
+      el.addEventListener("mousemove", (e) => {
+        popup.style.left = Math.min(e.clientX + 14, window.innerWidth - 296) + "px";
+        popup.style.top = Math.max(e.clientY - 50, 8) + "px";
+      });
+      el.addEventListener("mouseleave", () => { popup.style.display = "none"; });
+      el.addEventListener("click", (e) => {
+        if (!popup.style.display || popup.style.display === "none") {
+          popup.textContent = el.dataset.tip;
+          popup.style.display = "block";
+          popup.style.left = Math.min(e.clientX + 14, window.innerWidth - 296) + "px";
+          popup.style.top = Math.max(e.clientY - 50, 8) + "px";
+          setTimeout(() => { popup.style.display = "none"; }, 4000);
+        } else {
+          popup.style.display = "none";
+        }
+        e.stopPropagation();
+      });
+    });
+    document.addEventListener("click", () => { popup.style.display = "none"; });
+  });
+  </script>
   <script src="js/config.js"></script>
   <script src="js/navbar.js"></script>
   <script src="js/auth-ui.js"></script>
   <script src="js/section-tabs.js"></script>
+  <script src="js/about.js"></script>
   <script src="js/theme.js" defer></script>
 </body>
 </html>

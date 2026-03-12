@@ -274,24 +274,52 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const res = await authFetch(`${API}/jobs`, {
-      method: "POST",
-      body: JSON.stringify({
-        ...jobData,
-        is_premium: false
-      })
-    });
+    try {
+      console.log("Submitting job data:", jobData);
+      const imageFile = document.getElementById("jobImage")?.files?.[0] ?? null;
+      let res;
+      if (imageFile) {
+        const token = localStorage.getItem("token");
+        const fd = new FormData();
+        Object.entries({ ...jobData, is_premium: false }).forEach(([k, v]) => {
+          if (v != null) fd.append(k, String(v));
+        });
+        fd.append("job_image", imageFile);
+        res = await fetch(`${API}/jobs`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd
+        });
+      } else {
+        const imageUrlInput = (document.getElementById("jobImageUrl")?.value || "").trim();
+        res = await authFetch(`${API}/jobs`, {
+          method: "POST",
+          body: JSON.stringify({
+            ...jobData,
+            is_premium: false,
+            ...(imageUrlInput ? { image_url: imageUrlInput } : {})
+          })
+        });
+      }
 
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.message || "Failed to post job");
-      return;
+      console.log("API Response status:", res.status);
+      const data = await res.json();
+      console.log("API Response data:", data);
+
+      if (!res.ok) {
+        alert(data.message || "Failed to post job");
+        console.error("Job submission error:", data);
+        return;
+      }
+
+      alert("Job posted successfully ✅");
+      form.reset();
+      localStorage.removeItem(DRAFT_KEY);
+      if (shiftFields) shiftFields.style.display = "none";
+      openDonationModal("post");
+    } catch (err) {
+      console.error("Job submission error:", err);
+      alert("Error posting job: " + err.message);
     }
-
-    alert("Job posted successfully ✅");
-    form.reset();
-    localStorage.removeItem(DRAFT_KEY);
-    if (shiftFields) shiftFields.style.display = "none";
-    openDonationModal("post");
   });
 });

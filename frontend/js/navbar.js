@@ -441,6 +441,7 @@
     const openMenu = () => {
       panel.classList.add("open");
       backdrop.classList.add("open");
+      document.body.classList.add("nav-menu-open");
       toggle.setAttribute("aria-expanded", "true");
       panel.setAttribute("aria-hidden", "false");
       if ("inert" in panel) {
@@ -453,6 +454,7 @@
       }
       panel.classList.remove("open");
       backdrop.classList.remove("open");
+      document.body.classList.remove("nav-menu-open");
       toggle.setAttribute("aria-expanded", "false");
       panel.setAttribute("aria-hidden", "true");
       if ("inert" in panel) {

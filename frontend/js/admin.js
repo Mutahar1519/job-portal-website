@@ -30,8 +30,10 @@
       };
 
   let adminJobsCache = [];
+  let adminUsersCache = [];
   let editJobId = null;
   let reviewStatusFilter = "pending";
+  let grantHistoryFilter = "all";
 
   const adminJobForm = document.getElementById("adminJobForm");
   const adminJobTitle = document.getElementById("adminJobTitle");
@@ -74,13 +76,20 @@
 
   function loadJobs() {
     adminAuthFetch(`${API}/admin/jobs`)
-      .then(res => res.json())
+      .then(res => {
+        console.log("Jobs API response status:", res.status);
+        return res.json();
+      })
       .then(jobs => {
+        console.log("Jobs data:", jobs);
         adminJobsCache = jobs;
         const jobsContainer = document.getElementById("jobs");
-        if (!jobsContainer) return;
+        if (!jobsContainer) {
+          console.error("jobsContainer element not found");
+          return;
+        }
 
-        if (!jobs.length) {
+        if (!jobs || !Array.isArray(jobs) || jobs.length === 0) {
           jobsContainer.innerHTML = '<p class="empty-state">No jobs found.</p>';
           return;
         }
@@ -134,27 +143,231 @@
             </article>
           `;
         });
+      })
+      .catch(err => {
+        console.error("Error loading jobs:", err);
+        const jobsContainer = document.getElementById("jobs");
+        if (jobsContainer) {
+          jobsContainer.innerHTML = `<p class="empty-state" style="color: #ef4444;">Error loading jobs: ${err.message}</p>`;
+        }
       });
   }
 
   function loadApplications() {
     adminAuthFetch(`${API}/applications/admin`)
-      .then(res => res.json())
+      .then(res => {
+        console.log("Applications API response status:", res.status);
+        return res.json();
+      })
       .then(apps => {
+        console.log("Applications data:", apps);
         renderApplications(apps, "Applications");
+      })
+      .catch(err => {
+        console.error("Error loading applications:", err);
+        const container = document.getElementById("applications");
+        if (container) {
+          container.innerHTML = `<p class="empty-state" style="color: #ef4444;">Error loading applications: ${err.message}</p>`;
+        }
       });
+  }
+
+  function loadUsers() {
+    adminAuthFetch(`${API}/admin/users`)
+      .then(res => res.json())
+      .then(users => {
+        adminUsersCache = Array.isArray(users) ? users : [];
+        const usersContainer = document.getElementById("users");
+        if (!usersContainer) return;
+
+        if (!adminUsersCache.length) {
+          usersContainer.innerHTML = "<p class=\"empty-state\">No users found.</p>";
+          return;
+        }
+
+        usersContainer.innerHTML = "";
+        adminUsersCache.forEach(user => {
+          const role = user.role || (user.is_admin ? "admin" : "job_seeker");
+          const created = user.created_at ? new Date(user.created_at).toLocaleDateString() : "";
+          const blockedBadge = user.is_blocked
+            ? '<span class="tag-pill bg-red-100 text-red-700">Blocked</span>'
+            : '<span class="tag-pill bg-green-100 text-green-700">Active</span>';
+          const adminBadge = user.is_admin
+            ? '<span class="tag-pill bg-indigo-100 text-indigo-700">Admin</span>'
+            : "";
+
+          usersContainer.innerHTML += `
+            <article class="job-card admin-record">
+              <div class="admin-record-head">
+                <div>
+                  <h4>${user.name || "Unnamed user"}</h4>
+                  <p class="p-muted">${user.email || "No email"}</p>
+                  <p class="p-muted">Role: ${role}${created ? ` • Joined: ${created}` : ""}</p>
+                </div>
+                <div class="admin-record-badges">
+                  ${blockedBadge}
+                  ${adminBadge}
+                </div>
+              </div>
+              <div class="admin-record-actions">
+                <button class="btn btn-outline" onclick="toggleUserBlock(${user.id}, ${user.is_blocked ? 0 : 1})">
+                  ${user.is_blocked ? "Unblock" : "Block"}
+                </button>
+                <button class="btn btn-outline" onclick="deleteUserAccount(${user.id})">Delete</button>
+                ${user.is_admin ? "" : `<button class=\"btn btn-outline\" onclick=\"requestAdminGrant(${user.id})\">Request admin grant</button>`}
+                ${user.is_admin ? "" : `<button class=\"btn btn-primary\" onclick=\"promoteUserToAdmin(${user.id})\">Make admin</button>`}
+              </div>
+            </article>
+          `;
+        });
+      })
+      .catch(err => {
+        console.error("Error loading users:", err);
+        const usersContainer = document.getElementById("users");
+        if (usersContainer) {
+          usersContainer.innerHTML = `<p class="empty-state" style="color: #ef4444;">Error loading users: ${err.message}</p>`;
+        }
+      });
+  }
+
+  function toggleUserBlock(userId, blocked) {
+    const actionLabel = blocked ? "block" : "unblock";
+    if (!confirm(`Are you sure you want to ${actionLabel} this user?`)) return;
+
+    adminAuthFetch(`${API}/admin/users/${userId}/block`, {
+      method: "PUT",
+      body: JSON.stringify({ blocked: !!blocked })
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || `Failed to ${actionLabel} user`);
+        return;
+      }
+      loadUsers();
+    });
+  }
+
+  function deleteUserAccount(userId) {
+    if (!confirm("Delete this user account permanently?")) return;
+
+    adminAuthFetch(`${API}/admin/users/${userId}`, {
+      method: "DELETE"
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to delete user");
+        return;
+      }
+      loadUsers();
+    });
+  }
+
+  function requestAdminGrant(userId) {
+    adminAuthFetch(`${API}/admin/users/${userId}/request-admin-grant`, {
+      method: "POST"
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to request admin grant");
+        return;
+      }
+      alert(data.message || "Approval requested. Ask test@sample.com for code.");
+      loadGrantHistory();
+    });
+  }
+
+  function promoteUserToAdmin(userId) {
+    const approvalEmail = prompt("Enter approver email (must be test@sample.com):", "test@sample.com");
+    if (!approvalEmail) return;
+
+    const approvalCode = prompt("Enter approval code received from test@sample.com:");
+    if (!approvalCode) return;
+
+    adminAuthFetch(`${API}/admin/users/${userId}/make-admin`, {
+      method: "PUT",
+      body: JSON.stringify({ approvalEmail: approvalEmail.trim(), approvalCode: approvalCode.trim() })
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to promote user");
+        return;
+      }
+      alert(data.message || "User promoted to admin");
+      loadUsers();
+      loadGrantHistory();
+    });
+  }
+
+  function loadGrantHistory(status = grantHistoryFilter) {
+    grantHistoryFilter = status;
+    const container = document.getElementById("grantHistory");
+    if (!container) return;
+
+    adminAuthFetch(`${API}/admin/users/grants/history?status=${encodeURIComponent(grantHistoryFilter)}`)
+      .then(res => res.json())
+      .then(rows => {
+        const items = Array.isArray(rows) ? rows : [];
+        if (!items.length) {
+          container.innerHTML = "<p class=\"empty-state\">No grant history found for this filter.</p>";
+          return;
+        }
+
+        container.innerHTML = "";
+        items.forEach(item => {
+          const created = item.created_at ? new Date(item.created_at).toLocaleString() : "";
+          const expires = item.expires_at ? new Date(item.expires_at).toLocaleString() : "";
+          const approved = item.approved_at ? new Date(item.approved_at).toLocaleString() : "";
+          const statusLabel = (item.effective_status || item.status || "pending").toLowerCase();
+          const statusClass = statusLabel === "approved"
+            ? "bg-green-100 text-green-700"
+            : statusLabel === "expired"
+              ? "bg-red-100 text-red-700"
+              : "bg-yellow-100 text-yellow-700";
+
+          container.innerHTML += `
+            <article class="job-card admin-record">
+              <div class="admin-record-head">
+                <div>
+                  <h4>${item.target_name || "Unknown user"} (${item.target_email || "n/a"})</h4>
+                  <p class="p-muted">Requested by: ${item.requested_by_name || "Unknown"} (${item.requested_by_email || "n/a"})</p>
+                  <p class="p-muted">Approver: ${item.approver_email || "n/a"}</p>
+                  <p class="p-muted">Created: ${created}${expires ? ` • Expires: ${expires}` : ""}${approved ? ` • Approved: ${approved}` : ""}</p>
+                </div>
+                <div class="admin-record-badges">
+                  <span class="tag-pill ${statusClass}">${statusLabel}</span>
+                </div>
+              </div>
+            </article>
+          `;
+        });
+      })
+      .catch((err) => {
+        console.error("Error loading grant history:", err);
+        container.innerHTML = `<p class="empty-state" style="color: #ef4444;">Error loading grant history: ${err.message}</p>`;
+      });
+  }
+
+  function setGrantHistoryFilter(status) {
+    loadGrantHistory(status);
   }
 
   function loadReviewQueue(status = reviewStatusFilter) {
     reviewStatusFilter = status;
 
     adminAuthFetch(`${API}/admin/reviews?status=${encodeURIComponent(reviewStatusFilter)}`)
-      .then(res => res.json())
+      .then(res => {
+        console.log("Reviews API response status:", res.status);
+        return res.json();
+      })
       .then(reviews => {
+        console.log("Reviews data:", reviews);
         const container = document.getElementById("reviewQueue");
-        if (!container) return;
+        if (!container) {
+          console.error("reviewQueue container not found");
+          return;
+        }
 
-        if (!reviews.length) {
+        if (!reviews || !Array.isArray(reviews) || reviews.length === 0) {
           const labels = {
             pending: "pending",
             approved: "published",
@@ -209,6 +422,13 @@
             </div>
           `;
         });
+      })
+      .catch(err => {
+        console.error("Error loading reviews:", err);
+        const container = document.getElementById("reviewQueue");
+        if (container) {
+          container.innerHTML = `<p class="empty-state" style="color: #ef4444;">Error loading reviews: ${err.message}</p>`;
+        }
       });
   }
 
@@ -252,6 +472,13 @@
             </div>
           `;
         });
+      })
+      .catch(err => {
+        console.error("Error loading shift escrows:", err);
+        const container = document.getElementById("shiftEscrows");
+        if (container) {
+          container.innerHTML = `<p class="empty-state" style="color: #ef4444;">Error loading escrows: ${err.message}</p>`;
+        }
       });
   }
 
@@ -614,6 +841,12 @@
   window.refundShift = refundShift;
   window.releaseShift = releaseShift;
   window.resendShiftAlerts = resendShiftAlerts;
+  window.loadUsers = loadUsers;
+  window.toggleUserBlock = toggleUserBlock;
+  window.deleteUserAccount = deleteUserAccount;
+  window.requestAdminGrant = requestAdminGrant;
+  window.promoteUserToAdmin = promoteUserToAdmin;
+  window.setGrantHistoryFilter = setGrantHistoryFilter;
 
   saveAutoApproveBtn?.addEventListener("click", saveModerationSettings);
 
@@ -621,6 +854,8 @@
   loadApplications();
   loadReviewQueue();
   loadShiftEscrows();
+  loadUsers();
+  loadGrantHistory();
   loadStats();
   loadModerationSettings();
 })();

@@ -1,5 +1,8 @@
 const jwt = require("jsonwebtoken");
 
+// Shared JWT secret - MUST match all JWT generation and verification
+const JWT_SECRET = "secret123";
+
 module.exports = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -15,7 +18,7 @@ module.exports = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, "secret123");
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded; // { id: userId }
     next();
   } catch (err) {

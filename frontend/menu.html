@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Menu | JobPortal</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>Menu | JobPortal</title>  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%232563eb' width='100' height='100'/><text x='50' y='65' font-size='50' font-weight='bold' text-anchor='middle' fill='white' font-family='system-ui'>JP</text></svg>">  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
@@ -16,19 +15,19 @@
       <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
     </div>
 
-    <a href="index.html" class="nav-link">Home</a>
-    <a href="jobs.html" class="nav-link">Jobs</a>
-    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
-    <a href="menu.html" id="menuLink" class="nav-link nav-active">Menu</a>
-    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
-    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
-    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
-    <a href="login.html" id="loginLink" class="nav-link">Login</a>
-    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
-      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
-    </a>
-    <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
-    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="jobs.html" class="nav-link">Jobs</a>
+      <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+      <a href="menu.html" id="menuLink" class="nav-link nav-active">Menu</a>
+      <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+      <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+      <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+      <a href="login.html" id="loginLink" class="nav-link">Login</a>
+      <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+        <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+      </a>
+      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+      <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
   <main class="container fade-up">
@@ -145,7 +144,7 @@
         </div>
         <div class="menu-card">
           <h3>Shift rates</h3>
-          <p class="p-muted">Hourly rates and escrow fees for shifts.</p>
+          <p class="p-muted">Hourly rates and <span class="tip-word" data-tip="Escrow is a secure payment hold: funds are deposited upfront and released to the worker only after shift completion is confirmed.">escrow</span> fees for shifts.</p>
         </div>
       </div>
     </section>
@@ -176,21 +175,111 @@
       <div class="section-head">
         <p class="eyebrow">Support</p>
         <h2 class="section-title">Help center</h2>
-        <p class="p-muted">Find answers fast or reach the support team.</p>
+        <p class="p-muted">Guides, FAQs, and quick links to every part of the platform.</p>
       </div>
-      <div class="menu-grid">
-        <div class="menu-card">
-          <h3>Getting started</h3>
-          <p class="p-muted">Guides for candidates and employers.</p>
+
+      <!-- Quick-action cards linking to real pages -->
+      <div class="menu-grid" style="margin-bottom:28px;">
+        <a class="menu-card" href="jobs.html">
+          <h3><i class="fa-solid fa-magnifying-glass" style="color:var(--primary)"></i> Find Jobs</h3>
+          <p class="p-muted">Browse all available roles with smart filters, location search, and saved-job tracking.</p>
+        </a>
+        <a class="menu-card" href="dashboard.html">
+          <h3><i class="fa-solid fa-chart-simple" style="color:var(--primary)"></i> My Dashboard</h3>
+          <p class="p-muted">Track every application, manage job alerts, and view shift notifications in one place.</p>
+        </a>
+        <a class="menu-card" href="post-jobs.html">
+          <h3><i class="fa-solid fa-briefcase" style="color:var(--primary)"></i> Post a Job</h3>
+          <p class="p-muted">Publish standard jobs, shift roles, or premium listings that reach more candidates.</p>
+        </a>
+        <a class="menu-card" href="shifts.html">
+          <h3><i class="fa-solid fa-clock" style="color:var(--primary)"></i> Shifts</h3>
+          <p class="p-muted">Browse hourly shift work and set shift alerts so you never miss an opportunity.</p>
+        </a>
+        <a class="menu-card" href="profile.html">
+          <h3><i class="fa-solid fa-user" style="color:var(--primary)"></i> Your Profile</h3>
+          <p class="p-muted">Update your bio, skills, and contact info so employers can find you.</p>
+        </a>
+        <a class="menu-card" href="resume.html">
+          <h3><i class="fa-solid fa-file-lines" style="color:var(--primary)"></i> Resume Parser</h3>
+          <p class="p-muted">Upload your CV and the system will extract and highlight your skills automatically.</p>
+        </a>
+        <a class="menu-card" href="company.html">
+          <h3><i class="fa-solid fa-building" style="color:var(--primary)"></i> Company Profiles</h3>
+          <p class="p-muted">View employer details, culture notes, and verified reviews before applying.</p>
+        </a>
+        <a class="menu-card" href="employer.html">
+          <h3><i class="fa-solid fa-users-gear" style="color:var(--primary)"></i> Employer Pipeline</h3>
+          <p class="p-muted">Review shortlists, move candidates through stages, and send messages from one screen.</p>
+        </a>
+      </div>
+
+      <!-- Platform glossary with tooltip terms -->
+      <div class="section-head" style="margin-top:12px;">
+        <p class="eyebrow">Glossary</p>
+        <h3 class="section-title" style="font-size:1.2rem;">Platform terms explained</h3>
+        <p class="p-muted">Hover or tap any highlighted word anywhere on the site for an instant explanation.</p>
+      </div>
+      <div class="glossary-grid">
+        <div class="help-card">
+          <h3><span class="tip-word" data-tip="Escrow is a secure payment hold: the employer deposits the shift fee upfront; the money is only released to the worker after the shift is confirmed complete — protecting both sides.">Escrow</span></h3>
+          <p class="help-body">Shift payments are held securely in escrow until you or the employer confirms work is done. If no confirmation happens, funds auto-release after 24 hours.</p>
+          <a href="shifts.html" class="help-link"><i class="fa-solid fa-arrow-right"></i> View Shifts</a>
         </div>
-        <div class="menu-card">
-          <h3>Payment & escrow</h3>
-          <p class="p-muted">How shift escrow and payouts work.</p>
+        <div class="help-card">
+          <h3><span class="tip-word" data-tip="A Premium Job is a paid listing that appears at the top of search results, giving it greater visibility over free listings. Costs $10.">Premium Job</span></h3>
+          <p class="help-body">Pay a one-time $10 fee to pin your listing at the top of the jobs page. Premium jobs get significantly more candidate views.</p>
+          <a href="post-jobs.html" class="help-link"><i class="fa-solid fa-arrow-right"></i> Post a Job</a>
         </div>
-        <div class="menu-card">
-          <h3>Contact support</h3>
-          <p class="p-muted">We reply in less than 24 hours.</p>
+        <div class="help-card">
+          <h3><span class="tip-word" data-tip="A Shift is a short-duration, hourly job — like a one-day event, warehouse cover, or hospitality shift. Payments are handled through escrow for safety.">Shift Job</span></h3>
+          <p class="help-body">Shift jobs are hourly roles posted with start/end times and a fixed pay amount. Workers apply and get paid securely through the platform.</p>
+          <a href="shifts.html" class="help-link"><i class="fa-solid fa-arrow-right"></i> Browse Shifts</a>
         </div>
+        <div class="help-card">
+          <h3><span class="tip-word" data-tip="The Application Pipeline shows where each candidate stands: Pending → Reviewed → Accepted or Rejected. Employers move candidates through stages; applicants track progress in their dashboard.">Application Pipeline</span></h3>
+          <p class="help-body">Every application moves through pipeline stages. You can track your own applications in your dashboard, and employers review them in the employer panel.</p>
+          <a href="dashboard.html" class="help-link"><i class="fa-solid fa-arrow-right"></i> My Dashboard</a>
+        </div>
+        <div class="help-card">
+          <h3><span class="tip-word" data-tip="A Job Alert is a saved search: you set keywords, location, category, and job type. The system finds matching jobs and shows them in your dashboard's Job Alerts section.">Job Alert</span></h3>
+          <p class="help-body">Set up alerts so you never miss relevant roles. Go to your dashboard, scroll to Job Alerts, and create a new alert with your preferred filters.</p>
+          <a href="dashboard.html#alerts-panel" class="help-link"><i class="fa-solid fa-arrow-right"></i> Set Up Alerts</a>
+        </div>
+        <div class="help-card">
+          <h3><span class="tip-word" data-tip="A Shift Alert notifies you when a new shift job is posted on the platform. Unlike job alerts (keyword-based), shift alerts match any new shift and appear in your dashboard instantly.">Shift Alert</span></h3>
+          <p class="help-body">Shift alerts appear in your dashboard the moment a new shift is posted. Use them to be first to apply for hourly work opportunities.</p>
+          <a href="shifts.html" class="help-link"><i class="fa-solid fa-arrow-right"></i> Shifts Page</a>
+        </div>
+        <div class="help-card">
+          <h3><span class="tip-word" data-tip="Verification means an employer account has been reviewed by the platform. Verified employers have a badge on their company profile and their job listings are trusted.">Verified Employer</span></h3>
+          <p class="help-body">Verified employer badges appear on company profiles and job listings. This means the employer's identity and business have been confirmed.</p>
+          <a href="company.html" class="help-link"><i class="fa-solid fa-arrow-right"></i> Browse Companies</a>
+        </div>
+        <div class="help-card">
+          <h3><span class="tip-word" data-tip="The Resume Parser extracts your skills, experience, and contact info from a PDF or Word document automatically — no manual entry needed.">Resume Parser</span></h3>
+          <p class="help-body">Upload your CV in any format. The parser will read it and highlight your key skills, making it easier for employers to screen your profile.</p>
+          <a href="resume.html" class="help-link"><i class="fa-solid fa-arrow-right"></i> Try Parser</a>
+        </div>
+        <div class="help-card">
+          <h3><span class="tip-word" data-tip="The Application Deadline is the date and time after which new applications are closed for a job. Jobs past their deadline are hidden from the listings page.">Application Deadline</span></h3>
+          <p class="help-body">Each job can have a fixed deadline. Once it passes, the job is no longer open for applications. Check your saved jobs to see if any deadlines are approaching.</p>
+          <a href="jobs.html" class="help-link"><i class="fa-solid fa-arrow-right"></i> Browse Jobs</a>
+        </div>
+        <div class="help-card">
+          <h3><span class="tip-word" data-tip="Reviews are verified ratings left by candidates who worked at a company. Employers cannot edit them. They are moderated by admins before being published.">Company Reviews</span></h3>
+          <p class="help-body">Read honest, moderated feedback from workers about employers. Share your own experience to help other job seekers make informed decisions.</p>
+          <a href="company.html" class="help-link"><i class="fa-solid fa-arrow-right"></i> View Companies</a>
+        </div>
+      </div>
+
+      <!-- Contact -->
+      <div class="glass-card" style="margin-top:28px; padding: 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h3 style="margin-bottom:6px;">Still need help?</h3>
+          <p class="p-muted">Our support team replies in under 24 hours.</p>
+        </div>
+        <a href="mailto:support@jobportal.com" class="btn btn-primary"><i class="fa-solid fa-envelope"></i> Email Support</a>
       </div>
     </section>
 
@@ -284,12 +373,50 @@
     <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
   </footer>
 
+  <script>
+  // Tooltip system
+  document.addEventListener("DOMContentLoaded", () => {
+    const popup = document.createElement("div");
+    popup.className = "tip-popup";
+    document.body.appendChild(popup);
+
+    document.querySelectorAll("[data-tip]").forEach(el => {
+      el.addEventListener("mouseenter", (e) => {
+        popup.textContent = el.dataset.tip;
+        popup.style.display = "block";
+      });
+      el.addEventListener("mousemove", (e) => {
+        const x = Math.min(e.clientX + 14, window.innerWidth - 296);
+        const y = Math.max(e.clientY - 50, 8);
+        popup.style.left = x + "px";
+        popup.style.top = y + "px";
+      });
+      el.addEventListener("mouseleave", () => {
+        popup.style.display = "none";
+      });
+      el.addEventListener("click", (e) => {
+        if (popup.style.display === "none" || popup.style.display === "") {
+          popup.textContent = el.dataset.tip;
+          popup.style.display = "block";
+          popup.style.left = Math.min(e.clientX + 14, window.innerWidth - 296) + "px";
+          popup.style.top = Math.max(e.clientY - 50, 8) + "px";
+          setTimeout(() => { popup.style.display = "none"; }, 4000);
+        } else {
+          popup.style.display = "none";
+        }
+        e.stopPropagation();
+      });
+    });
+    document.addEventListener("click", () => { popup.style.display = "none"; });
+  });
+  </script>
   <script src="js/config.js"></script>
   <script src="js/navbar.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/support-chat.js"></script>
   <script src="js/auth-ui.js"></script>
   <script src="js/section-tabs.js"></script>
+  <script src="js/menu.js"></script>
   <script src="js/theme.js" defer></script>
 </body>
 </html>
