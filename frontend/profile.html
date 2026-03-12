@@ -158,14 +158,6 @@
               <label class="form-label" for="profileLocation">Preferred location</label>
               <input id="profileLocation" class="form-input" type="text" placeholder="City, Country" />
             </div>
-            <div class="form-group">
-              <label class="form-label" for="profilePhoto">Profile photo URL</label>
-              <input id="profilePhoto" class="form-input" type="url" placeholder="https://" />
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="profilePhotoFile">Upload photo</label>
-              <input id="profilePhotoFile" class="form-input" type="file" accept="image/*" />
-            </div>
             <div class="form-group" style="grid-column: 1 / -1;">
               <label class="form-label" for="profileBio">Bio</label>
               <textarea id="profileBio" class="form-input" rows="4" placeholder="Short summary about your experience"></textarea>
@@ -174,6 +166,14 @@
               <label class="form-label" for="profileResume">Resume link</label>
               <input id="profileResume" class="form-input" type="url" placeholder="https://" />
             </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profilePhotoFile">Upload profile photo</label>
+              <input id="profilePhotoFile" class="form-input" type="file" accept="image/*" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profilePhoto">Or paste photo URL</label>
+              <input id="profilePhoto" class="form-input" type="url" placeholder="https://" />
             </div>
             <div class="form-group form-actions">
               <button class="btn btn-primary" type="submit">Save changes</button>
@@ -329,7 +329,7 @@
         <a href="dashboard.html">Dashboard</a>
       </div>
     </div>
-    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+    <div class="footer-bottom">&copy; 2026 JobPortal. All rights reserved.</div>
   </footer>
 
   <script src="js/config.js"></script>

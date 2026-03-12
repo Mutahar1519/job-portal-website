@@ -1,3 +1,21 @@
+const existingToken = localStorage.getItem("token");
+const existingUserRaw = localStorage.getItem("user");
+
+if (existingToken && existingUserRaw) {
+  try {
+    const existingUser = JSON.parse(existingUserRaw);
+    if (existingUser?.is_admin || existingUser?.role === "admin") {
+      window.location.href = "admin.html";
+    } else if (existingUser?.role === "employer") {
+      window.location.href = "employer.html";
+    } else {
+      window.location.href = "dashboard.html";
+    }
+  } catch (err) {
+    localStorage.removeItem("user");
+  }
+}
+
 document.getElementById("loginForm").addEventListener("submit", function (e) {
   e.preventDefault(); // ⛔ stop page reload
 
@@ -18,7 +36,28 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
         localStorage.setItem("user", JSON.stringify(data.user));
 
         alert("Login successful");
-        window.location.href = "index.html";
+
+        // Honour ?redirect= param (same-origin only — prevent open redirect)
+        const redirectParam = new URLSearchParams(window.location.search).get("redirect");
+        if (redirectParam) {
+          try {
+            const target = new URL(redirectParam, window.location.origin);
+            if (target.origin === window.location.origin) {
+              window.location.href = target.href;
+              return;
+            }
+          } catch {
+            // Malformed URL — fall through to role-based default
+          }
+        }
+
+        if (data.user.is_admin || data.user.role === "admin") {
+          window.location.href = "admin.html";
+        } else if (data.user.role === "employer") {
+          window.location.href = "employer.html";
+        } else {
+          window.location.href = "dashboard.html";
+        }
       } else {
         alert(data.message || "Login failed");
       }

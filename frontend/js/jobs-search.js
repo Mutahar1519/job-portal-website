@@ -5,6 +5,12 @@ const getCompanyInitials = (name = "Company") => {
   return initials || "CO";
 };
 
+const sanitizeJobText = (str) => String(str == null ? "" : str)
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;");
+
 const getJobTypeLabel = (job) => {
   if (job.is_shift) return "Shift";
   return job.job_type || job.jobType || job.category || "Full-Time";
@@ -33,7 +39,7 @@ const getTagList = (job) => {
 
 const renderCompanyAvatar = (job) => {
   if (job.company_logo) {
-    return `<img class="job-company-avatar" src="${job.company_logo}" alt="${job.company_name || "Company"}" />`;
+    return `<img class="job-company-avatar" src="${sanitizeJobText(job.company_logo)}" alt="${sanitizeJobText(job.company_name || "Company")}" />`;
   }
 
   return `<span class="job-company-avatar job-company-avatar-fallback" aria-hidden="true">${getCompanyInitials(job.company_name || "Company")}</span>`;
@@ -54,12 +60,12 @@ const renderJobCard = (job, options = {}) => {
   const premiumClass = job.is_premium ? "premium-job" : "";
   const companyName = job.company_name || "Stealth Company";
   const companyLink = job.company_id
-    ? `<a class="company-link" href="company.html?companyId=${job.company_id}">${companyName}</a>`
-    : `<span class="company-link">${companyName}</span>`;
-  const tagsMarkup = getTagList(job).map(tag => `<span class="job-tag">${tag}</span>`).join("");
-  const description = job.description || job.summary || "Explore role details and requirements from this verified employer.";
+    ? `<a class="company-link" href="company.html?companyId=${Number(job.company_id)}">${sanitizeJobText(companyName)}</a>`
+    : `<span class="company-link">${sanitizeJobText(companyName)}</span>`;
+  const tagsMarkup = getTagList(job).map(tag => `<span class="job-tag">${sanitizeJobText(tag)}</span>`).join("");
+  const description = sanitizeJobText(job.description || job.summary || "Explore role details and requirements from this verified employer.");
   const imageHtml = job.image_url
-    ? `<img class="job-card-image" src="${apiOrigin}${job.image_url}" alt="${job.title}" loading="lazy">`
+    ? `<img class="job-card-image" src="${apiOrigin}${sanitizeJobText(job.image_url)}" alt="${sanitizeJobText(job.title)}" loading="lazy">`
     : "";
   const hasImageClass = job.image_url ? "has-image" : "";
 
@@ -70,7 +76,7 @@ const renderJobCard = (job, options = {}) => {
         <div class="job-card-head">
           ${renderCompanyAvatar(job)}
           <div class="job-card-content">
-            <h3 class="job-card-title">${job.title}</h3>
+            <h3 class="job-card-title">${sanitizeJobText(job.title)}</h3>
             <p class="job-company-line">
               <i class="fa-solid fa-building"></i>
               ${companyLink}
@@ -86,9 +92,9 @@ const renderJobCard = (job, options = {}) => {
       </div>
 
       <div class="job-info-list">
-        <span><i class="fa-solid fa-location-dot"></i> ${job.location || "Location not specified"}</span>
-        <span><i class="fa-solid fa-briefcase"></i> ${getJobTypeLabel(job)}</span>
-        <span><i class="fa-solid fa-sack-dollar"></i> ${getSalaryLabel(job)}</span>
+        <span><i class="fa-solid fa-location-dot"></i> ${sanitizeJobText(job.location || "Location not specified")}</span>
+        <span><i class="fa-solid fa-briefcase"></i> ${sanitizeJobText(getJobTypeLabel(job))}</span>
+        <span><i class="fa-solid fa-sack-dollar"></i> ${sanitizeJobText(getSalaryLabel(job))}</span>
       </div>
 
       <div class="job-tag-row">${tagsMarkup}</div>

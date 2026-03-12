@@ -33,13 +33,13 @@
   <main class="container fade-up">
     <section class="hero dashboard-hero">
       <div class="hero-content">
-        <p class="eyebrow">Candidate dashboard</p>
-        <h1 class="hero-title">Track progress, alerts, and applications from one workspace</h1>
-        <p class="hero-subtitle">Monitor hiring status, manage saved jobs, and respond to shift alerts faster.</p>
+        <p class="eyebrow" id="dashboardEyebrow">Candidate dashboard</p>
+        <h1 class="hero-title" id="dashboardTitle">Track progress, alerts, and applications from one workspace</h1>
+        <p class="hero-subtitle" id="dashboardSubtitle">Monitor hiring status, manage saved jobs, and respond to shift alerts faster.</p>
         <div class="hero-actions">
           <a class="btn btn-outline" href="jobs.html"><i class="fa-solid fa-magnifying-glass"></i> Explore jobs</a>
           <a class="btn btn-outline" href="resume.html"><i class="fa-solid fa-file-lines"></i> Resume parser</a>
-          <a class="btn btn-primary" href="post-jobs.html"><i class="fa-solid fa-briefcase"></i> Post a job</a>
+          <a id="dashboardPostJobBtn" class="btn btn-primary" href="post-jobs.html" style="display:none;"><i class="fa-solid fa-briefcase"></i> Post a job</a>
         </div>
       </div>
       <div class="hero-panel">
@@ -72,6 +72,7 @@
       <a href="#dashboard-overview" class="dashboard-tab is-active"><i class="fa-solid fa-chart-simple"></i> Overview</a>
       <a href="#applications-panel" class="dashboard-tab"><i class="fa-solid fa-file-lines"></i> Applications</a>
       <a href="#saved-jobs-panel" class="dashboard-tab"><i class="fa-solid fa-bookmark"></i> Saved Jobs</a>
+      <a href="#alerts-panel" class="dashboard-tab"><i class="fa-solid fa-bell-concierge"></i> Job Alerts</a>
       <a href="#shift-alerts" class="dashboard-tab"><i class="fa-solid fa-bell"></i> Alerts</a>
     </section>
 
@@ -153,7 +154,10 @@
         <div class="shift-alert-count">
           New shift alerts: <span id="shiftAlertCount">0</span>
         </div>
-        <button id="refreshShiftAlerts" class="btn btn-outline" type="button">Refresh</button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="createShiftAlertBtn" class="btn btn-primary" type="button">Create Shift Alert</button>
+          <button id="refreshShiftAlerts" class="btn btn-outline" type="button">Refresh</button>
+        </div>
       </div>
       <div id="shiftAlerts" class="shift-alert-list"></div>
     </section>
@@ -251,7 +255,7 @@
         <a href="dashboard.html">Dashboard</a>
       </div>
     </div>
-    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+    <div class="footer-bottom">&copy; 2026 JobPortal. All rights reserved.</div>
   </footer>
 
   <script src="js/config.js"></script>

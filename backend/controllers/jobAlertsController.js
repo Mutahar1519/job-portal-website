@@ -126,6 +126,7 @@ exports.listShiftNotifications = (req, res) => {
       JOIN jobs j ON n.job_id = j.id
       WHERE n.user_id = ?
         AND COALESCE(j.is_shift, 1) = 1
+        AND COALESCE(j.is_approved, 1) = 1
         AND (j.shift_end IS NULL OR j.shift_end > NOW())
         ${includeDeadline ? "AND (j.application_deadline IS NULL OR j.application_deadline > NOW())" : ""}
       ORDER BY n.created_at DESC

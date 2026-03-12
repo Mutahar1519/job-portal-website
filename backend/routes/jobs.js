@@ -33,8 +33,15 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const isPdf = file.mimetype === "application/pdf";
-    cb(isPdf ? null : new Error("Only PDF files are allowed"), isPdf);
+    const allowed = new Set([
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ]);
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const isAllowedExt = [".pdf", ".doc", ".docx"].includes(ext);
+    const isAllowed = allowed.has(file.mimetype) || isAllowedExt;
+    cb(isAllowed ? null : new Error("Only PDF, DOC, or DOCX files are allowed"), isAllowed);
   }
 });
 
@@ -60,6 +67,7 @@ const uploadJobImage = multer({
 
 /* GET all jobs */
 router.get("/", optionalAuth, jobsController.getJobs);
+router.get("/:id", optionalAuth, jobsController.getJobById);
 
 /* ADD job */
 router.post("/", auth, employerOnly, uploadJobImage.single("job_image"), jobsController.addJob);

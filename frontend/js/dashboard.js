@@ -6,6 +6,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
+  // Show "Post a job" hero button only for employers/admins
+  // Also update hero text to match the user's role
+  try {
+    const dashUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const dashPostBtn = document.getElementById("dashboardPostJobBtn");
+    if (dashPostBtn && (dashUser.role === "employer" || dashUser.is_admin)) {
+      dashPostBtn.style.display = "inline-flex";
+    }
+    if (dashUser.role === "employer" || dashUser.is_admin) {
+      const eyebrow = document.getElementById("dashboardEyebrow");
+      const title = document.getElementById("dashboardTitle");
+      const subtitle = document.getElementById("dashboardSubtitle");
+      if (eyebrow) eyebrow.textContent = dashUser.is_admin ? "Admin dashboard" : "Employer dashboard";
+      if (title) title.textContent = "Manage your job postings, applications, and shift alerts";
+      if (subtitle) subtitle.textContent = "Post jobs, review candidates, and track your recruitment pipeline in one place.";
+    }
+  } catch (e) { /* ignore */ }
+
   const container = document.getElementById("applications");
   const searchInput = document.getElementById("searchInput");
   const statusFilter = document.getElementById("statusFilter");
@@ -16,6 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const shiftAlertsList = document.getElementById("shiftAlerts");
   const shiftAlertCount = document.getElementById("shiftAlertCount");
   const refreshShiftAlerts = document.getElementById("refreshShiftAlerts");
+  const createShiftAlertBtn = document.getElementById("createShiftAlertBtn");
 
   if (!container) return;
 
@@ -132,12 +151,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         <article class="app-card">
           <div class="app-card__header">
             <div>
-              <h3>${app.title}</h3>
-              <p class="meta">${app.location || ""} ${app.job_type ? "• " + app.job_type : ""}</p>
-              <p class="meta">Pipeline stage: ${pipelineLabel(stage)}</p>
+              <h3>${esc(app.title)}</h3>
+              <p class="meta">${esc(app.location || "")} ${app.job_type ? "• " + esc(app.job_type) : ""}</p>
+              <p class="meta">Pipeline stage: ${esc(pipelineLabel(stage))}</p>
             </div>
             <div class="status-stack">
-              <span class="status-pill status-${status}">${app.status}</span>
+              <span class="status-pill status-${status}">${esc(app.status)}</span>
               ${renderShiftBadge(app)}
             </div>
           </div>
@@ -212,13 +231,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         ? '<span class="badge badge-premium">Premium</span>'
         : "";
 
-      const company = job.company_name ? ` • ${job.company_name}` : "";
+      const company = job.company_name ? ` \u2022 ${esc(job.company_name)}` : "";
       const jobType = job.job_type || job.jobType || "";
 
       savedContainer.innerHTML += `
         <article class="job-card">
-          <h3>${job.title} ${premiumBadge}</h3>
-          <p class="meta">${job.location || ""}${jobType ? " • " + jobType : ""}${company}</p>
+          <h3>${esc(job.title)} ${premiumBadge}</h3>
+          <p class="meta">${esc(job.location || "")}${jobType ? " \u2022 " + esc(jobType) : ""}${company}</p>
           <div class="job-card-actions">
             <a href="apply.html?jobId=${job.id}" class="apply-btn" data-job-id="${job.id}">Apply</a>
             <button class="btn btn-outline save-btn" type="button" data-save-id="${job.id}" data-saved="1">Remove</button>
@@ -255,17 +274,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     alertsList.innerHTML = "";
     list.forEach(alert => {
       const filters = [
-        alert.keyword ? `Keyword: ${alert.keyword}` : "",
-        alert.location ? `Location: ${alert.location}` : "",
-        alert.category ? `Category: ${alert.category}` : "",
-        alert.job_type ? `Type: ${alert.job_type}` : ""
+        alert.keyword ? `Keyword: ${esc(alert.keyword)}` : "",
+        alert.location ? `Location: ${esc(alert.location)}` : "",
+        alert.category ? `Category: ${esc(alert.category)}` : "",
+        alert.job_type ? `Type: ${esc(alert.job_type)}` : ""
       ].filter(Boolean).join(" | ");
 
       alertsList.innerHTML += `
         <div class="alert-card">
           <div>
             <div class="alert-title">${filters || "All jobs"}</div>
-            <div class="p-muted">Frequency: ${alert.frequency}</div>
+            <div class="p-muted">Frequency: ${esc(alert.frequency)}</div>
           </div>
           <div class="alert-actions">
             <button class="btn btn-outline" type="button" data-action="toggle" data-id="${alert.id}">
@@ -321,13 +340,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       const start = item.shift_start ? new Date(item.shift_start).toLocaleString() : "";
       const end = item.shift_end ? new Date(item.shift_end).toLocaleString() : "";
       const time = start && end ? `${start} - ${end}` : start || end;
-      const meta = [pay, time, item.location].filter(Boolean).join(" • ");
-      const status = (item.status || "posted").replace(/_/g, " ");
+      const meta = [pay, time, esc(item.location || "")].filter(v => v !== "").join(" \u2022 ");
+      const status = esc((item.status || "posted").replace(/_/g, " "));
 
       shiftAlertsList.innerHTML += `
         <div class="shift-alert-card ${item.is_read ? "" : "unread"}">
           <div>
-            <div class="shift-alert-title">${item.title}</div>
+            <div class="shift-alert-title">${esc(item.title)}</div>
             <div class="p-muted">${meta}</div>
             <div class="p-muted">Status: ${status}</div>
           </div>
@@ -380,13 +399,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     activeItems.forEach(item => {
       const deadline = item.application_deadline ? new Date(item.application_deadline) : null;
       const deadlineText = deadline ? deadline.toLocaleString() : "Open";
-      const meta = [item.job_type, item.category, item.location].filter(Boolean).join(" • ");
-      const salary = item.salary ? `${item.salary}` : "";
+      const meta = [item.job_type, item.category, item.location].filter(Boolean).map(esc).join(" \u2022 ");
+      const salary = item.salary ? esc(String(item.salary)) : "";
 
       jobAlertsList.innerHTML += `
         <div class="job-alert-card">
           <div>
-            <div class="job-alert-title">${item.title}</div>
+            <div class="job-alert-title">${esc(item.title)}</div>
             <div class="p-muted">${meta}</div>
             ${salary ? `<div class="p-muted">Salary: ${salary}</div>` : ""}
             <div class="p-muted">Deadline: ${deadlineText}</div>
@@ -581,6 +600,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   refreshShiftAlerts?.addEventListener("click", loadShiftAlerts);
+
+  createShiftAlertBtn?.addEventListener("click", async () => {
+    try {
+      const res = await authFetch(`${API}/job-alerts`, {
+        method: "POST",
+        body: JSON.stringify({
+          keyword: "",
+          location: "",
+          category: "",
+          job_type: "Shift",
+          frequency: "daily"
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to create shift alert");
+        return;
+      }
+
+      alert("Shift alert created ✅");
+      await loadAlerts();
+      await loadShiftAlerts();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create shift alert");
+    }
+  });
 
   shiftAlertsList?.addEventListener("click", async (event) => {
     const action = event.target.getAttribute("data-action");

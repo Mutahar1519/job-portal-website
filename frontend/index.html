@@ -52,16 +52,19 @@
         </div>
         <div class="hero-metrics hero-pro-metrics">
           <div class="hero-metric-card">
-            <h3>Verified companies</h3>
-            <p class="p-muted">Reduce fake postings with profile checks.</p>
+            <span class="hero-metric-icon"><i class="fa-solid fa-shield-halved"></i></span>
+            <h3>Verified Companies</h3>
+            <p class="p-muted">Every employer profile is reviewed and approved before posting any jobs.</p>
           </div>
           <div class="hero-metric-card">
-            <h3>Faster hiring flow</h3>
-            <p class="p-muted">Post, shortlist, and message in one place.</p>
+            <span class="hero-metric-icon"><i class="fa-solid fa-bolt"></i></span>
+            <h3>All-in-One Hiring</h3>
+            <p class="p-muted">Post a role, review applicants, and message candidates — all in one place.</p>
           </div>
           <div class="hero-metric-card">
-            <h3>Secure shift payments</h3>
-            <p class="p-muted">Escrow-backed releases for safer outcomes.</p>
+            <span class="hero-metric-icon"><i class="fa-solid fa-lock"></i></span>
+            <h3>Protected Payments</h3>
+            <p class="p-muted">Shift earnings held in escrow and released automatically when work is confirmed.</p>
           </div>
         </div>
       </div>
@@ -217,21 +220,6 @@
       </form>
     </section>
   </main>
-
-  <!-- Apply Job Modal -->
-  <div id="applyModal" class="modal hidden">
-    <div class="modal-content glass-card">
-      <span class="close" onclick="closeApplyModal()">&times;</span>
-      <h3>Apply for Job</h3>
-      <textarea id="coverLetter" placeholder="Write your cover letter..." rows="5" class="form-input"></textarea>
-      <label class="form-label">Upload CV (PDF)</label>
-      <input type="file" id="cvFile" class="form-input" accept=".pdf" />
-      <div class="job-actions">
-        <button class="btn btn-primary" onclick="submitApplication()">Submit Application</button>
-        <button class="btn btn-outline" onclick="closeApplyModal()">Cancel</button>
-      </div>
-    </div>
-  </div>
 
   <div id="toast"></div>
 

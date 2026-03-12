@@ -2,6 +2,12 @@ let jobId = null;
 let canSubmitApplication = true;
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Must be logged in to apply
+  if (!localStorage.getItem("token")) {
+    window.location.href = `login.html?redirect=${encodeURIComponent(window.location.href)}`;
+    return;
+  }
+
   const params = new URLSearchParams(window.location.search);
   jobId = params.get("jobId");
 
@@ -70,15 +76,9 @@ const loadJobSummary = async (id) => {
   if (!titleEl || !metaEl || !badgeEl || !descEl || !companyEl) return;
 
   try {
-    const res = await authFetch(`${API}/jobs`);
-    const jobs = await res.json();
-    if (!res.ok) {
-      titleEl.textContent = "Job details unavailable";
-      return;
-    }
-
-    const job = (jobs || []).find(item => Number(item.id) === Number(id));
-    if (!job) {
+    const res = await authFetch(`${API}/jobs/${id}`);
+    const job = await res.json();
+    if (!res.ok || !job) {
       titleEl.textContent = "This job is not accepting applications";
       if (metaEl) metaEl.innerHTML = "";
       if (badgeEl) badgeEl.innerHTML = "";

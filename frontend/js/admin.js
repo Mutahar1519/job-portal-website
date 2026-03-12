@@ -76,12 +76,8 @@
 
   function loadJobs() {
     adminAuthFetch(`${API}/admin/jobs`)
-      .then(res => {
-        console.log("Jobs API response status:", res.status);
-        return res.json();
-      })
+      .then(res => res.json())
       .then(jobs => {
-        console.log("Jobs data:", jobs);
         adminJobsCache = jobs;
         const jobsContainer = document.getElementById("jobs");
         if (!jobsContainer) {
@@ -96,12 +92,21 @@
 
         jobsContainer.innerHTML = "";
 
-        jobs.forEach(job => {
-          const shiftBadge = job.is_shift ? "🕒 Shift" : "";
-          const shiftPaid = job.shift_paid ? "(Paid)" : "";
-          const shiftAction = job.is_shift
-            ? `<button class="btn btn-outline" onclick="resendShiftAlerts(${job.id}, '${job.shift_paid ? "paid" : "posted"}')">Resend Shift Alerts</button>`
-            : "";
+        // Separate shift jobs from regular jobs; shift jobs are shown in the Shifts section
+        const regularJobs = jobs.filter(j => !j.is_shift);
+        const shiftJobs = jobs.filter(j => j.is_shift);
+
+        if (!regularJobs.length) {
+          jobsContainer.innerHTML = '<p class="empty-state">No regular jobs found.</p>';
+        }
+
+        // Render shift jobs in the shifts section
+        renderShiftJobs(shiftJobs);
+
+        regularJobs.forEach(job => {
+          const shiftBadge = "";
+          const shiftPaid = "";
+          const shiftAction = "";
           const moderationScore = Number.isFinite(Number(job.moderation_score))
             ? Number(job.moderation_score)
             : null;
@@ -110,19 +115,19 @@
           const aiFlag = moderationReason.toLowerCase().includes("ai") ? "🤖" : "";
           const moderationMeta = `
             <div class="p-muted" style="margin-top:6px;">
-              Moderation: <strong>${moderationStatus}</strong>
+              Moderation: <strong>${esc(moderationStatus)}</strong>
               ${moderationScore !== null ? `• Score: <strong>${moderationScore}</strong>` : ""}
               ${aiFlag}
             </div>
-            <div class="p-muted" style="margin-top:4px;">Reason: ${moderationReason}</div>
+            <div class="p-muted" style="margin-top:4px;">Reason: ${esc(moderationReason)}</div>
           `;
 
           jobsContainer.innerHTML += `
             <article class="job-card admin-record">
               <div class="admin-record-head">
                 <div>
-                  <h4>${job.title}</h4>
-                  <p class="p-muted">${job.location || "No location"} • ${job.job_type || job.jobType || "General"} • ${job.category || "General"}</p>
+                  <h4>${esc(job.title)}</h4>
+                  <p class="p-muted">${esc(job.location || "No location")} \u2022 ${esc(job.job_type || job.jobType || "General")} \u2022 ${esc(job.category || "General")}</p>
                 </div>
                 <div class="admin-record-badges">
                   ${job.is_premium ? '<span class="tag-pill bg-amber-100 text-amber-700">Premium</span>' : ""}
@@ -155,12 +160,8 @@
 
   function loadApplications() {
     adminAuthFetch(`${API}/applications/admin`)
-      .then(res => {
-        console.log("Applications API response status:", res.status);
-        return res.json();
-      })
+      .then(res => res.json())
       .then(apps => {
-        console.log("Applications data:", apps);
         renderApplications(apps, "Applications");
       })
       .catch(err => {
@@ -200,8 +201,8 @@
             <article class="job-card admin-record">
               <div class="admin-record-head">
                 <div>
-                  <h4>${user.name || "Unnamed user"}</h4>
-                  <p class="p-muted">${user.email || "No email"}</p>
+                  <h4>${esc(user.name || "Unnamed user")}</h4>
+                  <p class="p-muted">${esc(user.email || "No email")}</p>
                   <p class="p-muted">Role: ${role}${created ? ` • Joined: ${created}` : ""}</p>
                 </div>
                 <div class="admin-record-badges">
@@ -212,6 +213,9 @@
               <div class="admin-record-actions">
                 <button class="btn btn-outline" onclick="toggleUserBlock(${user.id}, ${user.is_blocked ? 0 : 1})">
                   ${user.is_blocked ? "Unblock" : "Block"}
+                </button>
+                <button class="btn btn-outline" onclick="toggleUserVerify(${user.id}, ${user.verified ? 0 : 1})">
+                  ${user.verified ? "Unverify" : "Verify"}
                 </button>
                 <button class="btn btn-outline" onclick="deleteUserAccount(${user.id})">Delete</button>
                 ${user.is_admin ? "" : `<button class=\"btn btn-outline\" onclick=\"requestAdminGrant(${user.id})\">Request admin grant</button>`}
@@ -241,6 +245,20 @@
       const data = await res.json();
       if (!res.ok) {
         alert(data.message || `Failed to ${actionLabel} user`);
+        return;
+      }
+      loadUsers();
+    });
+  }
+
+  function toggleUserVerify(userId, verified) {
+    adminAuthFetch(`${API}/admin/users/${userId}/verify`, {
+      method: "PUT",
+      body: JSON.stringify({ verified: !!verified })
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to update verification status");
         return;
       }
       loadUsers();
@@ -328,9 +346,9 @@
             <article class="job-card admin-record">
               <div class="admin-record-head">
                 <div>
-                  <h4>${item.target_name || "Unknown user"} (${item.target_email || "n/a"})</h4>
-                  <p class="p-muted">Requested by: ${item.requested_by_name || "Unknown"} (${item.requested_by_email || "n/a"})</p>
-                  <p class="p-muted">Approver: ${item.approver_email || "n/a"}</p>
+                  <h4>${esc(item.target_name || "Unknown user")} (${esc(item.target_email || "n/a")})</h4>
+                  <p class="p-muted">Requested by: ${esc(item.requested_by_name || "Unknown")} (${esc(item.requested_by_email || "n/a")})</p>
+                  <p class="p-muted">Approver: ${esc(item.approver_email || "n/a")}</p>
                   <p class="p-muted">Created: ${created}${expires ? ` • Expires: ${expires}` : ""}${approved ? ` • Approved: ${approved}` : ""}</p>
                 </div>
                 <div class="admin-record-badges">
@@ -355,12 +373,8 @@
     reviewStatusFilter = status;
 
     adminAuthFetch(`${API}/admin/reviews?status=${encodeURIComponent(reviewStatusFilter)}`)
-      .then(res => {
-        console.log("Reviews API response status:", res.status);
-        return res.json();
-      })
+      .then(res => res.json())
       .then(reviews => {
-        console.log("Reviews data:", reviews);
         const container = document.getElementById("reviewQueue");
         if (!container) {
           console.error("reviewQueue container not found");
@@ -381,7 +395,7 @@
         reviews.forEach(review => {
           const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
           const created = review.created_at ? new Date(review.created_at).toLocaleString() : "";
-          const emailRow = review.email ? `<p class="meta">${review.email}</p>` : "";
+          const emailRow = review.email ? `<p class="meta">${esc(review.email)}</p>` : "";
 
           let actionButtons = `
             <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
@@ -408,13 +422,13 @@
             <div class="review-card">
               <div class="review-header">
                 <div>
-                  <h4>${review.name}</h4>
-                  <p class="meta">${review.role}</p>
+                  <h4>${esc(review.name)}</h4>
+                  <p class="meta">${esc(review.role)}</p>
                   ${emailRow}
                 </div>
                 <span class="review-stars">${stars}</span>
               </div>
-              <p class="review-message">${review.message}</p>
+              <p class="review-message">${esc(review.message)}</p>
               ${created ? `<p class="meta">Submitted: ${created}</p>` : ""}
               <div style="margin-top:12px; display:flex; gap:10px;">
                 ${actionButtons}
@@ -434,6 +448,60 @@
 
   function setReviewFilter(status) {
     loadReviewQueue(status);
+  }
+
+  function renderShiftJobs(shiftJobs) {
+    const container = document.getElementById("shiftEscrows");
+    if (!container) return;
+
+    // Clear any "shift jobs" header previously rendered so escrow data can be appended
+    const existingHeader = container.querySelector(".shift-jobs-header");
+    if (existingHeader) existingHeader.remove();
+    const existingList = container.querySelector(".shift-jobs-list");
+    if (existingList) existingList.remove();
+
+    if (!shiftJobs || !shiftJobs.length) return;
+
+    const header = document.createElement("div");
+    header.className = "shift-jobs-header";
+    header.innerHTML = `<h4 style="margin:10px 0 8px;">Shift Job Postings</h4>`;
+    container.prepend(header);
+
+    const list = document.createElement("div");
+    list.className = "shift-jobs-list";
+
+    shiftJobs.forEach(job => {
+      const shiftStart = job.shift_start ? new Date(job.shift_start).toLocaleString() : "";
+      const shiftEnd = job.shift_end ? new Date(job.shift_end).toLocaleString() : "";
+      const wageLabel = job.shift_hourly_rate ? `$${job.shift_hourly_rate}/hr` : "";
+      const status = (job.shift_status || "posted");
+
+      list.innerHTML += `
+        <article class="job-card admin-record">
+          <div class="admin-record-head">
+            <div>
+              <h4>${job.title}</h4>
+              <p class="p-muted">${job.location || "No location"} • ${job.category || "General"}</p>
+              ${shiftStart ? `<p class="p-muted">Start: ${shiftStart}${shiftEnd ? " — " + shiftEnd : ""}</p>` : ""}
+            </div>
+            <div class="admin-record-badges">
+              <span class="tag-pill bg-cyan-100 text-cyan-700">Shift</span>
+              ${wageLabel ? `<span class="tag-pill bg-green-100 text-green-700">${wageLabel}</span>` : ""}
+              <span class="tag-pill bg-yellow-100 text-yellow-700">${status}</span>
+            </div>
+          </div>
+          <div class="admin-record-actions">
+            <button class="btn btn-outline" onclick="approveJob('${job.id}')">Approve</button>
+            <button class="btn btn-outline" onclick="viewJobApplications('${job.id}')">Applications</button>
+            <button class="btn btn-outline" onclick="deleteJob('${job.id}')">Delete</button>
+            <button class="btn btn-outline" onclick="resendShiftAlerts(${job.id}, '${job.shift_paid ? "paid" : "posted"}')">Resend Alerts</button>
+          </div>
+        </article>
+      `;
+    });
+
+    // Insert after header
+    header.after(list);
   }
 
   function loadShiftEscrows() {
@@ -485,7 +553,13 @@
   function viewJobApplications(jobId) {
     adminAuthFetch(`${API}/admin/jobs/${jobId}/applications`)
       .then(res => res.json())
-      .then(apps => renderApplications(apps, `Applications for Job #${jobId}`));
+      .then(apps => {
+        renderApplications(apps, `Applications for Job #${jobId}`);
+        const appsContainer = document.getElementById("applications");
+        if (appsContainer) {
+          appsContainer.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
   }
 
   function renderApplications(apps, title) {
@@ -513,9 +587,9 @@
 
       container.innerHTML += `
         <article class="job-card admin-record">
-          ${jobTitle ? `<h4>${jobTitle}</h4>` : ""}
-          <p>${applicantName} ${applicantEmail ? "• " + applicantEmail : ""}</p>
-          <p>Status: <strong>${app.status}</strong></p>
+          ${jobTitle ? `<h4>${esc(jobTitle)}</h4>` : ""}
+          <p>${esc(applicantName)} ${applicantEmail ? "\u2022 " + esc(applicantEmail) : ""}</p>
+          <p>Status: <strong>${esc(app.status)}</strong></p>
           <p>Applied: ${created}</p>
           ${cvLink}
           <div class="admin-record-actions" style="margin-top:10px;">
@@ -544,6 +618,19 @@
     adminAuthFetch(`${API}/admin/jobs/${id}`, {
       method: "DELETE"
     }).then(() => loadJobs());
+  }
+
+  function purgeTestJobs() {
+    if (!confirm("This will permanently delete ALL jobs whose title contains 'test', 'demo', 'sample', or '[qa]'.\n\nProceed?")) return;
+
+    adminAuthFetch(`${API}/admin/jobs/purge-demo`, { method: "DELETE" })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) { alert(data.error || "Purge failed"); return; }
+        alert(data.message);
+        loadJobs();
+      })
+      .catch((err) => alert("Purge request failed: " + err.message));
   }
 
   function makePremium(id) {
@@ -825,10 +912,79 @@
       });
   }
 
+  function loadCompanies() {
+    adminAuthFetch(`${API}/admin/companies`)
+      .then(res => res.json())
+      .then(companies => {
+        const container = document.getElementById("companies");
+        if (!container) return;
+
+        const list = Array.isArray(companies) ? companies : [];
+        if (!list.length) {
+          container.innerHTML = '<p class="empty-state">No companies registered yet.</p>';
+          return;
+        }
+
+        container.innerHTML = "";
+        list.forEach(company => {
+          const created = company.created_at ? new Date(company.created_at).toLocaleDateString() : "";
+          const logoHtml = company.logo_url
+            ? `<img src="${esc(company.logo_url)}" alt="${esc(company.name)}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;margin-right:12px;">`
+            : "";
+
+          container.innerHTML += `
+            <article class="job-card admin-record">
+              <div class="admin-record-head">
+                <div style="display:flex;align-items:center;">
+                  ${logoHtml}
+                  <div>
+                    <h4>${esc(company.name || "Unnamed company")}</h4>
+                    <p class="p-muted">${esc(company.industry || "No industry")} \u2022 ${esc(company.location || "No location")}</p>
+                    ${company.website ? `<p class="p-muted"><a href="${esc(company.website)}" target="_blank" rel="noopener noreferrer">${esc(company.website)}</a></p>` : ""}
+                    ${created ? `<p class="p-muted">Registered: ${created}</p>` : ""}
+                  </div>
+                </div>
+                <div class="admin-record-badges">
+                  ${company.size ? `<span class="tag-pill bg-slate-100 text-slate-700">${company.size}</span>` : ""}
+                </div>
+              </div>
+              <div class="admin-record-actions">
+                <button class="btn btn-outline" onclick="deleteCompany(${company.id})">Delete</button>
+              </div>
+            </article>
+          `;
+        });
+      })
+      .catch(err => {
+        console.error("Error loading companies:", err);
+        const container = document.getElementById("companies");
+        if (container) {
+          container.innerHTML = `<p class="empty-state" style="color: #ef4444;">Error loading companies: ${err.message}</p>`;
+        }
+      });
+  }
+
+  function deleteCompany(id) {
+    if (!confirm("Delete this company permanently? All associated jobs will lose their company link.")) return;
+
+    adminAuthFetch(`${API}/admin/companies/${id}`, {
+      method: "DELETE"
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to delete company");
+        return;
+      }
+      loadCompanies();
+    });
+  }
+
   window.loadJobs = loadJobs;
   window.approveJob = approveJob;
   window.deleteJob = deleteJob;
   window.makePremium = makePremium;
+  window.purgeTestJobs = purgeTestJobs;
+  window.toggleUserVerify = toggleUserVerify;
   window.editJob = editJob;
   window.viewJobApplications = viewJobApplications;
   window.updateApplicationStatus = updateApplicationStatus;
@@ -847,6 +1003,8 @@
   window.requestAdminGrant = requestAdminGrant;
   window.promoteUserToAdmin = promoteUserToAdmin;
   window.setGrantHistoryFilter = setGrantHistoryFilter;
+  window.loadCompanies = loadCompanies;
+  window.deleteCompany = deleteCompany;
 
   saveAutoApproveBtn?.addEventListener("click", saveModerationSettings);
 
@@ -856,6 +1014,7 @@
   loadShiftEscrows();
   loadUsers();
   loadGrantHistory();
+  loadCompanies();
   loadStats();
   loadModerationSettings();
 })();

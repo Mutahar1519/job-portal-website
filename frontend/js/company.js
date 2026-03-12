@@ -5,6 +5,27 @@ document.addEventListener("DOMContentLoaded", async () => {
   const shareLabel = document.getElementById("companyShare");
   const editor = document.getElementById("companyEditor");
 
+  // If viewing as a public company profile (has ?companyId= param), allow anyone.
+  // Otherwise only employers/admins can edit.
+  const params = new URLSearchParams(window.location.search);
+  const publicCompanyId = params.get("companyId");
+  if (!publicCompanyId) {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Login required");
+      window.location.href = "login.html";
+      return;
+    }
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "{}");
+      if (!u.is_admin && u.role !== "employer") {
+        alert("Company profiles are managed by employers.");
+        window.location.href = "dashboard.html";
+        return;
+      }
+    } catch (e) { /* ignore */ }
+  }
+
   const fields = {
     name: document.getElementById("companyName"),
     phone: document.getElementById("companyPhone"),
@@ -22,8 +43,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   let currentCompany = null;
-  const params = new URLSearchParams(window.location.search);
-  const publicCompanyId = params.get("companyId");
 
   const renderPreview = (data) => {
     if (!preview) return;
@@ -232,7 +251,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      alert(currentCompany ? "Company updated" : "Company created");
+      if (window.toast) {
+        toast(currentCompany ? "Company updated" : "Company created");
+      } else {
+        alert(currentCompany ? "Company updated" : "Company created");
+      }
       await loadMyCompany();
       await loadEmployerProfile();
     } catch (err) {

@@ -7,16 +7,16 @@ const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
 const creds = {
   admin: {
-    email: process.env.SMOKE_ADMIN_EMAIL || "admin.demo@jobportal.local",
-    password: process.env.SMOKE_ADMIN_PASSWORD || "Admin@123"
+    email: process.env.SMOKE_ADMIN_EMAIL || "admin@demo.local",
+    password: process.env.SMOKE_ADMIN_PASSWORD || "Demo@1234"
   },
   employer: {
-    email: process.env.SMOKE_EMPLOYER_EMAIL || "employer.demo@jobportal.local",
-    password: process.env.SMOKE_EMPLOYER_PASSWORD || "Employer@123"
+    email: process.env.SMOKE_EMPLOYER_EMAIL || "emma@demo.local",
+    password: process.env.SMOKE_EMPLOYER_PASSWORD || "Demo@1234"
   },
   seeker: {
-    email: process.env.SMOKE_SEEKER_EMAIL || "seeker.demo@jobportal.local",
-    password: process.env.SMOKE_SEEKER_PASSWORD || "Seeker@123"
+    email: process.env.SMOKE_SEEKER_EMAIL || "alice@demo.local",
+    password: process.env.SMOKE_SEEKER_PASSWORD || "Demo@1234"
   }
 };
 

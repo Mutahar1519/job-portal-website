@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -71,7 +71,10 @@
           <p class="eyebrow">Jobs</p>
           <h2 class="h2">Create or manage job posts</h2>
         </div>
-        <button class="btn btn-primary" type="button" onclick="loadJobs()">Reload Jobs</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" type="button" onclick="loadJobs()">Reload Jobs</button>
+          <button class="btn btn-outline" type="button" onclick="purgeTestJobs()" style="border-color:var(--danger,#ef4444);color:var(--danger,#ef4444);">Purge Demo &amp; Test Jobs</button>
+        </div>
       </div>
 
       <form id="adminJobForm" class="form-grid admin-job-form">
@@ -148,6 +151,17 @@
       </div>
       <p class="p-muted">Promoting a user to admin requires approval code from test@sample.com.</p>
       <div id="users" class="admin-list"></div>
+    </section>
+
+    <section class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Companies</p>
+          <h3>Registered companies</h3>
+        </div>
+        <button class="btn btn-outline" type="button" onclick="loadCompanies()">Reload</button>
+      </div>
+      <div id="companies" class="admin-list"></div>
     </section>
 
     <section class="glass-card admin-panel">
@@ -238,7 +252,7 @@
         <a href="dashboard.html">Dashboard</a>
       </div>
     </div>
-    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+    <div class="footer-bottom">&copy; 2026 JobPortal. All rights reserved.</div>
   </footer>
   <script src="js/config.js"></script>
   <script src="js/navbar.js"></script>
