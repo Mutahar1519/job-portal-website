@@ -150,8 +150,19 @@ router.post("/confirm", auth, async (req, res) => {
         if (!users[0].verified) return res.status(403).json({ message: "User not verified" });
 
         db.query(
-          "INSERT INTO jobs (title, location, job_type, category, description, is_premium, is_approved) VALUES (?, ?, ?, ?, ?, 1, 1)",
-          [title, location, job_type, category, description],
+          `INSERT INTO jobs
+             (title, location, job_type, category, description,
+              is_premium, is_approved, posted_by, company_id,
+              is_shift, shift_start, shift_end, shift_pay_cents,
+              shift_fee_cents, shift_total_cents, shift_currency,
+              shift_paid, shift_status, application_deadline,
+              moderation_status, moderation_score, moderation_reason, auto_approved_at)
+           VALUES (?, ?, ?, ?, ?, 1, 1, ?, NULL,
+                   0, NULL, NULL, NULL,
+                   NULL, NULL, 'usd',
+                   0, 'open', NULL,
+                   NULL, NULL, NULL, NULL)`,
+          [title, location, job_type, category, description, userId],
           (err, result) => {
             if (err) return res.status(500).json({ message: "Failed to create premium job" });
             res.json({ message: "Premium job created", id: result.insertId });

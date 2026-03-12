@@ -2,10 +2,32 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const db = require("../config/mysql");
 const resumesController = require("../controllers/resumesController");
 const { auth } = require("../middleware/auth");
 
 const router = express.Router();
+
+// Bootstrap resumes table if missing
+// (prevents 500s on upload when schema wasn't fully applied)
+db.query(
+  `CREATE TABLE IF NOT EXISTS resumes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    extracted_text LONGTEXT NULL,
+    parsed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_resume_user (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`,
+  (err) => {
+    if (err) {
+      console.warn("resumes table bootstrap failed:", err.message);
+    }
+  }
+);
 
 const uploadDir = path.join(__dirname, "..", "uploads", "resumes");
 if (!fs.existsSync(uploadDir)) {
@@ -27,12 +49,36 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const isPdf = file.mimetype === "application/pdf";
-    cb(isPdf ? null : new Error("Only PDF files are allowed"), isPdf);
+    const allowed = new Set([
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ]);
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const isAllowedExt = [".pdf", ".doc", ".docx"].includes(ext);
+    const isAllowed = allowed.has(file.mimetype) || isAllowedExt;
+    cb(isAllowed ? null : new Error("Only PDF, DOC, or DOCX files are allowed"), isAllowed);
   }
 });
 
 router.get("/me", auth, resumesController.getMyResume);
 router.post("/", auth, upload.single("resume"), resumesController.uploadResume);
+
+router.use((err, req, res, next) => {
+  if (!err) return next();
+
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ message: "Resume must be 5MB or smaller" });
+    }
+    return res.status(400).json({ message: err.message || "Invalid resume upload" });
+  }
+
+  if (err.message && /Only PDF, DOC, or DOCX files are allowed/i.test(err.message)) {
+    return res.status(400).json({ message: err.message });
+  }
+
+  return next(err);
+});
 
 module.exports = router;

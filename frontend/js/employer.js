@@ -17,6 +17,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       user = {};
     }
   }
+
+  // Only employers and admins can access this page
+  if (!user.is_admin && user.role !== "employer") {
+    alert("This page is for employers only.");
+    window.location.href = "dashboard.html";
+    return;
+  }
   const jobSelect = document.getElementById("jobSelect");
   const refreshJobs = document.getElementById("refreshJobs");
   const refreshMessages = document.getElementById("refreshMessages");
@@ -114,11 +121,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         <article class="pipeline-card">
           <div class="pipeline-card__header">
             <div>
-              <h4>${candidate}</h4>
-              <p class="meta">${email}</p>
+              <h4>${esc(candidate)}</h4>
+              <p class="meta">${esc(email)}</p>
             </div>
             <div class="status-stack">
-              <span class="status-pill status-${stage}">${stage}</span>
+              <span class="status-pill status-${stage}">${esc(stage)}</span>
               ${shiftBadge()}
             </div>
           </div>
@@ -158,15 +165,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     candidateProfile.innerHTML = `
       <div class="candidate-head">
-        <div class="profile-avatar">${candidate
-          .split(/\s+/)
-          .slice(0, 2)
-          .map((part) => part[0])
-          .join("")
-          .toUpperCase()}</div>
+        <div class="profile-avatar">${esc(candidate.split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase() || "?")}</div>
         <div>
-          <h4>${candidate}</h4>
-          <p class="p-muted">${email}</p>
+          <h4>${esc(candidate)}</h4>
+          <p class="p-muted">${esc(email)}</p>
         </div>
       </div>
       <div class="candidate-meta">
@@ -257,8 +259,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         messageList.innerHTML += `
           <div class="${bubbleClass}">
-            <div class="message-meta">${label} • ${time}</div>
-            <div>${msg.message}</div>
+            <div class="message-meta">${esc(label)} • ${esc(time)}</div>
+            <div>${esc(msg.message)}</div>
           </div>
         `;
       });

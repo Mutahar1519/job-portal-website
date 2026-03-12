@@ -3,6 +3,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("jobForm");
   if (!form) return;
 
+  const rawUser = localStorage.getItem("user");
+  const token = localStorage.getItem("token");
+  let currentUser = null;
+  try {
+    currentUser = rawUser ? JSON.parse(rawUser) : null;
+  } catch (err) {
+    currentUser = null;
+  }
+
+  if (!token || !currentUser) {
+    alert("Please login first");
+    window.location.href = "login.html";
+    return;
+  }
+
+  const isEmployer = currentUser.role === "employer";
+  const isAdmin = !!currentUser.is_admin || currentUser.role === "admin";
+  if (!isEmployer && !isAdmin) {
+    alert("Only employers or admins can post jobs");
+    window.location.href = "dashboard.html";
+    return;
+  }
+
   const titleInput = document.getElementById("jobTitle");
   const descInput = document.getElementById("jobDescription");
   const locationInput = document.getElementById("location");
@@ -307,7 +330,20 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("API Response data:", data);
 
       if (!res.ok) {
-        alert(data.message || "Failed to post job");
+        if (res.status === 403 && data.message && data.message.toLowerCase().includes("verification")) {
+          // Show persistent verification banner instead of alert
+          let banner = document.getElementById("verificationBanner");
+          if (!banner) {
+            banner = document.createElement("div");
+            banner.id = "verificationBanner";
+            banner.style.cssText = "background:#fef9c3;border:1px solid #fde047;color:#713f12;padding:16px 20px;border-radius:10px;margin-bottom:20px;font-size:0.95rem;line-height:1.6;";
+            form.parentNode.insertBefore(banner, form);
+          }
+          banner.innerHTML = `<strong>⚠️ Account not yet verified</strong><br>${data.message}`;
+          banner.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          alert(data.message || "Failed to post job");
+        }
         console.error("Job submission error:", data);
         return;
       }

@@ -87,6 +87,9 @@ exports.applyJob = (req, res) => {
       ],
       (insertErr) => {
         if (insertErr) {
+          if (insertErr.code === "ER_DUP_ENTRY") {
+            return res.status(400).json({ message: "You have already applied for this job" });
+          }
           console.error(insertErr);
           return res.status(500).json({ message: "Failed to submit application" });
         }
@@ -96,22 +99,32 @@ exports.applyJob = (req, res) => {
     );
   };
 
-  // Check if job exists
-  runJobLookup(true, (err, results) => {
-    if (err && isMissingColumnError(err)) {
-      return runJobLookup(false, (fallbackErr, fallbackResults) => {
-        if (fallbackErr) {
-          return res.status(500).json({ message: "Database error" });
-        }
-        handleJobLookupResults(fallbackResults);
-      });
+  db.query("SELECT role, is_admin FROM users WHERE id = ? LIMIT 1", [userId], (roleErr, roleRows) => {
+    if (roleErr) return res.status(500).json({ message: "Database error" });
+    if (!roleRows.length) return res.status(404).json({ message: "User not found" });
+
+    const role = String(roleRows[0].role || "").toLowerCase();
+    if (role !== "job_seeker" || Number(roleRows[0].is_admin) === 1) {
+      return res.status(403).json({ message: "Only job seekers can apply for jobs" });
     }
 
-    if (err) {
-      return res.status(500).json({ message: "Database error" });
-    }
+    // Check if job exists
+    runJobLookup(true, (err, results) => {
+      if (err && isMissingColumnError(err)) {
+        return runJobLookup(false, (fallbackErr, fallbackResults) => {
+          if (fallbackErr) {
+            return res.status(500).json({ message: "Database error" });
+          }
+          handleJobLookupResults(fallbackResults);
+        });
+      }
 
-    handleJobLookupResults(results);
+      if (err) {
+        return res.status(500).json({ message: "Database error" });
+      }
+
+      handleJobLookupResults(results);
+    });
   });
 };
 

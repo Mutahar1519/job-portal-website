@@ -27,12 +27,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   try {
-    const res = await authFetch(`${API}/jobs`);
-    const jobs = await res.json();
-    if (!res.ok) throw new Error("Failed to load jobs");
-
-    const job = (jobs || []).find(item => Number(item.id) === jobId);
-    if (!job) {
+    const res = await authFetch(`${API}/jobs/${jobId}`);
+    const job = await res.json();
+    if (!res.ok || !job) {
       if (titleEl) titleEl.textContent = "Job not found";
       return;
     }
@@ -102,10 +99,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (similarEl) {
-      const similar = (jobs || [])
-        .filter(item => item.id !== job.id)
-        .filter(item => item.category === job.category || item.location === job.location)
-        .slice(0, 4);
+      try {
+        const allRes = await fetch(`${API}/jobs`);
+        const jobs = allRes.ok ? await allRes.json() : [];
+        const similar = (Array.isArray(jobs) ? jobs : [])
+          .filter(item => item.id !== job.id)
+          .filter(item => item.category === job.category || item.location === job.location)
+          .slice(0, 4);
 
       if (!similar.length) {
         similarEl.innerHTML = "<p class=\"p-muted\">No similar jobs yet.</p>";
@@ -121,6 +121,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             </a>
           `)
           .join("");
+      }
+      } catch {
+        similarEl.innerHTML = "<p class=\"p-muted\">No similar jobs yet.</p>";
       }
     }
 

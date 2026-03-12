@@ -94,11 +94,40 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   const saveProfileData = (data) => {
-    localStorage.setItem(profileKey, JSON.stringify(data));
+    const payload = {
+      ...data,
+      photoData: ""
+    };
+    try {
+      localStorage.setItem(profileKey, JSON.stringify(payload));
+    } catch (err) {
+      console.warn("Profile data is too large for localStorage; saving compact profile only.", err);
+      const compact = {
+        name: payload.name || "",
+        phone: payload.phone || "",
+        country: payload.country || "",
+        city: payload.city || "",
+        jobTitle: payload.jobTitle || "",
+        skills: payload.skills || "",
+        location: payload.location || "",
+        preferredJobType: payload.preferredJobType || "",
+        about: payload.about || "",
+        photoUrl: payload.photoUrl || "",
+        resumeLink: payload.resumeLink || ""
+      };
+      localStorage.setItem(profileKey, JSON.stringify(compact));
+    }
+  };
+
+  const resolvePhotoUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("data:") || url.startsWith("http")) return url;
+    // Relative path from backend (e.g. /uploads/photos/...) — prefix with API origin
+    return `${apiOrigin}${url}`;
   };
 
   const renderAvatar = (profile, displayName) => {
-    const photo = profile.photoData || profile.photoUrl || "";
+    const photo = resolvePhotoUrl(profile.photoData || profile.photoUrl || "");
     const initials = getInitials(displayName);
 
     if (heroAvatar) {
@@ -211,6 +240,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     profileData.phone = me.phone || "";
     profileData.country = me.country || "";
     profileData.city = me.city || "";
+    // photo_url is stored on the users row (works for all roles)
+    if (me.photo_url) profileData.photoUrl = me.photo_url;
     setRoleUi(user);
     localStorage.setItem("user", JSON.stringify(user));
   };
@@ -299,17 +330,67 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (photoFileInput) {
-    photoFileInput.addEventListener("change", (event) => {
+    photoFileInput.addEventListener("change", async (event) => {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Image must be under 2MB. Please choose a smaller file.");
+        photoFileInput.value = "";
+        return;
+      }
+
+      // Show local preview immediately while uploading
       const reader = new FileReader();
       reader.onload = () => {
         profileData.photoData = reader.result;
-        profileData.photoUrl = reader.result;
         renderProfile(profileData);
-        saveProfileData(profileData);
       };
       reader.readAsDataURL(file);
+
+      // Upload to server
+      try {
+        const token = localStorage.getItem("token");
+        const fd = new FormData();
+        fd.append("photo", file);
+        const res = await fetch(`${API}/users/photo`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd
+        });
+        const data = await res.json();
+        if (res.ok && data.photo_url) {
+          profileData.photoUrl = data.photo_url;
+          profileData.photoData = "";
+          if (photoInput) photoInput.value = data.photo_url;
+          renderProfile(profileData);
+
+          // Persist immediately so photo remains after navigation even if user doesn't click Save
+          try {
+            const persistRes = await authFetch(`${API}/users/me`, {
+              method: "PUT",
+              body: JSON.stringify({
+                name: profileData.name || user.name || "User",
+                phone: profileData.phone || "",
+                country: profileData.country || "",
+                city: profileData.city || "",
+                photo_url: data.photo_url
+              })
+            });
+
+            if (!persistRes.ok) {
+              const persistData = await persistRes.json();
+              console.warn("Photo URL persist failed:", persistData.message || "Unknown error");
+            }
+          } catch (persistErr) {
+            console.warn("Photo URL persist error:", persistErr.message);
+          }
+        } else {
+          console.warn("Photo upload failed:", data.message || "Unknown error");
+        }
+      } catch (err) {
+        console.warn("Photo upload error:", err.message);
+      }
     });
   }
 
@@ -346,7 +427,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             name: profileData.name,
             phone: profileData.phone,
             country: profileData.country,
-            city: profileData.city
+            city: profileData.city,
+            photo_url: (/^https?:\/\//.test(profileData.photoUrl || "") || (profileData.photoUrl || "").startsWith("/uploads/"))
+              ? profileData.photoUrl
+              : null
           })
         });
 
@@ -370,7 +454,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           const profileRes = await authFetch(`${API}/users/job-seeker-profile`, {
             method: "PUT",
             body: JSON.stringify({
-              photo_url: profileData.photoUrl,
+              photo_url: (/^https?:\/\//.test(profileData.photoUrl || "") || (profileData.photoUrl || "").startsWith("/uploads/"))
+                ? profileData.photoUrl
+                : null,
               dob: profileData.dob,
               gender: profileData.gender,
               address: profileData.address,

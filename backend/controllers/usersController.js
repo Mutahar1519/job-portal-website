@@ -262,7 +262,7 @@ exports.loginUser = (req, res) => {
 /* GET CURRENT USER */
 exports.getMe = (req, res) => {
   db.query(
-    "SELECT id, name, email, role, phone, country, city, verified, is_admin FROM users WHERE id = ?",
+    "SELECT id, name, email, role, phone, country, city, verified, is_admin, photo_url FROM users WHERE id = ?",
     [req.user.id],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -278,14 +278,15 @@ exports.updateMe = (req, res) => {
   const phone = (req.body.phone || "").trim();
   const country = (req.body.country || "").trim();
   const city = (req.body.city || "").trim();
+  const photoUrl = (req.body.photo_url || "").trim();
 
   if (!name) {
     return res.status(400).json({ message: "Name is required" });
   }
 
   db.query(
-    `UPDATE users SET name = ?, phone = ?, country = ?, city = ? WHERE id = ?`,
-    [name, phone || null, country || null, city || null, req.user.id],
+    `UPDATE users SET name = ?, phone = ?, country = ?, city = ?, photo_url = ? WHERE id = ?`,
+    [name, phone || null, country || null, city || null, photoUrl || null, req.user.id],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ message: "Profile updated" });

@@ -9,12 +9,15 @@ const API = `${apiOrigin}/api`;
 
 window.authFetch = (url, options = {}) => {
   const token = localStorage.getItem("token");
+  // Do NOT set Content-Type for FormData — browser must set it with the multipart boundary
+  const isFormData = options.body instanceof FormData;
 
   return fetch(url, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {})
     }
   });
 };

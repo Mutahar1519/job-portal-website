@@ -79,6 +79,127 @@ document.addEventListener("DOMContentLoaded", () => {
           <li>Stronger hires that stick</li>
         </ul>
       `
+    },
+    "actionReadyWorkflows": {
+      title: "Action-Ready Workflows",
+      icon: "fa-bolt",
+      content: `
+        <h3>Everything You Need, In One Place</h3>
+        <ul style="margin-left: 20px; line-height: 1.8;">
+          <li><strong>Shortlist:</strong> Save candidates or jobs with one click</li>
+          <li><strong>Chat:</strong> Message employers or applicants directly on the platform</li>
+          <li><strong>Schedule:</strong> Arrange interviews without leaving JobPortal</li>
+          <li><strong>Pipeline stages:</strong> Move candidates from Pending → Reviewed → Accepted/Rejected</li>
+          <li><strong>Shift management:</strong> Post, book, and confirm shift work end-to-end</li>
+        </ul>
+        <p style="margin-top: 16px;">No external tools required — the entire hiring journey lives here.</p>
+      `
+    },
+    "fairAccess": {
+      title: "Fair Access",
+      icon: "fa-scale-balanced",
+      content: `
+        <h3>Open to Everyone</h3>
+        <ul style="margin-left: 20px; line-height: 1.8;">
+          <li>Browse all approved jobs without creating an account</li>
+          <li>Create a free candidate account in under 2 minutes</li>
+          <li>No premium tier required to apply for jobs</li>
+          <li>Equal visibility for all candidates</li>
+        </ul>
+        <p style="margin-top: 16px;"><strong>Built to be accessible:</strong> JobPortal works on mobile and low-bandwidth connections. Your opportunity should not depend on your device.</p>
+      `
+    },
+    "speedWithTrust": {
+      title: "Speed with Trust",
+      icon: "fa-gauge-high",
+      content: `
+        <h3>Fast Decisions, Safe Hires</h3>
+        <ul style="margin-left: 20px; line-height: 1.8;">
+          <li><strong>Employer verification:</strong> Every employer is reviewed before posting</li>
+          <li><strong>AI moderation:</strong> Listings scored for quality before going live</li>
+          <li><strong>Manual review:</strong> Flagged content reviewed by a human within 24 hours</li>
+          <li><strong>Escrow payments:</strong> Shift workers paid only after confirmed completion</li>
+        </ul>
+        <p style="margin-top: 16px;">Speed should never come at the cost of safety. Trust controls run in the background on every action.</p>
+      `
+    },
+    "simpleWorkflows": {
+      title: "Simple Workflows",
+      icon: "fa-diagram-project",
+      content: `
+        <h3>One Coherent Flow</h3>
+        <p>The full journey — from discovering a job to receiving an offer — is designed as a single, smooth path:</p>
+        <ol style="margin-left: 20px; line-height: 1.8; margin-top: 12px;">
+          <li>Search and filter jobs on the Jobs page</li>
+          <li>Shortlist interesting roles to save for later</li>
+          <li>Apply with your profile and CV in one click</li>
+          <li>Track all your applications from the Dashboard</li>
+          <li>Chat directly with the employer if needed</li>
+          <li>Get notified of status changes instantly</li>
+        </ol>
+        <p style="margin-top: 16px;">No scattered emails, no lost updates, no confusion about next steps.</p>
+      `
+    },
+    "betterOutcomes": {
+      title: "Better Outcomes",
+      icon: "fa-trophy",
+      content: `
+        <h3>Higher Quality Matches</h3>
+        <ul style="margin-left: 20px; line-height: 1.8;">
+          <li><strong>Job signals:</strong> Clear salary, type, category, and deadline on every listing</li>
+          <li><strong>Profile signals:</strong> Candidate skills, experience, and resume visible to employers</li>
+          <li><strong>Rating system:</strong> Transparent company reviews from real candidates</li>
+          <li><strong>Alert matching:</strong> Job alerts delivered when roles match your preferences</li>
+        </ul>
+        <p style="margin-top: 16px;">Both sides of the hiring equation get better information — resulting in fewer mismatches and faster, more confident decisions.</p>
+      `
+    },
+    "hiringPartners": {
+      title: "For Hiring Partners",
+      icon: "fa-handshake",
+      content: `
+        <h3>Built for Hiring Teams</h3>
+        <ul style="margin-left: 20px; line-height: 1.8;">
+          <li><strong>Post jobs fast:</strong> Fill out a structured form — live in minutes after approval</li>
+          <li><strong>Company profile:</strong> A dedicated page candidates can browse</li>
+          <li><strong>Pipeline view:</strong> See all applicants and move them through stages</li>
+          <li><strong>Shift jobs:</strong> Post short-term shifts with hourly rates and escrow payment</li>
+          <li><strong>Analytics:</strong> Track views, applications, and pipeline conversion</li>
+          <li><strong>Messaging:</strong> Chat directly with shortlisted candidates</li>
+        </ul>
+        <p style="margin-top: 16px;">Go to <a href="post-jobs.html" style="color:var(--primary,#2563eb);">Post a Job</a> to get started.</p>
+      `
+    },
+    "jobSeekers": {
+      title: "For Job Seekers",
+      icon: "fa-user-tie",
+      content: `
+        <h3>Your Job Search, Simplified</h3>
+        <ul style="margin-left: 20px; line-height: 1.8;">
+          <li><strong>Free account:</strong> Create a profile with skills, experience, and resume</li>
+          <li><strong>Apply easily:</strong> One-click apply with your saved profile</li>
+          <li><strong>Job alerts:</strong> Get notified when matching roles are posted</li>
+          <li><strong>Shift work:</strong> Browse and apply for short-term paid shift jobs</li>
+          <li><strong>Resume parser:</strong> Upload your CV and let the platform extract your skills</li>
+          <li><strong>Track progress:</strong> See all your applications and their status in one dashboard</li>
+        </ul>
+        <p style="margin-top: 16px;"><a href="register.html" style="color:var(--primary,#2563eb);">Create your free account →</a></p>
+      `
+    },
+    "operations": {
+      title: "Operations & Compliance",
+      icon: "fa-clipboard-list",
+      content: `
+        <h3>Audit-Friendly Platform</h3>
+        <ul style="margin-left: 20px; line-height: 1.8;">
+          <li><strong>Shift logs:</strong> Complete audit trail of shift creation, booking, and payment</li>
+          <li><strong>Escrow records:</strong> Every payment held and released is logged</li>
+          <li><strong>Moderation history:</strong> All content decisions tracked with reason and score</li>
+          <li><strong>Dispute resolution:</strong> Admins can freeze, dispute, or refund escrow payments</li>
+          <li><strong>Admin controls:</strong> Full control over users, jobs, reviews, and platform data</li>
+        </ul>
+        <p style="margin-top: 16px;">Designed to be transparent — every action has a paper trail.</p>
+      `
     }
   };
 
@@ -114,18 +235,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // Map feature cards to modals
   const featureMap = {
     "Trusted postings": "trustedPostings",
-    "Action-ready workflows": null, // No modal needed
-    "Fair access": null,
-    "Speed with trust": null,
-    "Simple workflows": null,
-    "Better outcomes": null
-  };
-
-  // Plus the "Why" section features
-  const whyFeatureMap = {
-    "Trusted postings": "trustedPostings",
-    "Action-ready workflows": null,
-    "Fair access": null
+    "Action-ready workflows": "actionReadyWorkflows",
+    "Fair access": "fairAccess",
+    "Speed with trust": "speedWithTrust",
+    "Simple workflows": "simpleWorkflows",
+    "Better outcomes": "betterOutcomes",
+    "Hiring partners": "hiringPartners",
+    "Job seekers": "jobSeekers",
+    "Operations": "operations"
   };
 
   // Map the pill row items
@@ -156,8 +273,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Attach to feature cards in "Why" section
-  document.querySelectorAll(".feature-card").forEach((card) => {
+  // Attach to feature cards (Why/Mission sections) and team menu-cards
+  document.querySelectorAll(".feature-card, .menu-card").forEach((card) => {
     const title = card.querySelector("h3")?.textContent;
     const key = featureMap[title];
 

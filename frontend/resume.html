@@ -54,7 +54,7 @@
     <section class="resume-tabs" aria-label="Resume sections">
       <a href="#resumeForm" class="resume-tab is-active"><i class="fa-solid fa-upload"></i> Upload</a>
       <a href="#resumeStats" class="resume-tab"><i class="fa-solid fa-chart-simple"></i> Insights</a>
-      <a href="#resumePreview" class="resume-tab"><i class="fa-solid fa-file-lines"></i> Parsed Text</a>
+      <a href="#resumePreview" class="resume-tab"><i class="fa-solid fa-file-lines"></i> Extracted Text</a>
     </section>
 
     <section class="resume-layout">
@@ -84,7 +84,8 @@
       </div>
 
       <div class="glass-card resume-preview resume-panel">
-        <h2 class="section-title">Parsed text</h2>
+        <h2 class="section-title">Extracted resume text</h2>
+        <p class="p-muted" style="margin-bottom:12px;">This is the raw text extracted from your uploaded PDF. It's used internally for skill matching — you don't need to edit it. If this section is empty, your PDF may be image-based and cannot be read by text extraction.</p>
         <div id="resumePreview" class="resume-text"></div>
       </div>
     </section>
@@ -110,7 +111,7 @@
         <a href="dashboard.html">Dashboard</a>
       </div>
     </div>
-    <div class="footer-bottom">Â© 2026 JobPortal. All rights reserved.</div>
+    <div class="footer-bottom">&copy; 2026 JobPortal. All rights reserved.</div>
   </footer>
 
   <script src="js/config.js"></script>

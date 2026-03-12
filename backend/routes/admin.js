@@ -123,7 +123,22 @@ router.put("/users/:id/block", adminAuth, (req, res) => {
     }
   );
 });
+router.put("/users/:id/verify", adminAuth, (req, res) => {
+  const userId = Number(req.params.id);
+  const verified = req.body && req.body.verified ? 1 : 0;
 
+  if (!userId) return res.status(400).json({ message: "Invalid user" });
+
+  db.query(
+    "UPDATE users SET verified = ? WHERE id = ?",
+    [verified, userId],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0) return res.status(404).json({ message: "User not found" });
+      res.json({ message: verified ? "User verified" : "User marked unverified" });
+    }
+  );
+});
 /* Delete user account */
 router.delete("/users/:id", adminAuth, (req, res) => {
   const userId = Number(req.params.id);
@@ -336,7 +351,12 @@ router.put("/jobs/:id/premium", adminAuth, (req, res) => {
 // APPROVE job
 router.put("/jobs/:id/approve", adminAuth, (req, res) => {
   db.query(
-    "UPDATE jobs SET is_approved = 1 WHERE id = ?",
+    `UPDATE jobs
+     SET is_approved = 1,
+         moderation_status = 'approved_manual',
+         moderation_reason = 'Approved by admin',
+         moderation_score = CASE WHEN moderation_score IS NULL OR moderation_score = 0 THEN 100 ELSE moderation_score END
+     WHERE id = ?`,
     [req.params.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -344,6 +364,19 @@ router.put("/jobs/:id/approve", adminAuth, (req, res) => {
       res.json({ message: "Job approved" });
     }
   );
+});
+
+// PURGE demo / test jobs (titles containing 'test', 'demo', 'sample', '[qa]')
+// Must be defined BEFORE the /:id route so 'purge-demo' is not captured as an ID
+router.delete("/jobs/purge-demo", adminAuth, (req, res) => {
+  const sql = `
+    DELETE FROM jobs
+    WHERE LOWER(title) REGEXP '\\\\btest\\\\b|\\\\bdemo\\\\b|\\\\bsample\\\\b|\\\\bqa\\\\b|^\\\\[qa\\\\]'
+  `;
+  db.query(sql, (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: `Purged ${result.affectedRows} job(s)`, count: result.affectedRows });
+  });
 });
 
 // DELETE job
@@ -621,6 +654,28 @@ router.put("/shifts/:id/release", adminAuth, (req, res) => {
         );
       }
     );
+  });
+});
+
+// COMPANIES (admin)
+router.get("/companies", adminAuth, (req, res) => {
+  db.query(
+    "SELECT id, name, industry, location, website, logo_url, created_at FROM companies ORDER BY created_at DESC",
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows || []);
+    }
+  );
+});
+
+router.delete("/companies/:id", adminAuth, (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ message: "Invalid company id" });
+
+  db.query("DELETE FROM companies WHERE id = ?", [id], (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (result.affectedRows === 0) return res.status(404).json({ message: "Company not found" });
+    res.json({ message: "Company deleted" });
   });
 });
 

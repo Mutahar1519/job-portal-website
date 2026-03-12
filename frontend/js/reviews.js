@@ -19,6 +19,12 @@ const defaultReviews = [
   }
 ];
 
+const sanitizeReviewText = (str) => String(str == null ? "" : str)
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;");
+
 const renderReviews = (reviews) => {
   const grid = document.getElementById("reviewsGrid");
   if (!grid) return;
@@ -30,12 +36,12 @@ const renderReviews = (reviews) => {
       <article class="review-card">
         <div class="review-header">
           <div>
-            <h3>${review.name}</h3>
-            <p class="meta">${review.role}</p>
+            <h3>${sanitizeReviewText(review.name)}</h3>
+            <p class="meta">${sanitizeReviewText(review.role)}</p>
           </div>
           <span class="review-stars">${stars}</span>
         </div>
-        <p class="review-message">${review.message}</p>
+        <p class="review-message">${sanitizeReviewText(review.message)}</p>
       </article>
     `;
   });
@@ -76,20 +82,29 @@ const initReviews = () => {
       return;
     }
 
-    const res = await fetch(`${API}/reviews`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, role, rating, message })
-    });
+    try {
+      const res = await fetch(`${API}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, role, rating, message })
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.message || "Failed to submit review");
-      return;
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to submit review");
+        return;
+      }
+
+      form.reset();
+      if (window.toast) {
+        toast("Thanks! Your review is pending approval.");
+      } else {
+        alert("Thanks! Your review is pending approval.");
+      }
+    } catch (err) {
+      console.error("Review submit error:", err);
+      alert("Network error. Please try again.");
     }
-
-    form.reset();
-    alert("Thanks! Your review is pending approval.");
   });
 };
 

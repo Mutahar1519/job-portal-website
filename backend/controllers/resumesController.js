@@ -14,10 +14,13 @@ exports.uploadResume = async (req, res) => {
   let parsedAt = null;
 
   try {
-    const buffer = fs.readFileSync(req.file.path);
-    const parsed = await pdfParse(buffer);
-    extractedText = (parsed.text || "").trim();
-    parsedAt = extractedText ? new Date() : null;
+    const isPdf = req.file.mimetype === "application/pdf" || (req.file.originalname || "").toLowerCase().endsWith(".pdf");
+    if (isPdf) {
+      const buffer = fs.readFileSync(req.file.path);
+      const parsed = await pdfParse(buffer);
+      extractedText = (parsed.text || "").trim();
+      parsedAt = extractedText ? new Date() : null;
+    }
   } catch (err) {
     console.error("Resume parse failed:", err.message);
   }
@@ -48,7 +51,7 @@ exports.uploadResume = async (req, res) => {
 
 exports.getMyResume = (req, res) => {
   db.query(
-    `SELECT id, file_path, parsed_at, updated_at
+    `SELECT id, file_path, extracted_text, parsed_at, updated_at
      FROM resumes WHERE user_id = ?` ,
     [req.user.id],
     (err, rows) => {

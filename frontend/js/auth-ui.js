@@ -44,6 +44,10 @@
     // Admin only
     if (uiUser.is_admin) {
       if (adminLink) adminLink.style.display = "inline-block";
+    }
+
+    // Employers (and admins) can post jobs
+    if (uiUser.is_admin || uiUser.role === "employer") {
       if (postJobLink) postJobLink.style.display = "inline-block";
     }
 

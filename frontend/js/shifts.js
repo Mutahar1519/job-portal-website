@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderShifts();
     } catch (err) {
       console.error("Failed to load shifts:", err);
-      shiftsGrid.innerHTML = '<p class="p-muted" style="grid-column: 1/-1;">Failed to load shifts</p>';
+      if (shiftsGrid) shiftsGrid.innerHTML = '<p class="p-muted" style="grid-column: 1/-1;">Failed to load shifts</p>';
     }
   };
 
@@ -73,10 +73,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       <div class="job-card shift-card">
         <div class="job-card-top">
           <div>
-            <h3>${shift.title || "Shift Job"}</h3>
+            <h3>${esc(shift.title || "Shift Job")}</h3>
             <div class="job-meta">
               <span class="meta-item">
-                <i class="fa-solid fa-map-pin"></i> ${shift.location || "Remote"}
+                <i class="fa-solid fa-map-pin"></i> ${esc(shift.location || "Remote")}
               </span>
               <span class="meta-item badge-shift">
                 <i class="fa-solid fa-hourglass-end"></i> Shift
@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
         </div>
 
-        <p class="job-desc">${shift.description || ""}</p>
+        <p class="job-desc">${esc(shift.description || "")}</p>
 
         <div class="shift-details" style="margin-top: 12px; padding: 12px; background: var(--surface-2); border-radius: 8px;">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -137,8 +137,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       .map(alert => `
         <div style="padding: 10px; background: var(--surface-2); border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <p style="margin: 0; font-weight: 600; font-size: 13px;">${alert.title || "Shift Alert"}</p>
-            <p class="p-muted" style="margin: 4px 0 0 0; font-size: 12px;">${alert.location || "All locations"}</p>
+            <p style="margin: 0; font-weight: 600; font-size: 13px;">${esc(alert.title || "Shift Alert")}</p>
+            <p class="p-muted" style="margin: 4px 0 0 0; font-size: 12px;">
+              ${esc(alert.keyword || "Any shift type")}${alert.location ? ` • ${esc(alert.location)}` : ""}
+            </p>
           </div>
           <button class="btn-icon" onclick="removeAlert(${alert.id})" style="background: none; border: none; color: #ef4444; cursor: pointer;">
             <i class="fa-solid fa-trash"></i>
@@ -199,6 +201,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const saveAlert = async () => {
     const title = document.getElementById("alertTitle").value.trim();
     const location = document.getElementById("alertLocation").value.trim();
+    const shiftTypeKeyword = document.getElementById("alertShiftType").value.trim();
     const payMin = Number(document.getElementById("alertPayMin").value) || 0;
     const daysCheckboxes = document.querySelectorAll(".days-select input:checked");
     const days = Array.from(daysCheckboxes).map(cb => cb.value).join(",");
@@ -214,7 +217,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         method: "POST",
         body: JSON.stringify({
           title,
+          keyword: shiftTypeKeyword,
           location,
+          job_type: "Shift",
           min_pay_cents: Math.round(payMin * 100),
           preferred_days: days,
           notifications_enabled: notifications,

@@ -1,9 +1,18 @@
 function toast(msg) {
   const t = document.getElementById("toast");
+  if (!t) { console.info("[toast]", msg); return; }
   t.innerText = msg;
   t.style.display = "block";
+  setTimeout(() => { t.style.display = "none"; }, 2500);
+}
 
-  setTimeout(() => t.style.display = "none", 2500);
+/* Escape HTML — use on every user-supplied value in innerHTML to prevent XSS */
+function esc(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function safeParseJson(value, label) {
@@ -30,11 +39,6 @@ function authFetch(url, options = {}) {
 
   if (token) {
     baseHeaders.Authorization = `Bearer ${token}`;
-    // Debug: log token info (first 20 chars and last 20 chars)
-    const tokenPreview = token.length > 40 ? token.substring(0, 20) + "..." + token.substring(token.length - 20) : token;
-    console.log(`[authFetch] Token attached: ${tokenPreview}, URL: ${url}`);
-  } else {
-    console.warn(`[authFetch] No token found in localStorage for URL: ${url}`);
   }
 
   return fetch(url, {

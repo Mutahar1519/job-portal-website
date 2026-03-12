@@ -169,7 +169,13 @@ exports.getJobs = (req, res) => {
       params.push(req.user.id);
     }
 
-    sql += " WHERE j.is_approved = 1";
+    // show approved jobs plus any job owned by the current user (so they can see pending posts)
+    sql += " WHERE (j.is_approved = 1";
+    if (req.user) {
+      sql += " OR j.posted_by = ?";
+      params.push(req.user.id);
+    }
+    sql += ")";
     if (includeDeadlineColumn) {
       sql += " AND (j.application_deadline IS NULL OR j.application_deadline >= NOW())";
     }
@@ -222,7 +228,37 @@ exports.getJobs = (req, res) => {
   });
 };
 
+exports.getJobById = (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ message: "Invalid job id" });
 
+  const params = [id];
+  let sql = `
+    SELECT j.*, c.name AS company_name, c.logo_url AS company_logo,
+           (CASE WHEN j.application_deadline IS NULL OR j.application_deadline >= NOW() THEN 1 ELSE 0 END) AS is_open_for_applications
+    FROM jobs j
+    LEFT JOIN companies c ON j.company_id = c.id
+    WHERE j.id = ?
+      AND (
+        j.is_approved = 1
+  `;
+
+  if (req.user && req.user.id) {
+    sql += " OR j.posted_by = ?";
+    params.push(req.user.id);
+  }
+
+  sql += `
+      )
+    LIMIT 1
+  `;
+
+  db.query(sql, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!rows.length) return res.status(404).json({ message: "Job not found" });
+    res.json(rows[0]);
+  });
+};
 
 exports.addJob = (req, res) => {
   const title = (req.body.title || "").trim();
@@ -285,7 +321,7 @@ exports.addJob = (req, res) => {
   db.query("SELECT verified FROM users WHERE id = ?", [userId], (err, users) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!users.length) return res.status(404).json({ message: "User not found" });
-    if (!users[0].verified) return res.status(403).json({ message: "User not verified" });
+    if (!users[0].verified) return res.status(403).json({ message: "Your employer account is pending admin verification. Once an admin approves your account you will be able to post jobs. Contact support@jobportal.com if you need help." });
 
     const insertJob = async (companyId) => {
       const autoApprovalRaw = await getPlatformSetting("auto_approve_jobs", String(AUTO_APPROVAL_ENABLED));
