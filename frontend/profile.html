@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile | JobPortal</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>Profile | JobPortal</title>  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%232563eb' width='100' height='100'/><text x='50' y='65' font-size='50' font-weight='bold' text-anchor='middle' fill='white' font-family='system-ui'>JP</text></svg>">  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
@@ -16,19 +15,19 @@
       <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
     </div>
 
-    <a href="index.html" class="nav-link">Home</a>
-    <a href="jobs.html" class="nav-link">Jobs</a>
-    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
-    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
-    <a href="profile.html" id="profileLink" class="nav-link nav-active">Profile</a>
-    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
-    <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
-    <a href="login.html" id="loginLink" class="nav-link">Login</a>
-    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
-      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
-    </a>
-    <button id="themeToggle" class="btn btn-ghost">ðŸŒ™</button>
-    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="jobs.html" class="nav-link">Jobs</a>
+      <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+      <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+      <a href="profile.html" id="profileLink" class="nav-link nav-active">Profile</a>
+      <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+      <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+      <a href="login.html" id="loginLink" class="nav-link">Login</a>
+      <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+        <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+      </a>
+      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+      <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
   <main class="container fade-up">
@@ -59,6 +58,7 @@
       <a href="#profile-public-panel" class="profile-tab"><i class="fa-solid fa-id-badge"></i> Public View</a>
       <a href="#profile-activity-panel" class="profile-tab"><i class="fa-solid fa-chart-column"></i> Activity</a>
       <a href="#quick-links" class="profile-tab"><i class="fa-solid fa-link"></i> Quick Links</a>
+      <a href="#account-settings" class="profile-tab"><i class="fa-solid fa-cog"></i> Settings</a>
     </section>
 
     <section id="profile-edit-panel" class="section-block profile-panel">
@@ -250,6 +250,63 @@
         </a>
       </div>
     </section>
+
+    <section id="account-settings" class="section-block profile-panel">
+      <div class="section-head">
+        <p class="eyebrow">Account Management</p>
+        <h2 class="section-title">Account Settings</h2>
+        <p class="p-muted">Manage your account and data preferences.</p>
+      </div>
+      <div class="account-settings-grid">
+        <div class="glass-card settings-card">
+          <div class="settings-card-header">
+            <h3><i class="fa-solid fa-download"></i> Download Your Data</h3>
+            <p class="p-muted">Get a copy of all your profile information and activity data.</p>
+          </div>
+          <button id="downloadDataBtn" class="btn btn-outline">
+            <i class="fa-solid fa-file-export"></i> Download Data
+          </button>
+        </div>
+
+        <div class="glass-card settings-card danger-card">
+          <div class="settings-card-header">
+            <h3><i class="fa-solid fa-trash"></i> Delete Account</h3>
+            <p class="p-muted">Permanently delete your account and all associated data. This action cannot be undone.</p>
+          </div>
+          <button id="deleteAccountBtn" class="btn btn-danger">
+            <i class="fa-solid fa-exclamation-triangle"></i> Delete Account
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <div id="deleteAccountModal" class="account-modal hidden">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-exclamation-circle"></i> Delete Account</h3>
+          <button class="modal-close" id="closeDeleteModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="warning-text">This action is permanent and cannot be undone. All your data including:</p>
+          <ul class="warning-list">
+            <li>Profile information</li>
+            <li>Applications and job history</li>
+            <li>Saved jobs and preferences</li>
+            <li>Messages and communications</li>
+            <li>Account data</li>
+          </ul>
+          <p class="warning-text" style="margin-top: 16px;">Will be permanently deleted.</p>
+          <div class="confirmation-input-group">
+            <label for="deleteConfirmInput" class="form-label">To confirm, type your email address:</label>
+            <input type="text" id="deleteConfirmInput" class="form-input" placeholder="Enter your email to confirm" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="cancelDeleteBtn" class="btn btn-outline">Cancel</button>
+          <button id="confirmDeleteBtn" class="btn btn-danger" disabled>Delete Account Permanently</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <div id="toast"></div>

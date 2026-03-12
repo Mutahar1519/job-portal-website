@@ -114,20 +114,35 @@ exports.deleteAlert = (req, res) => {
 };
 
 exports.listShiftNotifications = (req, res) => {
-  const sql = `
-    SELECT n.id, n.job_id, n.status, n.paid_at, n.is_read, n.created_at,
-           j.title, j.location, j.shift_start, j.shift_end, j.shift_pay_cents, j.shift_currency
-    FROM shift_notifications n
-    JOIN jobs j ON n.job_id = j.id
-    WHERE n.user_id = ?
-    ORDER BY n.created_at DESC
-    LIMIT 50
-  `;
+  const tryWithDeadline = (includeDeadline) => {
+    const sql = `
+      SELECT n.id, n.job_id, n.status, n.paid_at, n.is_read, n.created_at,
+             j.title, j.location, j.shift_start, j.shift_end, j.shift_pay_cents, j.shift_currency,
+             ${includeDeadline ? "j.application_deadline," : "NULL AS application_deadline,"}
+             ${includeDeadline
+               ? "(CASE WHEN j.application_deadline IS NULL OR j.application_deadline > NOW() THEN 1 ELSE 0 END)"
+               : "1"} AS is_open_for_applications
+      FROM shift_notifications n
+      JOIN jobs j ON n.job_id = j.id
+      WHERE n.user_id = ?
+        AND COALESCE(j.is_shift, 1) = 1
+        AND (j.shift_end IS NULL OR j.shift_end > NOW())
+        ${includeDeadline ? "AND (j.application_deadline IS NULL OR j.application_deadline > NOW())" : ""}
+      ORDER BY n.created_at DESC
+      LIMIT 50
+    `;
+    db.query(sql, [req.user.id], (err, rows) => {
+      if (err) {
+        if ((err.code === "ER_BAD_FIELD_ERROR" || /Unknown column/i.test(err.message)) && includeDeadline) {
+          return tryWithDeadline(false);
+        }
+        return res.status(500).json({ error: err.message });
+      }
+      res.json(rows);
+    });
+  };
 
-  db.query(sql, [req.user.id], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+  tryWithDeadline(true);
 };
 
 exports.markShiftNotificationRead = (req, res) => {
@@ -143,6 +158,89 @@ exports.markShiftNotificationRead = (req, res) => {
         return res.status(404).json({ message: "Notification not found" });
       }
       res.json({ message: "Notification marked read" });
+    }
+  );
+};
+
+exports.listJobNotifications = (req, res) => {
+  db.query(
+    "SELECT * FROM job_alerts WHERE user_id = ? AND is_active = 1",
+    [req.user.id],
+    (err, alerts) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!alerts.length) return res.json([]);
+
+      const isMissingColumnError = (queryErr) => {
+        return !!queryErr && (queryErr.code === "ER_BAD_FIELD_ERROR" || /Unknown column/i.test(queryErr.message || ""));
+      };
+
+      const buildAndRun = ({ includeDeadlineColumn, includeSalaryColumn }) => {
+        const conditions = [];
+        const params = [];
+
+        conditions.push("COALESCE(j.is_shift, 0) = 0");
+        conditions.push("COALESCE(j.is_approved, 1) = 1");
+        if (includeDeadlineColumn) {
+          conditions.push("(j.application_deadline IS NULL OR j.application_deadline > NOW())");
+        }
+
+        const alertConditions = alerts.map((alert) => {
+          const parts = [];
+          if (alert.keyword) {
+            parts.push("(LOWER(j.title) LIKE LOWER(?) OR LOWER(j.description) LIKE LOWER(?))");
+            params.push(`%${alert.keyword}%`);
+            params.push(`%${alert.keyword}%`);
+          }
+          if (alert.location) {
+            parts.push("LOWER(COALESCE(j.location, '')) LIKE LOWER(?)");
+            params.push(`%${alert.location}%`);
+          }
+          if (alert.category) {
+            parts.push("REPLACE(LOWER(COALESCE(j.category, '')), '-', ' ') LIKE LOWER(?)");
+            params.push(`%${alert.category.replace(/-/g, " ")}%`);
+          }
+          if (alert.job_type) {
+            // Normalize hyphens so "Full-time" matches "Full time" and vice-versa
+            parts.push("REPLACE(LOWER(COALESCE(j.job_type, '')), '-', ' ') LIKE LOWER(?)");
+            params.push(`%${alert.job_type.replace(/-/g, " ")}%`);
+          }
+          return parts.length ? `(${parts.join(" AND ")})` : "1=1";
+        });
+
+        if (alertConditions.length) {
+          conditions.push(`(${alertConditions.join(" OR ")})`);
+        }
+
+        const sql = `
+          SELECT DISTINCT j.id, j.title, j.location, j.category, j.job_type,
+                 ${includeSalaryColumn ? "j.salary" : "NULL AS salary"},
+                 j.description,
+                 ${includeDeadlineColumn ? "j.application_deadline" : "NULL AS application_deadline"},
+                 ${includeDeadlineColumn ? "(CASE WHEN j.application_deadline IS NULL OR j.application_deadline > NOW() THEN 1 ELSE 0 END)" : "1"} AS is_open_for_applications,
+                 j.created_at
+          FROM jobs j
+          WHERE ${conditions.join(" AND ")}
+          ORDER BY j.created_at DESC
+          LIMIT 100
+        `;
+
+        db.query(sql, params, (queryErr, jobs) => {
+          if (!queryErr) return res.json(jobs || []);
+
+          if (isMissingColumnError(queryErr)) {
+            if (includeSalaryColumn) {
+              return buildAndRun({ includeDeadlineColumn, includeSalaryColumn: false });
+            }
+            if (includeDeadlineColumn) {
+              return buildAndRun({ includeDeadlineColumn: false, includeSalaryColumn: false });
+            }
+          }
+
+          return res.status(500).json({ error: queryErr.message });
+        });
+      };
+
+      buildAndRun({ includeDeadlineColumn: true, includeSalaryColumn: true });
     }
   );
 };

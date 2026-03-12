@@ -1,11 +1,15 @@
 const express = require("express");
 const router = express.Router();
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 const adminAuth = require("../middleware/adminAuth");
 const db = require("../config/mysql");
 const { notifyShiftAlerts } = require("../utils/shiftAlerts");
 const { getPlatformSetting, setPlatformSetting, toBooleanSetting } = require("../utils/platformSettings");
 
 const DEFAULT_AUTO_APPROVAL_ENABLED = process.env.AUTO_APPROVE_JOBS !== "false";
+const ADMIN_APPROVER_EMAIL = "test@sample.com";
+const ADMIN_GRANT_TTL_MINUTES = 30;
 
 // Best-effort schema bootstrap for review moderation state.
 db.query(
@@ -16,6 +20,57 @@ db.query(
     }
   }
 );
+
+db.query(
+  "ALTER TABLE users ADD COLUMN is_blocked TINYINT(1) NOT NULL DEFAULT 0",
+  (err) => {
+    if (err && err.code !== "ER_DUP_FIELDNAME") {
+      console.warn("users.is_blocked bootstrap failed:", err.message);
+    }
+  }
+);
+
+db.query(
+  `CREATE TABLE IF NOT EXISTS admin_role_grants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    target_user_id INT NOT NULL,
+    requested_by_admin_id INT NOT NULL,
+    approver_email VARCHAR(255) NOT NULL,
+    approval_code VARCHAR(12) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    expires_at DATETIME NOT NULL,
+    approved_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_admin_grants_target (target_user_id),
+    INDEX idx_admin_grants_status (status)
+  )`,
+  (err) => {
+    if (err) {
+      console.warn("admin_role_grants bootstrap failed:", err.message);
+    }
+  }
+);
+
+const getMailer = () => {
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || 587);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const from = process.env.SMTP_FROM;
+
+  if (!host || !user || !pass || !from) {
+    return null;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass }
+  });
+
+  return { transporter, from };
+};
 
 router.get("/settings/auto-approval", adminAuth, async (req, res) => {
   const raw = await getPlatformSetting("auto_approve_jobs", String(DEFAULT_AUTO_APPROVAL_ENABLED));
@@ -41,9 +96,182 @@ router.put("/settings/auto-approval", adminAuth, async (req, res) => {
 
 /* Get all users */
 router.get("/users", adminAuth, (req, res) => {
-  db.query("SELECT id, name, email, verified, is_admin FROM users", (err, users) => {
+  db.query(
+    "SELECT id, name, email, role, verified, is_admin, is_blocked, created_at FROM users ORDER BY created_at DESC",
+    (err, users) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(users);
+    }
+  );
+});
+
+/* Block/unblock user */
+router.put("/users/:id/block", adminAuth, (req, res) => {
+  const userId = Number(req.params.id);
+  const blocked = req.body && req.body.blocked ? 1 : 0;
+
+  if (!userId) return res.status(400).json({ message: "Invalid user" });
+  if (userId === req.user.id) return res.status(400).json({ message: "You cannot block your own account" });
+
+  db.query(
+    "UPDATE users SET is_blocked = ? WHERE id = ?",
+    [blocked, userId],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0) return res.status(404).json({ message: "User not found" });
+      res.json({ message: blocked ? "User blocked" : "User unblocked" });
+    }
+  );
+});
+
+/* Delete user account */
+router.delete("/users/:id", adminAuth, (req, res) => {
+  const userId = Number(req.params.id);
+  if (!userId) return res.status(400).json({ message: "Invalid user" });
+  if (userId === req.user.id) return res.status(400).json({ message: "You cannot delete your own account" });
+
+  db.query("DELETE FROM users WHERE id = ?", [userId], (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(users);
+    if (result.affectedRows === 0) return res.status(404).json({ message: "User not found" });
+    res.json({ message: "User account deleted" });
+  });
+});
+
+/* Request admin grant approval from test@sample.com */
+router.post("/users/:id/request-admin-grant", adminAuth, (req, res) => {
+  const userId = Number(req.params.id);
+  if (!userId) return res.status(400).json({ message: "Invalid user" });
+
+  db.query("SELECT id, name, email, is_admin FROM users WHERE id = ?", [userId], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!rows.length) return res.status(404).json({ message: "User not found" });
+    if (rows[0].is_admin) return res.status(400).json({ message: "User is already an admin" });
+
+    const target = rows[0];
+    const approvalCode = String(crypto.randomInt(100000, 999999));
+    const expiresAt = new Date(Date.now() + ADMIN_GRANT_TTL_MINUTES * 60 * 1000);
+
+    db.query(
+      "UPDATE admin_role_grants SET status = 'expired' WHERE target_user_id = ? AND status = 'pending'",
+      [userId],
+      () => {
+        db.query(
+          `INSERT INTO admin_role_grants
+            (target_user_id, requested_by_admin_id, approver_email, approval_code, status, expires_at)
+           VALUES (?, ?, ?, ?, 'pending', ?)`,
+          [userId, req.user.id, ADMIN_APPROVER_EMAIL, approvalCode, expiresAt],
+          (insertErr) => {
+            if (insertErr) return res.status(500).json({ error: insertErr.message });
+
+            const mailer = getMailer();
+            const message = `Admin role grant requested for user ${target.name} (${target.email}).\nApproval code: ${approvalCode}\nExpires in ${ADMIN_GRANT_TTL_MINUTES} minutes.`;
+
+            if (mailer) {
+              mailer.transporter
+                .sendMail({
+                  from: mailer.from,
+                  to: ADMIN_APPROVER_EMAIL,
+                  subject: "JobPortal admin promotion approval required",
+                  text: message
+                })
+                .catch((mailErr) => console.error("Admin grant email failed:", mailErr.message));
+            } else {
+              console.warn(`[AdminGrant] SMTP not configured. Share this code with ${ADMIN_APPROVER_EMAIL}: ${approvalCode}`);
+            }
+
+            res.json({
+              message: `Approval requested. Ask ${ADMIN_APPROVER_EMAIL} for the approval code.`,
+              approver_email: ADMIN_APPROVER_EMAIL,
+              expires_in_minutes: ADMIN_GRANT_TTL_MINUTES
+            });
+          }
+        );
+      }
+    );
+  });
+});
+
+/* Promote user to admin with approval from test@sample.com */
+router.put("/users/:id/make-admin", adminAuth, (req, res) => {
+  const userId = Number(req.params.id);
+  const approvalEmail = String((req.body && req.body.approvalEmail) || "").trim().toLowerCase();
+  const approvalCode = String((req.body && req.body.approvalCode) || "").trim();
+
+  if (!userId) return res.status(400).json({ message: "Invalid user" });
+  if (!approvalCode) return res.status(400).json({ message: "Approval code is required" });
+  if (approvalEmail !== ADMIN_APPROVER_EMAIL) {
+    return res.status(400).json({ message: `Approval must come from ${ADMIN_APPROVER_EMAIL}` });
+  }
+
+  db.query(
+    `SELECT id
+     FROM admin_role_grants
+     WHERE target_user_id = ?
+       AND approver_email = ?
+       AND approval_code = ?
+       AND status = 'pending'
+       AND expires_at > NOW()
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [userId, ADMIN_APPROVER_EMAIL, approvalCode],
+    (err, grants) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!grants.length) {
+        return res.status(400).json({ message: "Invalid or expired approval code" });
+      }
+
+      const grantId = grants[0].id;
+      db.query(
+        "UPDATE users SET is_admin = 1, role = 'admin' WHERE id = ?",
+        [userId],
+        (updateErr, result) => {
+          if (updateErr) return res.status(500).json({ error: updateErr.message });
+          if (result.affectedRows === 0) return res.status(404).json({ message: "User not found" });
+
+          db.query(
+            "UPDATE admin_role_grants SET status = 'approved', approved_at = NOW() WHERE id = ?",
+            [grantId],
+            () => {
+              res.json({ message: "User promoted to admin" });
+            }
+          );
+        }
+      );
+    }
+  );
+});
+
+/* Grant history (pending/approved/expired/all) */
+router.get("/users/grants/history", adminAuth, (req, res) => {
+  const status = String(req.query.status || "all").trim().toLowerCase();
+  const allowed = new Set(["all", "pending", "approved", "expired"]);
+  if (!allowed.has(status)) {
+    return res.status(400).json({ message: "Invalid status filter" });
+  }
+
+  const effectiveStatusExpr = "CASE WHEN g.status = 'pending' AND g.expires_at <= NOW() THEN 'expired' ELSE g.status END";
+  let sql = `
+    SELECT g.id, g.target_user_id, g.requested_by_admin_id,
+           g.approver_email, g.status, g.expires_at, g.approved_at, g.created_at,
+           ${effectiveStatusExpr} AS effective_status,
+           target.name AS target_name, target.email AS target_email,
+           requester.name AS requested_by_name, requester.email AS requested_by_email
+    FROM admin_role_grants g
+    LEFT JOIN users target ON target.id = g.target_user_id
+    LEFT JOIN users requester ON requester.id = g.requested_by_admin_id
+  `;
+
+  const params = [];
+  if (status !== "all") {
+    sql += ` WHERE ${effectiveStatusExpr} = ?`;
+    params.push(status);
+  }
+
+  sql += " ORDER BY g.created_at DESC LIMIT 100";
+
+  db.query(sql, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows || []);
   });
 });
 

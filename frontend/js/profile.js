@@ -407,4 +407,130 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     saveProfile();
   });
+
+  // Delete Account Functionality
+  const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+  const deleteAccountModal = document.getElementById("deleteAccountModal");
+  const closeDeleteModal = document.getElementById("closeDeleteModal");
+  const cancelDeleteBtn = document.getElementById("cancelDeleteBtn");
+  const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+  const deleteConfirmInput = document.getElementById("deleteConfirmInput");
+  const downloadDataBtn = document.getElementById("downloadDataBtn");
+
+  if (deleteAccountBtn) {
+    deleteAccountBtn.addEventListener("click", () => {
+      deleteAccountModal.classList.remove("hidden");
+      deleteConfirmInput.value = "";
+      confirmDeleteBtn.disabled = true;
+    });
+  }
+
+  if (closeDeleteModal) {
+    closeDeleteModal.addEventListener("click", () => {
+      deleteAccountModal.classList.add("hidden");
+    });
+  }
+
+  if (cancelDeleteBtn) {
+    cancelDeleteBtn.addEventListener("click", () => {
+      deleteAccountModal.classList.add("hidden");
+    });
+  }
+
+  // Enable/disable confirm button based on email match
+  if (deleteConfirmInput) {
+    deleteConfirmInput.addEventListener("input", (e) => {
+      const userEmail = user.email || localStorage.getItem("userEmail") || "";
+      confirmDeleteBtn.disabled = e.target.value.trim() !== userEmail;
+    });
+  }
+
+  if (confirmDeleteBtn) {
+    confirmDeleteBtn.addEventListener("click", async () => {
+      const userEmail = user.email || localStorage.getItem("userEmail") || "";
+      if (deleteConfirmInput.value.trim() !== userEmail) {
+        alert("Email does not match");
+        return;
+      }
+
+      if (!window.confirm("This action is permanent. Are you absolutely sure you want to delete your account?")) {
+        return;
+      }
+
+      try {
+        confirmDeleteBtn.disabled = true;
+        confirmDeleteBtn.textContent = "Deleting...";
+
+        const res = await authFetch(`${API}/users/me`, {
+          method: "DELETE"
+        });
+
+        if (res.ok) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("profileData");
+          if (window.toast) {
+            window.toast("Account deleted successfully");
+          }
+          setTimeout(() => {
+            window.location.href = "index.html";
+          }, 1000);
+        } else {
+          const error = await res.json();
+          throw new Error(error.message || "Failed to delete account");
+        }
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Failed to delete account");
+        confirmDeleteBtn.disabled = false;
+        confirmDeleteBtn.textContent = "Delete Account Permanently";
+      }
+    });
+  }
+
+  // Download Data Functionality
+  if (downloadDataBtn) {
+    downloadDataBtn.addEventListener("click", async () => {
+      try {
+        downloadDataBtn.disabled = true;
+        downloadDataBtn.textContent = "Preparing...";
+
+        const meRes = await authFetch(`${API}/users/me`);
+        const userData = await meRes.json();
+
+        let profileData = {};
+        if (user.is_admin || user.role === "job_seeker") {
+          const profileRes = await authFetch(`${API}/users/job-seeker-profile`);
+          profileData = await profileRes.json();
+        }
+
+        const dataExport = {
+          exportDate: new Date().toISOString(),
+          userInfo: userData,
+          profileInfo: profileData
+        };
+
+        const blob = new Blob([JSON.stringify(dataExport, null, 2)], {
+          type: "application/json"
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `jobportal-data-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        if (window.toast) {
+          window.toast("Data downloaded successfully");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Failed to download data");
+      } finally {
+        downloadDataBtn.disabled = false;
+        downloadDataBtn.textContent = "Download Data";
+      }
+    });
+  }
 });
+

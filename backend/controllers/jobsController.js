@@ -240,6 +240,11 @@ exports.addJob = (req, res) => {
   const applicationDeadline = applicationDeadlineRaw ? new Date(applicationDeadlineRaw) : null;
   const userId = req.user ? req.user.id : null;
   const requestedCompanyId = req.body.company_id ? Number(req.body.company_id) : null;
+  const bodyImageUrl = (req.body.image_url || "").trim();
+  const isValidExternalUrl = bodyImageUrl && /^https?:\/\/.{4,}/.test(bodyImageUrl) && bodyImageUrl.length <= 500;
+  const imageUrl = req.file
+    ? "/uploads/jobs/" + req.file.filename
+    : (isValidExternalUrl ? bodyImageUrl : null);
 
   if (!title || !location || !jobType || !category || !description) {
     return res.status(400).json({ message: "All fields are required" });
@@ -304,8 +309,8 @@ exports.addJob = (req, res) => {
         `INSERT INTO jobs
           (title, location, job_type, category, description, is_premium, posted_by, company_id, is_approved,
            is_shift, shift_start, shift_end, shift_pay_cents, shift_fee_cents, shift_total_cents, shift_currency, shift_paid, shift_status,
-           application_deadline, moderation_status, moderation_score, moderation_reason, auto_approved_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           application_deadline, moderation_status, moderation_score, moderation_reason, auto_approved_at, image_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ,[
           title,
           location,
@@ -329,10 +334,38 @@ exports.addJob = (req, res) => {
           moderation.status,
           moderation.score,
           moderation.reasonText,
-          moderation.autoApproved ? new Date() : null
+          moderation.autoApproved ? new Date() : null,
+          imageUrl
         ],
         (err, result) => {
-          if (err) return res.status(500).json({ error: err.message });
+          if (err) {
+            // Fallback: if image_url column doesn't exist yet, retry without it
+            if (err.code === "ER_BAD_FIELD_ERROR") {
+              return db.query(
+                `INSERT INTO jobs
+                  (title, location, job_type, category, description, is_premium, posted_by, company_id, is_approved,
+                   is_shift, shift_start, shift_end, shift_pay_cents, shift_fee_cents, shift_total_cents, shift_currency, shift_paid, shift_status,
+                   application_deadline, moderation_status, moderation_score, moderation_reason, auto_approved_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                ,[
+                  title, location, jobType, category, description, isPremium, userId, companyId || null, isApproved,
+                  isShift, shiftStart, shiftEnd, isShift ? shiftPayCents : null, isShift ? feeCents : null,
+                  isShift ? totalCents : null, shiftCurrency, isShift ? 1 : 0, "open", applicationDeadline,
+                  moderation.status, moderation.score, moderation.reasonText, moderation.autoApproved ? new Date() : null
+                ],
+                (err2, result2) => {
+                  if (err2) return res.status(500).json({ error: err2.message });
+                  if (isShift) notifyShiftAlerts(result2.insertId, { status: "posted" });
+                  res.status(201).json({
+                    message: moderation.autoApproved ? "Job posted and auto-approved successfully" : "Job submitted successfully and is pending admin review",
+                    auto_approved: moderation.autoApproved,
+                    moderation: { score: moderation.score, status: moderation.status, reason: moderation.reasonText, ai: moderation.aiAssessment || null }
+                  });
+                }
+              );
+            }
+            return res.status(500).json({ error: err.message });
+          }
           if (isShift) {
             notifyShiftAlerts(result.insertId, { status: "posted" });
           }

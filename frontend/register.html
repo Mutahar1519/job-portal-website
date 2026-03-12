@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Register - Job Portal</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%232563eb' width='100' height='100'/><text x='50' y='65' font-size='50' font-weight='bold' text-anchor='middle' fill='white' font-family='system-ui'>JP</text></svg>">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,19 +22,19 @@
         <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
       </div>
 
-      <a href="index.html" class="nav-link">Home</a>
-      <a href="jobs.html" class="nav-link">Jobs</a>
-      <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
-      <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
-      <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
-      <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
-      <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
-      <a href="login.html" id="loginLink" class="nav-link">Login</a>
-      <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
-        <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
-      </a>
-      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
-      <button id="logoutBtn" class="btn btn-outline">Logout</button>
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="jobs.html" class="nav-link">Jobs</a>
+        <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+        <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+        <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+        <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+        <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+        <a href="login.html" id="loginLink" class="nav-link">Login</a>
+        <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+          <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+        </a>
+        <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+        <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
   <div class="registration-container">
@@ -74,61 +75,61 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Full Name</label>
-            <input type="text" id="name" class="form-input" required>
+            <label for="name" class="form-label">Full Name</label>
+            <input type="text" id="name" name="name" class="form-input" required>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Email</label>
-            <input type="email" id="email" class="form-input" required>
+            <label for="email" class="form-label">Email</label>
+            <input type="email" id="email" name="email" class="form-input" required>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Phone number</label>
-            <input type="tel" id="phone" class="form-input" required>
+            <label for="phone" class="form-label">Phone number</label>
+            <input type="tel" id="phone" name="phone" class="form-input" required>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Password</label>
-            <input type="password" id="password" class="form-input" required>
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" name="password" class="form-input" required>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Confirm password</label>
-            <input type="password" id="confirmPassword" class="form-input" required>
+            <label for="confirmPassword" class="form-label">Confirm password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required>
           </div>
 
           <div id="jobSeekerFields" class="job-seeker-fields">
             <div class="form-group">
-              <label class="form-label">Country</label>
-              <input type="text" id="country" class="form-input" required>
+              <label for="country" class="form-label">Country</label>
+              <input type="text" id="country" name="country" class="form-input" required>
             </div>
             <div class="form-group">
-              <label class="form-label">City</label>
-              <input type="text" id="city" class="form-input" required>
+              <label for="city" class="form-label">City</label>
+              <input type="text" id="city" name="city" class="form-input" required>
             </div>
           </div>
 
           <div id="employerFields" class="employer-fields hidden">
             <div class="form-group">
-              <label class="form-label">Company name</label>
-              <input type="text" id="companyName" class="form-input">
+              <label for="companyName" class="form-label">Company name</label>
+              <input type="text" id="companyName" name="companyName" class="form-input">
             </div>
             <div class="form-group">
-              <label class="form-label">Company phone</label>
-              <input type="tel" id="companyPhone" class="form-input">
+              <label for="companyPhone" class="form-label">Company phone</label>
+              <input type="tel" id="companyPhone" name="companyPhone" class="form-input">
             </div>
             <div class="form-group">
-              <label class="form-label">Company website (optional)</label>
-              <input type="url" id="companyWebsite" class="form-input" placeholder="https://">
+              <label for="companyWebsite" class="form-label">Company website (optional)</label>
+              <input type="url" id="companyWebsite" name="companyWebsite" class="form-input" placeholder="https://">
             </div>
             <div class="form-group">
-              <label class="form-label">Company location</label>
-              <input type="text" id="companyLocation" class="form-input">
+              <label for="companyLocation" class="form-label">Company location</label>
+              <input type="text" id="companyLocation" name="companyLocation" class="form-input">
             </div>
             <div class="form-group">
-              <label class="form-label">Company address / house number</label>
-              <input type="text" id="companyAddress" class="form-input">
+              <label for="companyAddress" class="form-label">Company address / house number</label>
+              <input type="text" id="companyAddress" name="companyAddress" class="form-input">
             </div>
           </div>
 

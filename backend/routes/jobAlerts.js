@@ -11,4 +11,6 @@ router.delete("/:id", auth, jobAlertsController.deleteAlert);
 router.get("/shift-notifications", auth, jobAlertsController.listShiftNotifications);
 router.put("/shift-notifications/:id/read", auth, jobAlertsController.markShiftNotificationRead);
 
+router.get("/job-notifications", auth, jobAlertsController.listJobNotifications);
+
 module.exports = router;

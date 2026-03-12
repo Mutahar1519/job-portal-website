@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%232563eb' width='100' height='100'/><text x='50' y='65' font-size='50' font-weight='bold' text-anchor='middle' fill='white' font-family='system-ui'>JP</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,19 +19,19 @@
       <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
     </div>
 
-    <a href="index.html" class="nav-link">Home</a>
-    <a href="jobs.html" class="nav-link">Jobs</a>
-    <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
-    <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
-    <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
-    <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
-    <a href="admin.html" id="adminLink" class="nav-link nav-active">Admin</a>
-    <a href="login.html" id="loginLink" class="nav-link">Login</a>
-    <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
-      <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
-    </a>
-    <button id="themeToggle" class="btn btn-ghost">ðŸŒ™</button>
-    <button id="logoutBtn" class="btn btn-outline">Logout</button>
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="jobs.html" class="nav-link">Jobs</a>
+      <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+      <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+      <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+      <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+      <a href="admin.html" id="adminLink" class="nav-link nav-active">Admin</a>
+      <a href="login.html" id="loginLink" class="nav-link">Login</a>
+      <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+        <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+      </a>
+      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+      <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
 
@@ -75,28 +76,48 @@
 
       <form id="adminJobForm" class="form-grid admin-job-form">
         <div class="form-group">
-          <label class="form-label">Job Title</label>
-          <input type="text" id="adminJobTitle" class="form-input" required>
+          <label class="form-label" for="adminJobTitle">Job Title</label>
+          <input type="text" id="adminJobTitle" name="adminJobTitle" class="form-input" required>
         </div>
         <div class="form-group">
-          <label class="form-label">Location</label>
-          <input type="text" id="adminJobLocation" class="form-input" required>
+          <label class="form-label" for="adminJobLocation">Location</label>
+          <input type="text" id="adminJobLocation" name="adminJobLocation" class="form-input" required>
         </div>
         <div class="form-group">
-          <label class="form-label">Job Type</label>
-          <input type="text" id="adminJobType" class="form-input" required>
+          <label class="form-label" for="adminJobType">Job Type</label>
+          <select id="adminJobType" name="adminJobType" class="form-input" required>
+            <option value="">Select job type</option>
+            <option value="Full-time">Full-time</option>
+            <option value="Part-time">Part-time</option>
+            <option value="Contract">Contract</option>
+            <option value="Freelance">Freelance</option>
+            <option value="Internship">Internship</option>
+            <option value="Shift">Shift</option>
+          </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Category</label>
-          <input type="text" id="adminJobCategory" class="form-input" required>
+          <label class="form-label" for="adminJobCategory">Category</label>
+          <select id="adminJobCategory" name="adminJobCategory" class="form-input" required>
+            <option value="">Select category</option>
+            <option value="IT">IT</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Finance">Finance</option>
+            <option value="Healthcare">Healthcare</option>
+            <option value="Education">Education</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Sales">Sales</option>
+            <option value="Design">Design</option>
+            <option value="Operations">Operations</option>
+            <option value="General">General</option>
+          </select>
         </div>
         <div class="form-group" style="grid-column:1/-1;">
-          <label class="form-label">Description</label>
-          <textarea id="adminJobDescription" class="form-input" rows="4" required></textarea>
+          <label class="form-label" for="adminJobDescription">Description</label>
+          <textarea id="adminJobDescription" name="adminJobDescription" class="form-input" rows="4" required></textarea>
         </div>
         <div class="form-group admin-check-row">
           <label class="form-label" for="adminJobPremium">Premium</label>
-          <input type="checkbox" id="adminJobPremium">
+          <input type="checkbox" id="adminJobPremium" name="adminJobPremium">
         </div>
         <div class="admin-form-actions">
           <button class="btn btn-primary" type="submit" id="adminJobSubmit">Add Job</button>
@@ -115,6 +136,34 @@
         </div>
       </div>
       <div id="applications" class="admin-list"></div>
+    </section>
+
+    <section class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Users</p>
+          <h3>Account management</h3>
+        </div>
+        <button class="btn btn-outline" type="button" onclick="loadUsers()">Reload Users</button>
+      </div>
+      <p class="p-muted">Promoting a user to admin requires approval code from test@sample.com.</p>
+      <div id="users" class="admin-list"></div>
+    </section>
+
+    <section class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Admin grants</p>
+          <h3>Grant history</h3>
+        </div>
+        <div class="admin-record-actions" style="gap:8px;">
+          <button class="btn btn-outline" type="button" onclick="setGrantHistoryFilter('all')">All</button>
+          <button class="btn btn-outline" type="button" onclick="setGrantHistoryFilter('pending')">Pending</button>
+          <button class="btn btn-outline" type="button" onclick="setGrantHistoryFilter('approved')">Approved</button>
+          <button class="btn btn-outline" type="button" onclick="setGrantHistoryFilter('expired')">Expired</button>
+        </div>
+      </div>
+      <div id="grantHistory" class="admin-list"></div>
     </section>
 
     <section class="glass-card admin-panel">

@@ -27,6 +27,7 @@ ALTER TABLE jobs ADD COLUMN moderation_status VARCHAR(40) NULL;
 ALTER TABLE jobs ADD COLUMN moderation_score INT NULL;
 ALTER TABLE jobs ADD COLUMN moderation_reason VARCHAR(500) NULL;
 ALTER TABLE jobs ADD COLUMN auto_approved_at DATETIME NULL;
+ALTER TABLE jobs ADD COLUMN image_url VARCHAR(500) NULL;
 ALTER TABLE jobs ADD CONSTRAINT fk_jobs_posted_by FOREIGN KEY (posted_by) REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE jobs ADD CONSTRAINT fk_jobs_company FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL;
 

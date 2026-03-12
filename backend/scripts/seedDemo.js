@@ -110,7 +110,8 @@ const ensureJobs = async (employerId, companyId, jobsCols) => {
       is_approved: 1,
       posted_by: employerId,
       company_id: companyId,
-      is_shift: 0
+      is_shift: 0,
+      image_url: "https://miro.medium.com/v2/resize:fit:1358/format:webp/1*oOFYAyqNJmqqcwnI7-1Irw.png"
     },
     {
       title: "Product Designer",
@@ -137,6 +138,10 @@ const ensureJobs = async (employerId, companyId, jobsCols) => {
 
     if (existing.length) {
       insertedJobIds.push(existing[0].id);
+      // Update image_url if this job has one defined and the column exists
+      if (job.image_url && jobsCols.has("image_url")) {
+        await query("UPDATE jobs SET image_url = ? WHERE id = ?", [job.image_url, existing[0].id]);
+      }
       continue;
     }
 

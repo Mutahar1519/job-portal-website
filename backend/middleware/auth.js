@@ -1,4 +1,8 @@
 const jwt = require("jsonwebtoken");
+const db = require("../config/db");
+
+// Shared JWT secret - MUST match all JWT generation and verification
+const JWT_SECRET = "secret123";
 
 /* REQUIRED LOGIN */
 const auth = (req, res, next) => {
@@ -11,10 +15,18 @@ const auth = (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, "secret123");
-    req.user = decoded;
-    next();
+    const decoded = jwt.verify(token, JWT_SECRET);
+    db.query("SELECT id, is_blocked FROM users WHERE id = ? LIMIT 1", [decoded.id], (err, rows) => {
+      if (err) return res.status(500).json({ message: "Database error" });
+      if (!rows.length) return res.status(401).json({ message: "Invalid token" });
+      if (Number(rows[0].is_blocked) === 1) {
+        return res.status(403).json({ message: "Your account is blocked." });
+      }
+      req.user = decoded;
+      next();
+    });
   } catch (err) {
+    console.error("[Auth] Token verification failed:", err.message);
     return res.status(401).json({ message: "Invalid token" });
   }
 };
@@ -34,8 +46,14 @@ const optionalAuth = (req, res, next) => {
 
   try {
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, "secret123");
-    req.user = decoded;
+    const decoded = jwt.verify(token, JWT_SECRET);
+    db.query("SELECT id, is_blocked FROM users WHERE id = ? LIMIT 1", [decoded.id], (err, rows) => {
+      if (!err && rows.length && Number(rows[0].is_blocked) !== 1) {
+        req.user = decoded;
+      }
+      next();
+    });
+    return;
   } catch (err) {
     // ignore
   }

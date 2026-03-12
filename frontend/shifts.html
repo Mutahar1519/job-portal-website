@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shift Jobs & Alerts | JobPortal</title>  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%232563eb' width='100' height='100'/><text x='50' y='65' font-size='50' font-weight='bold' text-anchor='middle' fill='white' font-family='system-ui'>JP</text></svg>">  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+</head>
+<body class="shifts-page">
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="./index.html" class="logo"><span class="logo-mark" aria-hidden="true">JP</span> JobPortal</a>
+    </div>
+
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="jobs.html" class="nav-link">Jobs</a>
+      <a href="dashboard.html" id="dashboardLink" class="nav-link">Dashboard</a>
+      <a href="menu.html" id="menuLink" class="nav-link">Menu</a>
+      <a href="profile.html" id="profileLink" class="nav-link">Profile</a>
+      <a href="post-jobs.html" id="postJobLink" class="nav-link">Post Job</a>
+      <a href="admin.html" id="adminLink" class="nav-link">Admin</a>
+      <a href="shifts.html" class="nav-link nav-active">Shifts</a>
+      <a href="login.html" id="loginLink" class="nav-link">Login</a>
+      <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
+        <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
+      </a>
+      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
+      <button id="logoutBtn" class="btn btn-outline">Logout</button>
+  </nav>
+
+  <main class="container fade-up">
+    <section class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">Flexible Work</p>
+        <h1 class="hero-title">Discover Shift Jobs That Fit Your Schedule</h1>
+        <p class="hero-subtitle">Find hourly shift work, get instant notifications, and earn on your terms with secure, escrow-backed payments.</p>
+        <div class="hero-actions">
+          <button id="createAlertBtn" class="btn btn-primary"><i class="fa-solid fa-bell"></i> Create Shift Alert</button>
+          <a href="jobs.html" class="btn btn-outline"><i class="fa-solid fa-magnifying-glass"></i> Browse All Jobs</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="shifts-layout">
+      <aside class="shifts-sidebar">
+        <div class="glass-card shifts-filters">
+          <h3><i class="fa-solid fa-filter"></i> Filter Shifts</h3>
+          
+          <div class="filter-group">
+            <label for="shiftLocation" class="filter-label">Location</label>
+            <input type="text" id="shiftLocation" class="form-input" placeholder="City or region" />
+          </div>
+
+          <div class="filter-group">
+            <label for="shiftPayMin" class="filter-label">Minimum Pay/Hour</label>
+            <input type="number" id="shiftPayMin" class="form-input" placeholder="e.g., $15" min="0" />
+          </div>
+
+          <div class="filter-group">
+            <label for="shiftDateStart" class="filter-label">Date</label>
+            <input type="date" id="shiftDateStart" class="form-input" />
+          </div>
+
+          <button id="applyFiltersBtn" class="btn btn-primary" style="width: 100%; margin-top: 16px;">
+            <i class="fa-solid fa-check"></i> Apply Filters
+          </button>
+          <button id="clearFiltersBtn" class="btn btn-outline" style="width: 100%; margin-top: 8px;">
+            <i class="fa-solid fa-times"></i> Clear Filters
+          </button>
+        </div>
+
+        <div class="glass-card shifts-alerts-summary">
+          <h3><i class="fa-solid fa-bell"></i> Your Alerts</h3>
+          <div id="alertsSummary" class="alerts-list">
+            <p class="p-muted">Loading...</p>
+          </div>
+          <button id="manageAlertsBtn" class="btn btn-outline" style="width: 100%; margin-top: 12px;">
+            <i class="fa-solid fa-cog"></i> Manage Alerts
+          </button>
+        </div>
+      </aside>
+
+      <div class="shifts-main">
+        <div class="view-controls">
+          <h2 style="margin: 0;">Available Shift Jobs</h2>
+          <div class="view-actions">
+            <button class="btn btn-ghost" id="sortBtn">
+              <i class="fa-solid fa-arrow-down-arrow-up"></i> Sort
+            </button>
+          </div>
+        </div>
+
+        <div id="shiftsGrid" class="jobs-grid shifts-grid">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+
+        <div id="emptyState" class="empty-state hidden">
+          <i class="fa-solid fa-briefcase" style="font-size: 48px; color: var(--muted); margin-bottom: 16px;"></i>
+          <h3>No shift jobs found</h3>
+          <p class="p-muted">Try adjusting your filters or create an alert to get notified when shifts match your preferences.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Create Alert Modal -->
+  <div id="createAlertModal" class="modal hidden">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-bell"></i> Create Shift Alert</h3>
+        <button class="modal-close" id="closeAlertModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="alertTitle">Alert Name</label>
+          <input type="text" id="alertTitle" class="form-input" placeholder="e.g., Weekend Shifts" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="alertLocation">Preferred Location</label>
+          <input type="text" id="alertLocation" class="form-input" placeholder="City or region" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="alertPayMin">Minimum Pay/Hour</label>
+          <input type="number" id="alertPayMin" class="form-input" placeholder="0" min="0" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="alertDaysOfWeek">Preferred Days</label>
+          <div class="days-select">
+            <label class="checkbox-label"><input type="checkbox" name="alertDays" value="Monday"> Monday</label>
+            <label class="checkbox-label"><input type="checkbox" name="alertDays" value="Tuesday"> Tuesday</label>
+            <label class="checkbox-label"><input type="checkbox" name="alertDays" value="Wednesday"> Wednesday</label>
+            <label class="checkbox-label"><input type="checkbox" name="alertDays" value="Thursday"> Thursday</label>
+            <label class="checkbox-label"><input type="checkbox" name="alertDays" value="Friday"> Friday</label>
+            <label class="checkbox-label"><input type="checkbox" name="alertDays" value="Saturday"> Saturday</label>
+            <label class="checkbox-label"><input type="checkbox" name="alertDays" value="Sunday"> Sunday</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="alertNotifications" checked />
+            Send me notifications when new shifts match this alert
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelAlertBtn" class="btn btn-outline">Cancel</button>
+        <button id="saveAlertBtn" class="btn btn-primary">Create Alert</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="logo">JobPortal</div>
+        <p class="p-muted">Premium job visibility, trusted hiring, and a simple candidate journey.</p>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <p class="p-muted">Email: support@jobportal.com</p>
+        <p class="p-muted">Phone: +1 (555) 210-8899</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="jobs.html">Jobs</a>
+        <a href="post-jobs.html">Post Job</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 JobPortal. All rights reserved.</div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/shifts.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/auth-ui.js"></script>
+  <script src="js/theme.js" defer></script>
+</body>
+</html>

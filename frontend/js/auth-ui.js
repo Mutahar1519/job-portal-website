@@ -62,14 +62,25 @@
         bellLink.appendChild(shiftBadge);
 
         if (navBar) {
-          navBar.appendChild(bellLink);
+          // Insert before theme toggle button
+          const themeToggle = navBar.querySelector("#themeToggle");
+          if (themeToggle) {
+            themeToggle.insertAdjacentElement("beforebegin", bellLink);
+          } else {
+            navBar.appendChild(bellLink);
+          }
         } else {
           dashboardLink.insertAdjacentElement("afterend", bellLink);
         }
       } else {
         shiftBadge = bellLink.querySelector(".nav-badge");
-        if (navBar) {
-          navBar.appendChild(bellLink);
+        if (navBar && !navBar.contains(bellLink)) {
+          const themeToggle = navBar.querySelector("#themeToggle");
+          if (themeToggle) {
+            themeToggle.insertAdjacentElement("beforebegin", bellLink);
+          } else {
+            navBar.appendChild(bellLink);
+          }
         }
       }
 
