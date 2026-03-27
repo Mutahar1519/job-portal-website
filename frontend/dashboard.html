@@ -39,6 +39,7 @@
         <div class="hero-actions">
           <a class="btn btn-outline" href="jobs.html"><i class="fa-solid fa-magnifying-glass"></i> Explore jobs</a>
           <a class="btn btn-outline" href="resume.html"><i class="fa-solid fa-file-lines"></i> Resume parser</a>
+          <a id="dashboardCompanyBtn" class="btn btn-outline" href="company.html" style="display:none;"><i class="fa-solid fa-building"></i> Company profile</a>
           <a id="dashboardPostJobBtn" class="btn btn-primary" href="post-jobs.html" style="display:none;"><i class="fa-solid fa-briefcase"></i> Post a job</a>
         </div>
       </div>
@@ -159,6 +160,44 @@
           <button id="refreshShiftAlerts" class="btn btn-outline" type="button">Refresh</button>
         </div>
       </div>
+
+      <div id="shiftAlertBuilder" class="glass-card" style="margin:12px 0 14px; display:none;">
+        <form id="shiftAlertForm" class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="shiftAlertKeyword">Keyword</label>
+            <input id="shiftAlertKeyword" class="form-input" type="text" placeholder="Driver, warehouse, support" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="shiftAlertLocation">Location</label>
+            <input id="shiftAlertLocation" class="form-input" type="text" placeholder="City or area" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="shiftAlertCategory">Category</label>
+            <select id="shiftAlertCategory" class="form-input">
+              <option value="">Any category</option>
+              <option value="Operations">Operations</option>
+              <option value="Logistics">Logistics</option>
+              <option value="Customer Support">Customer Support</option>
+              <option value="Healthcare">Healthcare</option>
+              <option value="Sales">Sales</option>
+              <option value="General">General</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="shiftAlertFrequency">Frequency</label>
+            <select id="shiftAlertFrequency" class="form-input">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </div>
+          <div class="form-group form-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-primary" type="submit">Save Shift Alert</button>
+            <button id="cancelShiftAlertBtn" class="btn btn-outline" type="button">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="shiftAlertRules" class="alert-list" style="margin-bottom:12px;"></div>
       <div id="shiftAlerts" class="shift-alert-list"></div>
     </section>
 

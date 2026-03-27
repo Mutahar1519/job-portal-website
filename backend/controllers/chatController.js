@@ -1,5 +1,6 @@
-const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1";
+const HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models";
+const HUGGINGFACE_MODEL = process.env.HUGGINGFACE_MODEL || "microsoft/DialoGPT-medium";
+const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY;
 
 const buildFallbackReply = (message) => {
   const msg = (message || "").toLowerCase();
@@ -30,25 +31,25 @@ const buildFallbackReply = (message) => {
   return reply;
 };
 
-const callOpenAI = async (message) => {
-  const apiKey = process.env.OPENAI_API_KEY;
+const callHuggingFace = async (message) => {
+  const apiKey = HUGGINGFACE_API_KEY;
   if (!apiKey) return null;
 
+  // For DialoGPT, we format as conversation
+  const conversation = `System: You are the JobPortal AI assistant. Provide concise help about jobs, applications, payments, and account/profile guidance. Do not claim access to personal data or payment systems. If asked for user info, explain that users should open their Profile while signed in. For payment issues, give short troubleshooting steps and suggest contacting support@jobportal.com if unresolved. Keep replies under 3 sentences.\nUser: ${message}\nAssistant:`;
+
   const payload = {
-    model: OPENAI_MODEL,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are the JobPortal AI assistant. Provide concise help about jobs, applications, payments, and account/profile guidance. Do not claim access to personal data or payment systems. If asked for user info, explain that users should open their Profile while signed in. For payment issues, give short troubleshooting steps and suggest contacting support@jobportal.com if unresolved. Keep replies under 3 sentences."
-      },
-      { role: "user", content: message }
-    ],
-    temperature: 0.2,
-    max_tokens: 200
+    inputs: conversation,
+    parameters: {
+      max_length: 200,
+      temperature: 0.7,
+      do_sample: true,
+      return_full_text: false,
+      pad_token_id: 50256  // EOS token for GPT models
+    }
   };
 
-  const response = await fetch(OPENAI_API_URL, {
+  const response = await fetch(`${HUGGINGFACE_API_URL}/${HUGGINGFACE_MODEL}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -59,11 +60,24 @@ const callOpenAI = async (message) => {
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`OpenAI error ${response.status}: ${errText}`);
+    throw new Error(`Hugging Face error ${response.status}: ${errText}`);
   }
 
   const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
+
+  // Handle different response formats
+  let content = null;
+  if (Array.isArray(data) && data.length > 0) {
+    content = data[0].generated_text;
+  } else if (data.generated_text) {
+    content = data.generated_text;
+  }
+
+  // Clean up the response - remove the input part if present
+  if (content && content.includes("Assistant:")) {
+    content = content.split("Assistant:")[1].trim();
+  }
+
   return content ? content.trim() : null;
 };
 
@@ -75,7 +89,7 @@ exports.chatBot = async (req, res) => {
   }
 
   try {
-    const aiReply = await callOpenAI(message);
+    const aiReply = await callHuggingFace(message);
     if (aiReply) {
       return res.json({ reply: aiReply });
     }

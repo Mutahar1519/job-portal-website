@@ -116,8 +116,14 @@ const loadJobSummary = async (id) => {
 };
 
 const donationModal = document.getElementById("donationModal");
+const applyPaymentMethodSelect = document.getElementById("applyPaymentMethod");
 const aiNote = document.getElementById("aiNote");
 const coverLetterField = document.getElementById("coverLetter");
+
+const getSelectedPaymentMethod = () => {
+  const method = (applyPaymentMethodSelect?.value || "card").trim();
+  return method || "card";
+};
 
 const openDonationModal = () => {
   donationModal?.classList.remove("hidden");
@@ -136,7 +142,11 @@ const startDonation = async (amountCents) => {
   try {
     const res = await authFetch(`${API}/payments/create-donation-session`, {
       method: "POST",
-      body: JSON.stringify({ context: "apply", amount_cents: amountCents })
+      body: JSON.stringify({
+        context: "apply",
+        amount_cents: amountCents,
+        payment_method: getSelectedPaymentMethod()
+      })
     });
     const data = await res.json();
     if (!res.ok || !data.url) {

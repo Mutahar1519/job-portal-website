@@ -27,14 +27,66 @@ Modern full-stack job portal with role-based access for Job Seekers, Employers, 
 - Employer
 - Administrator
 
+6. Run production preflight checks (env readiness gate):
+```bash
+cd backend
+npm run test:preflight
+```
 ## Implemented Features
 - User registration with role selection (job seeker / employer)
-- Login/logout and JWT-based role-aware access
-- Employer job posting and pipeline management
-- Job search/listings with modern responsive cards
+- Admin: `admin@demo.local` / `Demo@1234`
+- Employer: `emma@demo.local` / `Demo@1234`
+- Job Seeker: `alice@demo.local` / `Demo@1234`
+## Go-Live Readiness
+- Full deployment checklist: `docs/GO_LIVE_CHECKLIST.md`
+- Client demo handoff: `docs/CLIENT_DEMO_HANDOFF.md`
 - Job application flows and applicant tracking
 - Admin panel for user/job moderation and platform stats
 - Modern responsive UI with icons, avatars, tags, hover effects, and animations
+- AI Chat Assistant (using free Hugging Face models)
+
+## AI Chat Setup (Free LLM)
+
+
+1. Sign up for a free account at [Hugging Face](https://huggingface.co)
+2. Go to Settings > Access Tokens and create a new token
+3. Add the token to your `backend/.env` file:
+   ```bash
+   HUGGINGFACE_API_KEY=your_token_here
+   ```
+4. Optionally set a different model:
+   ```bash
+   HUGGINGFACE_MODEL=microsoft/DialoGPT-medium
+   ```
+
+The system falls back to heuristic responses if no API key is provided.
+
+## Environment Setup
+
+1. Copy the example environment file:
+   ```bash
+   cp backend/.env.example backend/.env
+   ```
+
+2. Update the values in `backend/.env`:
+   - Set your database credentials
+   - Generate a secure JWT secret
+   - Add your Hugging Face API key (already configured)
+   - Configure other optional settings
+
+## Environment Setup
+
+1. Copy the `.env` file and update the values:
+   ```bash
+   cp .env.example .env  # If you have an example file
+   # Or create .env with the required variables
+   ```
+
+2. Required environment variables:
+   - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` - Database configuration
+   - `JWT_SECRET` - For JWT token signing
+   - `HUGGINGFACE_API_KEY` - For AI chat (free)
+   - `USE_MOCK_PAYMENTS=true` - For development
 
 ## Project Structure
 - backend/

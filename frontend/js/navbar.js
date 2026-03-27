@@ -83,6 +83,27 @@
     forest: "Forest",
   };
 
+  const activeModeOptions = ["same", "mixed"];
+  const activeModeLabels = {
+    same: "Same color",
+    mixed: "Mixed colors",
+  };
+
+  const getActiveMode = () => localStorage.getItem("navActiveMode") || "same";
+  const setActiveMode = (mode) => {
+    const selected = activeModeOptions.includes(mode) ? mode : "same";
+    localStorage.setItem("navActiveMode", selected);
+    document.body.classList.toggle("nav-active-same", selected === "same");
+    document.body.classList.toggle("nav-active-mixed", selected === "mixed");
+
+    const modeButtons = Array.from(document.querySelectorAll(".active-mode-option"));
+    modeButtons.forEach((btn) => {
+      const isActive = btn.dataset.mode === selected;
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-checked", isActive ? "true" : "false");
+    });
+  };
+
   const updatePaletteToggle = (selected) => {
     const paletteToggleBtn = document.getElementById("paletteToggle");
     if (paletteToggleBtn) {
@@ -118,6 +139,7 @@
     }
 
     updatePaletteToggle(selected);
+    setActiveMode(getActiveMode());
   };
 
   const cyclePalette = () => {
@@ -158,12 +180,31 @@
       paletteMenu.id = "paletteMenu";
       paletteMenu.className = "palette-menu";
       paletteMenu.setAttribute("role", "menu");
-      paletteMenu.innerHTML = paletteOptions
+
+      const paletteButtons = paletteOptions
         .map((palette) => {
           const label = paletteLabels[palette] || palette;
           return `<button type="button" class="palette-option" role="menuitemradio" aria-checked="false" data-palette="${palette}"><span class="palette-swatch" aria-hidden="true"></span><span>${label}</span></button>`;
         })
         .join("");
+
+      const activeModeButtons = activeModeOptions
+        .map((mode) => {
+          const label = activeModeLabels[mode] || mode;
+          return `<button type="button" class="active-mode-option" role="menuitemradio" aria-checked="false" data-mode="${mode}">${label}</button>`;
+        })
+        .join("");
+
+      paletteMenu.innerHTML = `
+        <div class="palette-section">
+          <div class="palette-section-title">Palette</div>
+          ${paletteButtons}
+        </div>
+        <div class="palette-section">
+          <div class="palette-section-title">Nav highlight mode</div>
+          ${activeModeButtons}
+        </div>
+      `;
       paletteSwitcher.appendChild(paletteMenu);
     }
 
@@ -260,12 +301,22 @@
     if (paletteMenu.dataset.paletteBound !== "true") {
       paletteMenu.dataset.paletteBound = "true";
       paletteMenu.addEventListener("click", (event) => {
-        const selectedButton = event.target.closest(".palette-option");
-        if (!selectedButton || !selectedButton.classList.contains("palette-option")) return;
-        const selectedPalette = selectedButton.dataset.palette;
-        applyPalette(selectedPalette || "default");
-        paletteSwitcher.classList.remove("open");
-        paletteToggleBtn.setAttribute("aria-expanded", "false");
+        const selectedPaletteButton = event.target.closest(".palette-option");
+        const selectedModeButton = event.target.closest(".active-mode-option");
+
+        if (selectedPaletteButton && selectedPaletteButton.classList.contains("palette-option")) {
+          const selectedPalette = selectedPaletteButton.dataset.palette;
+          applyPalette(selectedPalette || "default");
+          setActiveMode(getActiveMode());
+          paletteSwitcher.classList.remove("open");
+          paletteToggleBtn.setAttribute("aria-expanded", "false");
+          return;
+        }
+
+        if (selectedModeButton && selectedModeButton.classList.contains("active-mode-option")) {
+          setActiveMode(selectedModeButton.dataset.mode || "same");
+          return;
+        }
       });
     }
 

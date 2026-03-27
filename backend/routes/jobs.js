@@ -75,6 +75,10 @@ router.post("/", auth, employerOnly, uploadJobImage.single("job_image"), jobsCon
 /* APPLY job */
 router.post("/:id/apply", auth, upload.single("cv"), applicationsController.applyJob);
 
+/* CHECK if user has applied for job */
+router.get("/:id/check-application", auth, applicationsController.checkApplicationStatus);
 
+/* REPORT a job listing (auth required to prevent spam, but userId stored for audit) */
+router.post("/:id/report", auth, jobsController.reportJob);
 
 module.exports = router;

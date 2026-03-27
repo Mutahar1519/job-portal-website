@@ -162,6 +162,16 @@
       </div>
       <div class="modal-body-simple">
         <p class="p-muted">Optional tip after applying. Every contribution helps us improve.</p>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" for="applyPaymentMethod">Payment Method</label>
+          <select id="applyPaymentMethod" class="form-input">
+            <option value="card">Card</option>
+            <option value="applepay">Apple Pay</option>
+            <option value="gpay">Google Pay</option>
+            <option value="paypal">PayPal</option>
+            <option value="bank_transfer">Bank Transfer</option>
+          </select>
+        </div>
         <div class="donation-options">
           <button class="btn btn-outline donation-btn" type="button" data-amount="0">No thanks</button>
           <button class="btn btn-outline donation-btn" type="button" data-amount="200">$2</button>

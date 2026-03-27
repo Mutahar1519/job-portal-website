@@ -162,8 +162,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const donationModal = document.getElementById("donationModal");
+  const postPaymentMethodSelect = document.getElementById("postPaymentMethod");
   let pendingPremiumJob = null;
   let donationContextMode = "post";
+
+  const getSelectedPaymentMethod = () => {
+    const method = (postPaymentMethodSelect?.value || "card").trim();
+    return method || "card";
+  };
 
   const openDonationModal = (context) => {
     donationContextMode = context;
@@ -191,7 +197,11 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await authFetch(`${API}/payments/create-donation-session`, {
         method: "POST",
-        body: JSON.stringify({ context: "post", amount_cents: amountCents })
+        body: JSON.stringify({
+          context: "post",
+          amount_cents: amountCents,
+          payment_method: getSelectedPaymentMethod()
+        })
       });
       const data = await res.json();
       if (!res.ok || !data.url) {
@@ -212,7 +222,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const res = await authFetch(`${API}/payments/create-checkout-session`, {
       method: "POST",
-      body: JSON.stringify({ mode: "create", donation_cents: donationCents })
+      body: JSON.stringify({
+        mode: "create",
+        donation_cents: donationCents,
+        payment_method: getSelectedPaymentMethod()
+      })
     });
 
     const data = await res.json();

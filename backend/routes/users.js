@@ -21,6 +21,7 @@ const {
   verifyUser,
   getMe,
   updateMe,
+  deleteMe,
   getJobSeekerProfile,
   updateJobSeekerProfile,
   getEmployerProfile,
@@ -62,6 +63,7 @@ router.post("/verify-email", verifyEmail);
 router.put("/verify/:userId", verifyUser);
 router.get("/me", auth, getMe);
 router.put("/me", auth, updateMe);
+router.delete("/me", auth, deleteMe);
 router.get("/job-seeker-profile", auth, getJobSeekerProfile);
 router.put("/job-seeker-profile", auth, updateJobSeekerProfile);
 router.get("/employer-profile", auth, getEmployerProfile);

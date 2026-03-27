@@ -33,6 +33,7 @@
   let adminUsersCache = [];
   let editJobId = null;
   let reviewStatusFilter = "pending";
+  let reviewSourceFilter = "portal";
   let grantHistoryFilter = "all";
 
   const adminJobForm = document.getElementById("adminJobForm");
@@ -369,10 +370,11 @@
     loadGrantHistory(status);
   }
 
-  function loadReviewQueue(status = reviewStatusFilter) {
+  function loadReviewQueue(status = reviewStatusFilter, source = reviewSourceFilter) {
     reviewStatusFilter = status;
+    reviewSourceFilter = source;
 
-    adminAuthFetch(`${API}/admin/reviews?status=${encodeURIComponent(reviewStatusFilter)}`)
+    adminAuthFetch(`${API}/admin/reviews?status=${encodeURIComponent(reviewStatusFilter)}&source=${encodeURIComponent(reviewSourceFilter)}`)
       .then(res => res.json())
       .then(reviews => {
         const container = document.getElementById("reviewQueue");
@@ -396,25 +398,30 @@
           const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
           const created = review.created_at ? new Date(review.created_at).toLocaleString() : "";
           const emailRow = review.email ? `<p class="meta">${esc(review.email)}</p>` : "";
+          const source = review.source || reviewSourceFilter;
+          const sourceBadge = `<span class="tag-pill bg-slate-100 text-slate-700">${esc(source)}</span>`;
+          const companyMeta = source === "company"
+            ? `<p class="meta">Company: ${esc(review.company_name || "Unknown")} ${review.job_title ? `• Job: ${esc(review.job_title)}` : ""} ${review.employer_name ? `• Employer: ${esc(review.employer_name)}` : ""}</p>`
+            : "";
 
           let actionButtons = `
-            <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+            <button class="btn btn-outline" onclick="deleteReview(${review.id}, '${source}')">Delete</button>
           `;
 
           if (reviewStatusFilter === "pending") {
             actionButtons = `
-              <button class="btn btn-primary" onclick="approveReview(${review.id})">Approve</button>
-              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+              <button class="btn btn-primary" onclick="approveReview(${review.id}, '${source}')">Approve</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id}, '${source}')">Delete</button>
             `;
           } else if (reviewStatusFilter === "approved") {
             actionButtons = `
-              <button class="btn btn-outline" onclick="hideReview(${review.id})">Hide</button>
-              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+              <button class="btn btn-outline" onclick="hideReview(${review.id}, '${source}')">Hide</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id}, '${source}')">Delete</button>
             `;
           } else if (reviewStatusFilter === "hidden") {
             actionButtons = `
-              <button class="btn btn-primary" onclick="unhideReview(${review.id})">Unhide</button>
-              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+              <button class="btn btn-primary" onclick="unhideReview(${review.id}, '${source}')">Unhide</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id}, '${source}')">Delete</button>
             `;
           }
 
@@ -425,8 +432,12 @@
                   <h4>${esc(review.name)}</h4>
                   <p class="meta">${esc(review.role)}</p>
                   ${emailRow}
+                  ${companyMeta}
                 </div>
-                <span class="review-stars">${stars}</span>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                  ${sourceBadge}
+                  <span class="review-stars">${stars}</span>
+                </div>
               </div>
               <p class="review-message">${esc(review.message)}</p>
               ${created ? `<p class="meta">Submitted: ${created}</p>` : ""}
@@ -447,7 +458,11 @@
   }
 
   function setReviewFilter(status) {
-    loadReviewQueue(status);
+    loadReviewQueue(status, reviewSourceFilter);
+  }
+
+  function setReviewSource(source) {
+    loadReviewQueue(reviewStatusFilter, source);
   }
 
   function renderShiftJobs(shiftJobs) {
@@ -634,9 +649,12 @@
   }
 
   function makePremium(id) {
+    const rawMethod = prompt("Choose payment method: card, applepay, gpay, paypal, bank_transfer", "card");
+    const method = (rawMethod || "card").trim().toLowerCase();
+
     adminAuthFetch(`${API}/payments/create-checkout-session`, {
       method: "POST",
-      body: JSON.stringify({ mode: "upgrade", jobId: id })
+      body: JSON.stringify({ mode: "upgrade", jobId: id, payment_method: method })
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok || !data.url) {
@@ -681,29 +699,33 @@
     }).then(() => loadApplications());
   }
 
-  function approveReview(id) {
+  function approveReview(id, source = reviewSourceFilter) {
     adminAuthFetch(`${API}/admin/reviews/${id}/approve`, {
-      method: "PUT"
+      method: "PUT",
+      body: JSON.stringify({ source })
     }).then(() => loadReviewQueue(reviewStatusFilter));
   }
 
-  function hideReview(id) {
+  function hideReview(id, source = reviewSourceFilter) {
     adminAuthFetch(`${API}/admin/reviews/${id}/hide`, {
-      method: "PUT"
+      method: "PUT",
+      body: JSON.stringify({ source })
     }).then(() => loadReviewQueue(reviewStatusFilter));
   }
 
-  function unhideReview(id) {
+  function unhideReview(id, source = reviewSourceFilter) {
     adminAuthFetch(`${API}/admin/reviews/${id}/unhide`, {
-      method: "PUT"
+      method: "PUT",
+      body: JSON.stringify({ source })
     }).then(() => loadReviewQueue(reviewStatusFilter));
   }
 
-  function deleteReview(id) {
+  function deleteReview(id, source = reviewSourceFilter) {
     if (!confirm("Delete this review permanently?")) return;
 
     adminAuthFetch(`${API}/admin/reviews/${id}`, {
-      method: "DELETE"
+      method: "DELETE",
+      body: JSON.stringify({ source })
     }).then(() => loadReviewQueue(reviewStatusFilter));
   }
 
@@ -993,6 +1015,7 @@
   window.unhideReview = unhideReview;
   window.deleteReview = deleteReview;
   window.setReviewFilter = setReviewFilter;
+  window.setReviewSource = setReviewSource;
   window.disputeShift = disputeShift;
   window.refundShift = refundShift;
   window.releaseShift = releaseShift;

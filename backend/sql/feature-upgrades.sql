@@ -90,3 +90,25 @@ CREATE TABLE IF NOT EXISTS platform_settings (
   setting_value VARCHAR(255) NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+-- Company/employer targeted reviews
+CREATE TABLE IF NOT EXISTS company_reviews (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  company_id INT NOT NULL,
+  employer_user_id INT NULL,
+  job_id INT NULL,
+  reviewer_name VARCHAR(120) NOT NULL,
+  reviewer_role VARCHAR(120) NOT NULL,
+  reviewer_email VARCHAR(255) NULL,
+  rating TINYINT NOT NULL,
+  message VARCHAR(600) NOT NULL,
+  approved TINYINT NOT NULL DEFAULT 0,
+  is_hidden TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_company_reviews_company (company_id),
+  INDEX idx_company_reviews_employer (employer_user_id),
+  INDEX idx_company_reviews_job (job_id),
+  FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY (employer_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE SET NULL
+);

@@ -144,6 +144,65 @@
     </section>
   </main>
 
+  <div id="shiftPaymentModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shiftPaymentTitle">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3 id="shiftPaymentTitle">Choose Shift Payment Method</h3>
+        <button id="shiftPaymentClose" class="modal-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="p-muted" style="margin-bottom: 12px;">Select how you want to fund this shift escrow.</p>
+        <div id="shiftPaymentOptions" class="payment-method-grid" role="listbox" aria-label="Shift payment methods">
+          <button class="payment-method-option is-selected" type="button" role="option" tabindex="0" data-method="card" aria-selected="true">
+            <span class="payment-method-icon"><i class="fa-regular fa-credit-card" aria-hidden="true"></i></span>
+            <span>
+              <strong>Card</strong>
+              <small>Visa, Mastercard, and supported debit cards</small>
+            </span>
+            <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+          </button>
+          <button class="payment-method-option" type="button" role="option" tabindex="-1" data-method="applepay" aria-selected="false">
+            <span class="payment-method-icon"><i class="fa-brands fa-apple" aria-hidden="true"></i></span>
+            <span>
+              <strong>Apple Pay</strong>
+              <small>Fast checkout on compatible Apple devices</small>
+            </span>
+            <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+          </button>
+          <button class="payment-method-option" type="button" role="option" tabindex="-1" data-method="gpay" aria-selected="false">
+            <span class="payment-method-icon"><i class="fa-brands fa-google-pay" aria-hidden="true"></i></span>
+            <span>
+              <strong>Google Pay</strong>
+              <small>Quick payment with your Google wallet</small>
+            </span>
+            <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+          </button>
+          <button class="payment-method-option" type="button" role="option" tabindex="-1" data-method="paypal" aria-selected="false">
+            <span class="payment-method-icon"><i class="fa-brands fa-paypal" aria-hidden="true"></i></span>
+            <span>
+              <strong>PayPal</strong>
+              <small>Pay from your PayPal balance or linked account</small>
+            </span>
+            <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+          </button>
+          <button class="payment-method-option" type="button" role="option" tabindex="-1" data-method="bank_transfer" aria-selected="false">
+            <span class="payment-method-icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span>
+            <span>
+              <strong>Bank Transfer</strong>
+              <small>Manual transfer for invoice-style payments</small>
+            </span>
+            <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+          </button>
+        </div>
+        <p id="shiftPaymentSelectedText" class="payment-method-selected" aria-live="polite">Selected: Card</p>
+      </div>
+      <div class="modal-footer">
+        <button id="shiftPaymentCancel" class="btn btn-outline" type="button">Cancel</button>
+        <button id="shiftPaymentConfirm" class="btn btn-primary" type="button">Continue</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <footer class="site-footer">

@@ -102,12 +102,39 @@ const renderJobCard = (job, options = {}) => {
       <p class="job-desc job-card-description">${description}</p>
 
       <div class="job-card-actions">
-        <a href="job.html?jobId=${job.id}" class="btn btn-ghost job-action-btn">Details</a>
+        <a href="job.html?jobId=${job.id}&id=${job.id}" class="btn btn-ghost job-action-btn" data-job-id="${job.id}">Details</a>
         <a href="apply.html?jobId=${job.id}" class="apply-btn job-action-btn" data-job-id="${job.id}"><i class="fa-solid fa-rocket"></i> Apply Now</a>
         ${includeSaveButton ? `<button class="btn btn-outline save-btn" type="button" data-save-id="${job.id}" data-saved="${saved ? 1 : 0}">${saved ? "Saved" : "Save"}</button>` : ""}
       </div>
     </div>
   `;
+};
+
+const fetchJobsWithFallback = async () => {
+  const candidates = Array.from(new Set([
+    `${API}/jobs`,
+    `${window.location.origin}/api/jobs`,
+    "http://localhost:3000/api/jobs"
+  ]));
+
+  let lastError = null;
+
+  for (const url of candidates) {
+    try {
+      const res = await authFetch(url);
+      const data = await res.json().catch(() => []);
+
+      if (!res.ok) {
+        throw new Error((data && data.message) ? data.message : `Failed to fetch jobs (${res.status})`);
+      }
+
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("Unable to load jobs from any API origin");
 };
 
 async function loadJobs() {
@@ -117,7 +144,7 @@ async function loadJobs() {
   const jobType = document.getElementById("typeFilter")?.value || "";
   const experience = document.getElementById("experienceFilter")?.value || "";
   const salary = document.getElementById("salaryFilter")?.value || "";
-  const remoteOnly = document.getElementById("remoteOnly")?.checked || false;
+  const workType = document.getElementById("workType")?.value || "";
   const skeleton = document.getElementById("jobsSkeleton");
   const resultsCount = document.getElementById("jobsResultCount");
   const resultsHint = document.getElementById("jobsResultHint");
@@ -130,26 +157,40 @@ async function loadJobs() {
       skeleton.classList.remove("hidden");
     }
 
-    const res = await authFetch(`${API}/jobs`);
-    const jobs = await res.json();
+    const jobs = await fetchJobsWithFallback();
     const container = document.getElementById("jobs");
     container.innerHTML = "";
     if (skeleton) skeleton.classList.add("hidden");
 
+    const hasActiveFilters = !!(q || category || location || jobType || experience || salary || workType);
+
     // Filter jobs client-side
-    const filtered = (jobs || []).filter(job => {
-      const titleMatch = !q || job.title.toLowerCase().includes(q.toLowerCase());
-      const categoryMatch = !category || job.category === category;
+    let filtered = (jobs || []).filter(job => {
+      const titleValue = String(job.title || "").toLowerCase();
+      const categoryValue = String(job.category || "");
+      const titleMatch = !q || titleValue.includes(String(q).toLowerCase());
+      const categoryMatch = !category || categoryValue === category;
       const locationValue = (job.location || "").toLowerCase();
       const locationMatch = !location || locationValue.includes(location.toLowerCase());
       const jobTypeValue = (job.job_type || job.jobType || "").toLowerCase();
       const typeMatch = !jobType || jobTypeValue.includes(jobType.toLowerCase());
       const experienceMatch = !experience || (job.description || "").toLowerCase().includes(experience);
-      const remoteMatch = !remoteOnly || locationValue.includes("remote") || locationValue.includes("hybrid");
+      const workTypeMatch = !workType
+        || (workType === "remote" && locationValue.includes("remote"))
+        || (workType === "hybrid" && locationValue.includes("hybrid"))
+        || (workType === "onsite" && !locationValue.includes("remote") && !locationValue.includes("hybrid"));
       const salaryMatch = !salary || matchSalary(job, salary);
 
-      return titleMatch && categoryMatch && locationMatch && typeMatch && experienceMatch && remoteMatch && salaryMatch;
+      return titleMatch && categoryMatch && locationMatch && typeMatch && experienceMatch && workTypeMatch && salaryMatch;
     });
+
+    // Demo-safe fallback: if filters are too restrictive, show all jobs instead of an empty page.
+    if (!filtered.length && hasActiveFilters) {
+      filtered = jobs;
+      if (resultsHint) {
+        resultsHint.textContent = "No exact matches for your filters. Showing all available roles instead.";
+      }
+    }
 
     if (!filtered.length) {
       if (resultsCount) resultsCount.textContent = "0";
@@ -164,19 +205,19 @@ async function loadJobs() {
         q ? `keyword: ${q}` : "",
         category ? `category: ${category}` : "",
         location ? `location: ${location}` : "",
-        remoteOnly ? "remote only" : ""
+        workType ? `work type: ${workType}` : ""
       ].filter(Boolean);
 
       resultsHint.textContent = filterLabels.length
         ? `Showing matches for ${filterLabels.join(" | ")}.`
-        : "Showing all available roles from verified employers.";
+        : "Showing all available roles from verified employers."
     }
 
     filtered.forEach(job => {
       container.innerHTML += renderJobCard(job, { includeSaveButton: true, saved: !!job.is_saved });
     });
 
-    saveSearchState({ q, category, location, jobType, experience, salary, remoteOnly });
+    saveSearchState({ q, category, location, jobType, experience, salary, workType });
     renderRecentSearches();
   } catch (err) {
     console.error("Error loading jobs:", err);
@@ -270,7 +311,7 @@ const renderRecentSearches = () => {
   if (state.q) chips.push(state.q);
   if (state.category) chips.push(state.category);
   if (state.location) chips.push(state.location);
-  if (state.remoteOnly) chips.push("Remote");
+  if (state.workType) chips.push(state.workType.charAt(0).toUpperCase() + state.workType.slice(1));
 
   if (!chips.length) {
     container.innerHTML = "";
@@ -319,6 +360,19 @@ const toggleButton = document.getElementById("toggleFilters");
 const clearButton = document.getElementById("clearFilters");
 const advancedFilters = document.getElementById("advancedFilters");
 
+// Work-type toggle buttons
+document.getElementById("workTypeGroup")?.addEventListener("click", (e) => {
+  const btn = e.target.closest(".work-type-btn");
+  if (!btn) return;
+  document.querySelectorAll(".work-type-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("workType").value = btn.getAttribute("data-value");
+  loadJobs();
+});
+
+// Set initial active state
+document.querySelector('.work-type-btn[data-value=""]')?.classList.add("active");
+
 toggleButton?.addEventListener("click", () => {
   advancedFilters?.classList.toggle("hidden");
   toggleButton.textContent = advancedFilters?.classList.contains("hidden")
@@ -333,13 +387,22 @@ clearButton?.addEventListener("click", () => {
   document.getElementById("typeFilter").value = "";
   document.getElementById("experienceFilter").value = "";
   document.getElementById("salaryFilter").value = "";
-  document.getElementById("remoteOnly").checked = false;
+  document.getElementById("workType").value = "";
+  document.querySelectorAll(".work-type-btn").forEach(b => b.classList.remove("active"));
+  document.querySelector('.work-type-btn[data-value=""]')?.classList.add("active");
   loadJobs();
 });
 
 const seedSearchState = () => {
-  const state = getSearchState();
+  let state = getSearchState();
   const query = new URLSearchParams(window.location.search).get("q");
+  const isLoggedIn = !!localStorage.getItem("token");
+
+  // For public visitors, avoid stale local filters causing an empty jobs page.
+  if (!isLoggedIn) {
+    state = {};
+    localStorage.removeItem("jobSearchState");
+  }
 
   if (query && !state.q) {
     state.q = query;
@@ -352,7 +415,11 @@ const seedSearchState = () => {
   document.getElementById("typeFilter").value = state.jobType || "";
   document.getElementById("experienceFilter").value = state.experience || "";
   document.getElementById("salaryFilter").value = state.salary || "";
-  document.getElementById("remoteOnly").checked = !!state.remoteOnly;
+  const savedWorkType = state.workType || "";
+  document.getElementById("workType").value = savedWorkType;
+  document.querySelectorAll(".work-type-btn").forEach(b => {
+    b.classList.toggle("active", b.getAttribute("data-value") === savedWorkType);
+  });
   renderRecentSearches();
 };
 

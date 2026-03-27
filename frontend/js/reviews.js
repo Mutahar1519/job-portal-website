@@ -89,9 +89,10 @@ const initReviews = () => {
         body: JSON.stringify({ name, role, rating, message })
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.message || "Failed to submit review");
+        console.warn("Review submit failed", res.status, data);
+        alert(data.message || "Failed to submit review (server error)");
         return;
       }
 
@@ -103,7 +104,7 @@ const initReviews = () => {
       }
     } catch (err) {
       console.error("Review submit error:", err);
-      alert("Network error. Please try again.");
+      alert(`Network error. ${err.message || "Please try again"}`);
     }
   });
 };

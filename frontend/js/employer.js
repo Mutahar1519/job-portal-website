@@ -36,10 +36,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   const statApplications = document.getElementById("employerTotalApplications");
   const statSaves = document.getElementById("employerTotalSaves");
   const pipelineSummary = document.getElementById("pipelineSummary");
+  const shiftPaymentModal = document.getElementById("shiftPaymentModal");
+  const shiftPaymentOptions = document.getElementById("shiftPaymentOptions");
+  const shiftPaymentSelectedText = document.getElementById("shiftPaymentSelectedText");
+  const shiftPaymentConfirmBtn = document.getElementById("shiftPaymentConfirm");
+  const shiftPaymentCancelBtn = document.getElementById("shiftPaymentCancel");
+  const shiftPaymentCloseBtn = document.getElementById("shiftPaymentClose");
 
   const stages = ["new", "screening", "interview", "offer", "hired", "rejected"];
+  const shiftPaymentMethods = ["card", "applepay", "gpay", "paypal", "bank_transfer"];
   let applications = [];
   let activeApplicationId = null;
+  let shiftPaymentResolver = null;
+  let selectedShiftPaymentMethod = "card";
 
   const safeAuthFetch = window.authFetch
     ? window.authFetch
@@ -57,6 +66,66 @@ document.addEventListener("DOMContentLoaded", async () => {
     stages.forEach(stage => {
       const column = document.getElementById(`stage-${stage}`);
       if (column) column.innerHTML = "";
+    });
+  };
+
+  const getShiftPaymentButtons = () => {
+    return Array.from(shiftPaymentOptions?.querySelectorAll(".payment-method-option") || []);
+  };
+
+  const getShiftPaymentLabel = (method) => {
+    const labels = {
+      card: "Card",
+      applepay: "Apple Pay",
+      gpay: "Google Pay",
+      paypal: "PayPal",
+      bank_transfer: "Bank Transfer"
+    };
+    return labels[method] || "Card";
+  };
+
+  const setShiftPaymentSelection = (method, { focus = false } = {}) => {
+    const targetMethod = shiftPaymentMethods.includes(method) ? method : "card";
+    const previousMethod = selectedShiftPaymentMethod;
+    selectedShiftPaymentMethod = targetMethod;
+
+    getShiftPaymentButtons().forEach((option) => {
+      const isSelected = option.getAttribute("data-method") === targetMethod;
+      option.classList.toggle("is-selected", isSelected);
+      if (isSelected && previousMethod !== targetMethod) {
+        option.classList.remove("selection-animate");
+        void option.offsetWidth;
+        option.classList.add("selection-animate");
+      } else if (!isSelected) {
+        option.classList.remove("selection-animate");
+      }
+      option.setAttribute("aria-selected", isSelected ? "true" : "false");
+      option.setAttribute("tabindex", isSelected ? "0" : "-1");
+      if (isSelected && focus) option.focus();
+    });
+
+    if (shiftPaymentSelectedText) {
+      shiftPaymentSelectedText.textContent = `Selected: ${getShiftPaymentLabel(targetMethod)}`;
+    }
+  };
+
+  const resolveShiftPaymentMethod = (method) => {
+    if (!shiftPaymentResolver) return;
+    const resolver = shiftPaymentResolver;
+    shiftPaymentResolver = null;
+    shiftPaymentModal?.classList.add("hidden");
+    resolver(method);
+  };
+
+  const openShiftPaymentModal = () => {
+    setShiftPaymentSelection("card", { focus: true });
+    shiftPaymentModal?.classList.remove("hidden");
+  };
+
+  const requestShiftPaymentMethod = () => {
+    return new Promise((resolve) => {
+      shiftPaymentResolver = resolve;
+      openShiftPaymentModal();
     });
   };
 
@@ -326,6 +395,84 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   refreshMessages?.addEventListener("click", () => loadMessages(activeApplicationId));
 
+  shiftPaymentConfirmBtn?.addEventListener("click", () => {
+    const method = shiftPaymentMethods.includes(selectedShiftPaymentMethod)
+      ? selectedShiftPaymentMethod
+      : "card";
+    resolveShiftPaymentMethod(method);
+  });
+
+  shiftPaymentOptions?.addEventListener("click", (event) => {
+    const button = event.target.closest(".payment-method-option");
+    if (!button) return;
+
+    const method = String(button.getAttribute("data-method") || "").toLowerCase();
+    if (!shiftPaymentMethods.includes(method)) return;
+
+    setShiftPaymentSelection(method);
+  });
+
+  shiftPaymentOptions?.addEventListener("keydown", (event) => {
+    const options = getShiftPaymentButtons();
+    if (!options.length) return;
+
+    const currentIndex = options.findIndex((option) => option.classList.contains("is-selected"));
+    const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+    let nextIndex = safeIndex;
+
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+      event.preventDefault();
+      nextIndex = (safeIndex + 1) % options.length;
+      setShiftPaymentSelection(options[nextIndex].getAttribute("data-method"), { focus: true });
+      return;
+    }
+
+    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      nextIndex = (safeIndex - 1 + options.length) % options.length;
+      setShiftPaymentSelection(options[nextIndex].getAttribute("data-method"), { focus: true });
+      return;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      setShiftPaymentSelection(options[0].getAttribute("data-method"), { focus: true });
+      return;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      setShiftPaymentSelection(options[options.length - 1].getAttribute("data-method"), { focus: true });
+      return;
+    }
+
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault();
+      const activeElement = document.activeElement;
+      const focusedMethod = activeElement?.getAttribute?.("data-method");
+      if (focusedMethod) {
+        setShiftPaymentSelection(focusedMethod, { focus: true });
+      }
+    }
+  });
+
+  const cancelShiftPaymentSelection = () => resolveShiftPaymentMethod(null);
+
+  shiftPaymentCancelBtn?.addEventListener("click", cancelShiftPaymentSelection);
+  shiftPaymentCloseBtn?.addEventListener("click", cancelShiftPaymentSelection);
+
+  shiftPaymentModal?.addEventListener("click", (event) => {
+    if (event.target?.id === "shiftPaymentModal") {
+      cancelShiftPaymentSelection();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && shiftPaymentModal && !shiftPaymentModal.classList.contains("hidden")) {
+      cancelShiftPaymentSelection();
+    }
+  });
+
   document.querySelector(".pipeline-board")?.addEventListener("click", async (event) => {
     const action = event.target.getAttribute("data-action");
     const appId = event.target.getAttribute("data-id");
@@ -334,16 +481,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (action === "accept-shift") {
       if (!appId) return;
+      const paymentMethod = await requestShiftPaymentMethod();
+      if (!paymentMethod) return;
       try {
         const res = await safeAuthFetch(`${API}/shifts/applications/${appId}/accept`, {
-          method: "POST"
+          method: "POST",
+          body: JSON.stringify({ payment_method: paymentMethod })
         });
         const data = await res.json();
         if (!res.ok) {
           alert(data.message || "Failed to accept shift");
           return;
         }
-        alert(data.message || "Shift accepted");
+        const methodLabel = data.payment_method ? `\nPayment method: ${data.payment_method}` : "";
+        alert((data.message || "Shift accepted") + methodLabel);
         await loadApplications();
         return;
       } catch (err) {

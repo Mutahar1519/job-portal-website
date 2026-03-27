@@ -72,6 +72,13 @@ async function login(role) {
   state.tokens[role] = json.token;
 }
 
+function authHeaders(role, extra = {}) {
+  return {
+    Authorization: `Bearer ${state.tokens[role]}`,
+    ...extra
+  };
+}
+
 async function run() {
   log(`Base URL: ${BASE_URL}`);
 
@@ -85,10 +92,74 @@ async function run() {
   await login("seeker");
 
   await assertStatus(
+    "/api/users/me",
+    [200],
+    {
+      headers: authHeaders("seeker")
+    },
+    "seeker-me"
+  );
+
+  await assertStatus(
+    "/api/users/job-seeker-profile",
+    [200],
+    {
+      headers: authHeaders("seeker")
+    },
+    "seeker-profile"
+  );
+
+  await assertStatus(
+    "/api/chat",
+    [200],
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Smoke test ping" })
+    },
+    "ai-chat"
+  );
+
+  await assertStatus(
+    "/api/reviews",
+    [200],
+    {},
+    "list-reviews"
+  );
+
+  await assertStatus(
+    "/api/reviews",
+    [201],
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Smoke Bot",
+        role: "QA",
+        email: `smoke-${Date.now()}@example.com`,
+        rating: 5,
+        message: "Smoke test review submission"
+      })
+    },
+    "submit-review"
+  );
+
+  await assertStatus(
+    "/api/users/forgot-password",
+    [200],
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: creds.seeker.email })
+    },
+    "forgot-password"
+  );
+
+  await assertStatus(
     "/api/employer/stats",
     [200],
     {
-      headers: { Authorization: `Bearer ${state.tokens.employer}` }
+      headers: authHeaders("employer")
     },
     "employer-stats"
   );
@@ -97,9 +168,18 @@ async function run() {
     "/api/applications/my",
     [200],
     {
-      headers: { Authorization: `Bearer ${state.tokens.seeker}` }
+      headers: authHeaders("seeker")
     },
     "seeker-applications"
+  );
+
+  await assertStatus(
+    "/api/resumes/me",
+    [200],
+    {
+      headers: authHeaders("seeker")
+    },
+    "seeker-resume"
   );
 
   const newJobTitle = `Smoke Job ${Date.now()}`;
@@ -110,7 +190,7 @@ async function run() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${state.tokens.employer}`
+        ...authHeaders("employer")
       },
       body: JSON.stringify({
         title: newJobTitle,
@@ -137,13 +217,22 @@ async function run() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${state.tokens.seeker}`
+          ...authHeaders("seeker")
         },
         body: JSON.stringify({
           cover_letter: "Smoke test application submission."
         })
       },
       "apply-job"
+    );
+
+    await assertStatus(
+      `/api/jobs/${targetJobId}/check-application`,
+      [200],
+      {
+        headers: authHeaders("seeker")
+      },
+      "check-application-status"
     );
   }
 
@@ -153,10 +242,28 @@ async function run() {
       [200],
       {
         headers: {
-          Authorization: `Bearer ${state.tokens.admin}`
+          ...authHeaders("admin")
         }
       },
       "admin-jobs"
+    );
+
+    await assertStatus(
+      "/api/admin/users",
+      [200],
+      {
+        headers: authHeaders("admin")
+      },
+      "admin-users"
+    );
+
+    await assertStatus(
+      "/api/applications/admin",
+      [200],
+      {
+        headers: authHeaders("admin")
+      },
+      "admin-applications"
     );
   } catch (err) {
     warn(`admin-jobs check failed: ${err.message}`);

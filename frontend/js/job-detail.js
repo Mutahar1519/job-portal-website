@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
-  const jobId = Number(params.get("jobId"));
+  const rawJobId = params.get("jobId") || params.get("id") || sessionStorage.getItem("lastJobId") || "";
+  const jobId = Number(rawJobId);
 
   const titleEl = document.getElementById("jobDetailTitle");
   const metaEl = document.getElementById("jobDetailMeta");
@@ -16,9 +17,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const shareBtn = document.getElementById("jobDetailShare");
   const similarEl = document.getElementById("jobDetailSimilar");
   const highlightsEl = document.getElementById("jobDetailHighlights");
+  const companyReviewsEl = document.getElementById("jobCompanyReviews");
+  const companyReviewForm = document.getElementById("jobCompanyReviewForm");
 
   if (!jobId) {
     if (titleEl) titleEl.textContent = "Job not found";
+    if (descEl) descEl.textContent = "Missing job reference. Please return to jobs and open details again.";
     return;
   }
 
@@ -26,13 +30,126 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (el) el.textContent = text || "";
   };
 
+  const escapeHtml = (value) => String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+  const fetchJobById = async (id) => {
+    const primary = await authFetch(`${API}/jobs/${id}`);
+    const primaryData = await primary.json().catch(() => null);
+    if (primary.ok && primaryData && !primaryData.message) {
+      return primaryData;
+    }
+
+    const fallback = await fetch(`${API}/jobs/${id}`);
+    const fallbackData = await fallback.json().catch(() => null);
+    if (fallback.ok && fallbackData && !fallbackData.message) {
+      return fallbackData;
+    }
+
+    // Last-resort fallback for inconsistent detail routing: resolve from list endpoint.
+    const listRes = await fetch(`${API}/jobs`);
+    const listData = await listRes.json().catch(() => []);
+    if (listRes.ok && Array.isArray(listData)) {
+      return listData.find((item) => Number(item.id) === Number(id)) || null;
+    }
+
+    return null;
+  };
+
+  const renderCompanyReviews = (reviews = []) => {
+    if (!companyReviewsEl) return;
+
+    if (!reviews.length) {
+      companyReviewsEl.innerHTML = '<p class="p-muted">No public reviews yet.</p>';
+      return;
+    }
+
+    companyReviewsEl.innerHTML = reviews.map((review) => {
+      const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
+      return `
+        <article class="review-card">
+          <div class="review-header">
+            <div>
+              <h3>${escapeHtml(review.name)}</h3>
+              <p class="meta">${escapeHtml(review.role)}</p>
+            </div>
+            <span class="review-stars">${stars}</span>
+          </div>
+          <p class="review-message">${escapeHtml(review.message)}</p>
+        </article>
+      `;
+    }).join("");
+  };
+
+  const loadCompanyReviews = async (companyId) => {
+    if (!companyId || !companyReviewsEl) return;
+    try {
+      const res = await fetch(`${API}/reviews/company/${companyId}?limit=6`);
+      const data = await res.json().catch(() => []);
+      renderCompanyReviews(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      renderCompanyReviews([]);
+    }
+  };
+
+  const bindCompanyReviewForm = (job) => {
+    if (!companyReviewForm || !job?.company_id) return;
+
+    companyReviewForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const name = (document.getElementById("jobReviewName")?.value || "").trim();
+      const role = (document.getElementById("jobReviewRole")?.value || "").trim();
+      const rating = Number(document.getElementById("jobReviewRating")?.value || 0);
+      const message = (document.getElementById("jobReviewMessage")?.value || "").trim();
+
+      if (!name || !role || !rating || !message) {
+        alert("Please complete all review fields.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/reviews/company/${job.company_id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            role,
+            rating,
+            message,
+            employer_user_id: job.posted_by || null,
+            job_id: job.id || null
+          })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.message || "Failed to submit review.");
+          return;
+        }
+
+        companyReviewForm.reset();
+        alert("Thanks! Your review is pending approval.");
+      } catch (err) {
+        console.error(err);
+        alert("Network error while submitting review.");
+      }
+    });
+  };
+
   try {
-    const res = await authFetch(`${API}/jobs/${jobId}`);
-    const job = await res.json();
-    if (!res.ok || !job) {
+    const job = await fetchJobById(jobId);
+
+    if (!job) {
       if (titleEl) titleEl.textContent = "Job not found";
       return;
     }
+
+    sessionStorage.setItem("lastJobId", String(job.id));
 
     setText(titleEl, job.title || "Role");
     if (applyBtn) applyBtn.href = `apply.html?jobId=${job.id}`;
@@ -85,6 +202,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     setText(descEl, job.description || "");
 
+    // Check if user has already applied for this job
+    if (applyBtn) {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const checkRes = await authFetch(`${API}/jobs/${jobId}/check-application`);
+          const checkData = await checkRes.json();
+          if (checkRes.ok && checkData.hasApplied) {
+            applyBtn.textContent = "Already Applied";
+            applyBtn.classList.add("btn-disabled");
+            applyBtn.style.pointerEvents = "none";
+            applyBtn.href = "#";
+          }
+        } catch (err) {
+          console.error("Failed to check application status:", err);
+        }
+      }
+    }
+
     if (highlightsEl) {
       const highlights = [
         job.category ? `Category: ${job.category}` : null,
@@ -126,6 +262,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         similarEl.innerHTML = "<p class=\"p-muted\">No similar jobs yet.</p>";
       }
     }
+
+    await loadCompanyReviews(Number(job.company_id));
+    bindCompanyReviewForm(job);
 
     if (saveBtn || saveTopBtn) {
       const token = localStorage.getItem("token");
@@ -182,6 +321,49 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
     }
+
+    // ── Report this listing ──────────────────────────────────────
+    const reportBtn    = document.getElementById("jobDetailReport");
+    const reportPanel  = document.getElementById("reportPanel");
+    const reportCancel = document.getElementById("reportCancel");
+    const reportSubmit = document.getElementById("reportSubmit");
+
+    reportBtn?.addEventListener("click", () => {
+      if (!localStorage.getItem("token")) {
+        alert("Please log in to report a listing.");
+        return;
+      }
+      reportPanel.style.display = reportPanel.style.display === "none" ? "block" : "none";
+    });
+
+    reportCancel?.addEventListener("click", () => {
+      reportPanel.style.display = "none";
+    });
+
+    reportSubmit?.addEventListener("click", async () => {
+      const reason = document.getElementById("reportReason")?.value;
+      const details = document.getElementById("reportDetails")?.value || "";
+      if (!reason) {
+        alert("Please select a reason.");
+        return;
+      }
+      try {
+        const res = await authFetch(`${API}/jobs/${jobId}/report`, {
+          method: "POST",
+          body: JSON.stringify({ reason, details })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.message || "Failed to submit report.");
+          return;
+        }
+        alert(data.message || "Report submitted. Thank you.");
+        reportPanel.style.display = "none";
+      } catch (err) {
+        console.error(err);
+        alert("Server error — please try again.");
+      }
+    });
   } catch (err) {
     console.error(err);
     if (titleEl) titleEl.textContent = "Job details unavailable";
