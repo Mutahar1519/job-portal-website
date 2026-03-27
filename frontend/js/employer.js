@@ -335,8 +335,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (action === "accept-shift") {
       if (!appId) return;
       try {
+        const paymentMethod = await resolveShiftPaymentMethod();
+        if (!paymentMethod) {
+          return;
+        }
+
         const res = await safeAuthFetch(`${API}/shifts/applications/${appId}/accept`, {
-          method: "POST"
+          method: "POST",
+          body: JSON.stringify({ payment_method: paymentMethod })
         });
         const data = await res.json();
         if (!res.ok) {
@@ -447,3 +453,119 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadJobs();
   await loadStats();
 });
+
+/* ============================================================
+   SHIFT PAYMENT MODAL
+   ============================================================ */
+
+const SHIFT_PAYMENT_LABELS = {
+  card: "Card",
+  applepay: "Apple Pay",
+  gpay: "Google Pay",
+  paypal: "PayPal",
+  bank_transfer: "Bank Transfer",
+};
+
+function getShiftPaymentButtons() {
+  return Array.from(document.querySelectorAll("#shiftPaymentOptions .payment-method-option"));
+}
+
+function getShiftPaymentLabel(method) {
+  return SHIFT_PAYMENT_LABELS[method] || method;
+}
+
+function setShiftPaymentSelection(method, { focus = false } = {}) {
+  const buttons = getShiftPaymentButtons();
+  const selectedText = document.getElementById("shiftPaymentSelectedText");
+  buttons.forEach((btn) => {
+    const isSelected = btn.dataset.method === method;
+    btn.classList.toggle("is-selected", isSelected);
+    btn.setAttribute("aria-selected", isSelected ? "true" : "false");
+    btn.setAttribute("tabindex", isSelected ? "0" : "-1");
+    if (isSelected) {
+      // Restart pulse animation
+      btn.classList.remove("selection-animate");
+      void btn.offsetWidth; // force reflow
+      btn.classList.add("selection-animate");
+      if (focus) btn.focus();
+    }
+  });
+  if (selectedText) {
+    selectedText.textContent = "Selected: " + getShiftPaymentLabel(method);
+  }
+}
+
+let _shiftPaymentResolve = null;
+
+function openShiftPaymentModal() {
+  return new Promise((resolve) => {
+    _shiftPaymentResolve = resolve;
+    const modal = document.getElementById("shiftPaymentModal");
+    if (!modal) { resolve("card"); return; }
+    modal.classList.remove("hidden");
+    setShiftPaymentSelection("card");
+    getShiftPaymentButtons()[0]?.focus();
+  });
+}
+
+function closeShiftPaymentModal(chosenMethod) {
+  const modal = document.getElementById("shiftPaymentModal");
+  if (modal) modal.classList.add("hidden");
+  if (_shiftPaymentResolve) {
+    _shiftPaymentResolve(chosenMethod || null);
+    _shiftPaymentResolve = null;
+  }
+}
+
+// Click on a payment option card
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("#shiftPaymentOptions .payment-method-option");
+  if (btn) {
+    setShiftPaymentSelection(btn.dataset.method, { focus: true });
+    return;
+  }
+  if (e.target.closest("#shiftPaymentConfirm")) {
+    const selected = document.querySelector("#shiftPaymentOptions .payment-method-option.is-selected");
+    closeShiftPaymentModal(selected?.dataset.method || "card");
+    return;
+  }
+  if (e.target.closest("#shiftPaymentCancel")) {
+    closeShiftPaymentModal(null);
+  }
+});
+
+// Keyboard navigation within payment modal
+document.addEventListener("keydown", (e) => {
+  const modal = document.getElementById("shiftPaymentModal");
+  if (!modal || modal.classList.contains("hidden")) return;
+  const buttons = getShiftPaymentButtons();
+  const currentIdx = buttons.findIndex((b) => b === document.activeElement);
+  if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+    e.preventDefault();
+    const next = (currentIdx + 1) % buttons.length;
+    setShiftPaymentSelection(buttons[next].dataset.method, { focus: true });
+  } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+    e.preventDefault();
+    const prev = (currentIdx - 1 + buttons.length) % buttons.length;
+    setShiftPaymentSelection(buttons[prev].dataset.method, { focus: true });
+  } else if (e.key === "Home") {
+    e.preventDefault();
+    setShiftPaymentSelection(buttons[0].dataset.method, { focus: true });
+  } else if (e.key === "End") {
+    e.preventDefault();
+    setShiftPaymentSelection(buttons[buttons.length - 1].dataset.method, { focus: true });
+  } else if (e.key === "Enter" || e.key === " ") {
+    if (document.activeElement.closest("#shiftPaymentOptions")) {
+      e.preventDefault();
+      const selected = document.querySelector("#shiftPaymentOptions .payment-method-option.is-selected");
+      closeShiftPaymentModal(selected?.dataset.method || "card");
+    }
+  } else if (e.key === "Escape") {
+    closeShiftPaymentModal(null);
+  }
+});
+
+// Legacy bridge used by accept-shift code
+async function resolveShiftPaymentMethod() {
+  return await openShiftPaymentModal();
+}

@@ -1,6 +1,19 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
-  const jobId = Number(params.get("jobId"));
+  const resolveJobId = () => {
+    const candidates = [params.get("jobId"), params.get("id"), sessionStorage.getItem("lastJobId")];
+
+    for (const candidate of candidates) {
+      const parsed = Number(candidate);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+
+    return null;
+  };
+
+  const jobId = resolveJobId();
 
   const titleEl = document.getElementById("jobDetailTitle");
   const metaEl = document.getElementById("jobDetailMeta");
@@ -16,9 +29,52 @@ document.addEventListener("DOMContentLoaded", async () => {
   const shareBtn = document.getElementById("jobDetailShare");
   const similarEl = document.getElementById("jobDetailSimilar");
   const highlightsEl = document.getElementById("jobDetailHighlights");
+  const companyReviewsSection = document.getElementById("companyReviewsSection");
+  const companyReviewsList = document.getElementById("companyReviewsList");
+  const companyReviewForm = document.getElementById("companyReviewForm");
+  const companyReviewName = document.getElementById("crName");
+  const companyReviewRating = document.getElementById("crRating");
+  const companyReviewMessage = document.getElementById("crMessage");
+  const reportJobToggle = document.getElementById("reportJobToggle");
+  const reportJobPanel = document.getElementById("reportJobPanel");
+  const reportJobForm = document.getElementById("reportJobForm");
+  const reportReason = document.getElementById("reportReason");
+  const reportDetails = document.getElementById("reportDetails");
+  const token = localStorage.getItem("token");
+  const rawUser = localStorage.getItem("user");
+  let currentUser = null;
+
+  if (rawUser) {
+    try {
+      currentUser = JSON.parse(rawUser);
+    } catch (err) {
+      console.error("Invalid JSON in localStorage.user", err);
+    }
+  }
+
+  const setMissingState = (message = "Job not found") => {
+    if (titleEl) titleEl.textContent = message;
+  };
+
+  const buildJobDetailHref = (id) => `job.html?jobId=${id}&id=${id}`;
+
+  const fetchJob = async (id) => {
+    const directRes = await authFetch(`${API}/jobs/${id}`);
+    if (directRes.ok) {
+      return directRes.json();
+    }
+
+    const listRes = await authFetch(`${API}/jobs`);
+    if (!listRes.ok) {
+      return null;
+    }
+
+    const jobs = await listRes.json();
+    return (Array.isArray(jobs) ? jobs : []).find((item) => Number(item.id) === Number(id)) || null;
+  };
 
   if (!jobId) {
-    if (titleEl) titleEl.textContent = "Job not found";
+    setMissingState();
     return;
   }
 
@@ -27,12 +83,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   try {
-    const res = await authFetch(`${API}/jobs/${jobId}`);
-    const job = await res.json();
-    if (!res.ok || !job) {
-      if (titleEl) titleEl.textContent = "Job not found";
+    const job = await fetchJob(jobId);
+    if (!job) {
+      setMissingState();
       return;
     }
+
+    sessionStorage.setItem("lastJobId", String(job.id));
 
     setText(titleEl, job.title || "Role");
     if (applyBtn) applyBtn.href = `apply.html?jobId=${job.id}`;
@@ -112,7 +169,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       } else {
         similarEl.innerHTML = similar
           .map(item => `
-            <a class="mini-card" href="job.html?jobId=${item.id}">
+            <a class="mini-card" href="${buildJobDetailHref(item.id)}">
               <div>
                 <strong>${item.title}</strong>
                 <p class="p-muted"><i class="fa-solid fa-location-dot"></i> ${item.location || "Location not specified"}</p>
@@ -182,11 +239,139 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
     }
+
+    if (reportJobToggle && reportJobPanel) {
+      reportJobToggle.addEventListener("click", () => {
+        reportJobPanel.style.display = reportJobPanel.style.display === "none" || !reportJobPanel.style.display ? "block" : "none";
+      });
+    }
+
+    if (reportJobForm) {
+      reportJobForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!token) {
+          alert("Login required to report a listing");
+          return;
+        }
+
+        try {
+          const resp = await authFetch(`${API}/jobs/${job.id}/report`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              reason: reportReason?.value || "",
+              details: reportDetails?.value?.trim() || ""
+            })
+          });
+          const data = await resp.json();
+          if (!resp.ok) {
+            alert(data.message || "Failed to submit report");
+            return;
+          }
+          alert(data.message || "Report submitted");
+          reportJobForm.reset();
+          reportJobPanel.style.display = "none";
+        } catch (err) {
+          console.error(err);
+          alert("Failed to submit report");
+        }
+      });
+    }
+
+    if (job.company_id && companyReviewsSection) {
+      companyReviewsSection.style.display = "block";
+      loadCompanyReviews(job.company_id, companyReviewsList);
+
+      if (companyReviewName && currentUser?.name) {
+        companyReviewName.value = currentUser.name;
+      }
+
+      if (companyReviewForm) {
+        if (!token) {
+          companyReviewForm.innerHTML = '<p class="p-muted">Login required to leave a company review.</p>';
+        } else {
+          companyReviewForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            try {
+              const resp = await authFetch(`${API}/reviews/company/${job.company_id}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  reviewer_name: companyReviewName?.value?.trim() || "",
+                  rating: Number(companyReviewRating?.value || 0),
+                  message: companyReviewMessage?.value?.trim() || ""
+                })
+              });
+              const data = await resp.json();
+              if (!resp.ok) {
+                alert(data.message || "Failed to submit review");
+                return;
+              }
+              alert(data.message || "Review submitted for approval");
+              companyReviewForm.reset();
+              if (companyReviewName && currentUser?.name) companyReviewName.value = currentUser.name;
+              loadCompanyReviews(job.company_id, companyReviewsList);
+            } catch (err) {
+              console.error(err);
+              alert("Failed to submit review");
+            }
+          });
+        }
+      }
+    }
   } catch (err) {
     console.error(err);
-    if (titleEl) titleEl.textContent = "Job details unavailable";
+    setMissingState("Job details unavailable");
   }
 });
+
+async function loadCompanyReviews(companyId, container) {
+  if (!container || !companyId) return;
+
+  container.innerHTML = '<p class="p-muted">Loading reviews...</p>';
+
+  try {
+    const res = await fetch(`${API}/reviews/company/${companyId}`);
+    const reviews = await res.json();
+
+    if (!res.ok || !Array.isArray(reviews) || !reviews.length) {
+      container.innerHTML = '<p class="p-muted">No approved company reviews yet.</p>';
+      return;
+    }
+
+    container.innerHTML = reviews
+      .map((review) => {
+        const name = review.reviewer_name || review.name || "Anonymous";
+        const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
+        const created = review.created_at ? new Date(review.created_at).toLocaleDateString() : "";
+        return `
+          <article class="review-card" style="margin-bottom:12px;">
+            <div class="review-header">
+              <div>
+                <h4>${escapeHtml(name)}</h4>
+                ${created ? `<p class="meta">${escapeHtml(created)}</p>` : ""}
+              </div>
+              <span class="review-stars">${stars}</span>
+            </div>
+            <p class="review-message">${escapeHtml(review.message || "")}</p>
+          </article>
+        `;
+      })
+      .join("");
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = '<p class="p-muted">Unable to load company reviews right now.</p>';
+  }
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 const getCompanyInitials = (name = "Company") => {
   const words = String(name).trim().split(/\s+/).filter(Boolean);

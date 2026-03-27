@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -75,6 +76,7 @@ const resumesRoutes = require("./routes/resumes");
 const messagesRoutes = require("./routes/messages");
 const employerRoutes = require("./routes/employer");
 const shiftsRoutes = require("./routes/shifts");
+const authRoutes = require("./routes/auth");
 
 app.use("/api/jobs", jobsRoutes);
 app.use("/api/users", usersRoutes);
@@ -90,6 +92,7 @@ app.use("/api/resumes", resumesRoutes);
 app.use("/api/messages", messagesRoutes);
 app.use("/api/employer", employerRoutes);
 app.use("/api/shifts", shiftsRoutes);
+app.use("/api/auth", authRoutes);
 
 runSchemaChecks();
 
@@ -137,6 +140,17 @@ app.use((err, req, res, next) => {
   res.status(500).sendFile(path.join(__dirname, "../frontend/500.html"));
 });
 
-app.listen(3000, () => {
-  console.log("✅ Server running on http://localhost:3000");
+const PORT = Number(process.env.PORT) || 3000;
+
+const server = app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`❌ Port ${PORT} is already in use. Stop the existing server or set PORT to a different value.`);
+  } else {
+    console.error("❌ Server failed to start:", err);
+  }
+  process.exit(1);
 });

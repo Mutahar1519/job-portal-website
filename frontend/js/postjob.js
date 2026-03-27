@@ -162,8 +162,47 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const donationModal = document.getElementById("donationModal");
+  const postPaymentModal = document.getElementById("postPaymentModal");
   let pendingPremiumJob = null;
   let donationContextMode = "post";
+  let selectedPaymentMethod = "card";
+
+  const PAYMENT_LABELS = {
+    card: "Card",
+    applepay: "Apple Pay",
+    gpay: "Google Pay",
+    paypal: "PayPal",
+    bank_transfer: "Bank Transfer"
+  };
+
+  const getPaymentButtons = () => Array.from(document.querySelectorAll("#postPaymentOptions .payment-method-option"));
+
+  const setPaymentSelection = (method, { focus = false } = {}) => {
+    const selectedText = document.getElementById("postPaymentSelectedText");
+    getPaymentButtons().forEach((btn) => {
+      const isSelected = btn.dataset.method === method;
+      btn.classList.toggle("is-selected", isSelected);
+      btn.setAttribute("aria-selected", isSelected ? "true" : "false");
+      btn.setAttribute("tabindex", isSelected ? "0" : "-1");
+      if (isSelected && focus) btn.focus();
+    });
+    if (selectedText) selectedText.textContent = `Selected: ${PAYMENT_LABELS[method] || method}`;
+    selectedPaymentMethod = method;
+  };
+
+  let resolvePaymentChoice = null;
+  const openPaymentModal = () => new Promise((resolve) => {
+    resolvePaymentChoice = resolve;
+    postPaymentModal?.classList.remove("hidden");
+    setPaymentSelection(selectedPaymentMethod || "card");
+  });
+  const closePaymentModal = (method) => {
+    postPaymentModal?.classList.add("hidden");
+    if (resolvePaymentChoice) {
+      resolvePaymentChoice(method || null);
+      resolvePaymentChoice = null;
+    }
+  };
 
   const openDonationModal = (context) => {
     donationContextMode = context;
@@ -191,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await authFetch(`${API}/payments/create-donation-session`, {
         method: "POST",
-        body: JSON.stringify({ context: "post", amount_cents: amountCents })
+        body: JSON.stringify({ context: "post", amount_cents: amountCents, payment_method: selectedPaymentMethod })
       });
       const data = await res.json();
       if (!res.ok || !data.url) {
@@ -212,7 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const res = await authFetch(`${API}/payments/create-checkout-session`, {
       method: "POST",
-      body: JSON.stringify({ mode: "create", donation_cents: donationCents })
+      body: JSON.stringify({ mode: "create", donation_cents: donationCents, payment_method: selectedPaymentMethod })
     });
 
     const data = await res.json();
@@ -232,6 +271,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const amount = event.target.getAttribute("data-amount");
     if (amount !== null) {
       startDonation(Number(amount));
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    const option = event.target.closest("#postPaymentOptions .payment-method-option");
+    if (option) {
+      setPaymentSelection(option.dataset.method, { focus: true });
+      return;
+    }
+
+    if (event.target.closest("#postPaymentConfirm")) {
+      closePaymentModal(selectedPaymentMethod || "card");
+      return;
+    }
+
+    if (event.target.closest("#postPaymentCancel")) {
+      closePaymentModal(null);
     }
   });
 
@@ -292,6 +348,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (premiumInput && premiumInput.checked) {
+      const paymentMethod = await openPaymentModal();
+      if (!paymentMethod) return;
       pendingPremiumJob = jobData;
       openDonationModal("premium");
       return;
@@ -352,6 +410,8 @@ document.addEventListener("DOMContentLoaded", () => {
       form.reset();
       localStorage.removeItem(DRAFT_KEY);
       if (shiftFields) shiftFields.style.display = "none";
+      const paymentMethod = await openPaymentModal();
+      if (!paymentMethod) return;
       openDonationModal("post");
     } catch (err) {
       console.error("Job submission error:", err);

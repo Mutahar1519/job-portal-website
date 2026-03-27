@@ -2,6 +2,10 @@
 
 Use this checklist before demo or deployment.
 
+Reference documents:
+- Current audited feature state: `docs/TRUTH_MATRIX_2026-03-27.md`
+- Browser runtime sweep: `docs/BROWSER_RUNTIME_CHECKLIST_2026-03-27.md`
+
 ## 1. Environment and Services
 - [ ] MySQL service is running.
 - [ ] Database `job_portal` exists.
@@ -13,6 +17,8 @@ Use this checklist before demo or deployment.
 - [ ] Register as Job Seeker.
 - [ ] Register as Employer.
 - [ ] Login works for both roles.
+- [ ] Google OAuth button appears when provider is configured.
+- [ ] Google OAuth callback lands in the correct role page with a hydrated session.
 - [ ] Logout clears session and redirects correctly.
 - [ ] Role-based navigation visibility is correct.
 
@@ -26,15 +32,18 @@ Use this checklist before demo or deployment.
 ## 4. Employer Flow
 - [ ] Employer can create company profile.
 - [ ] Employer can post job.
+- [ ] Premium job selector shows payment method choices and starts checkout.
 - [ ] Employer can edit/delete own job.
 - [ ] Employer pipeline loads applications.
 - [ ] Employer can update candidate stage.
+- [ ] Employer shift acceptance sends selected payment method.
 
 ## 5. Admin Flow
 - [ ] Admin login works.
 - [ ] View users list.
 - [ ] View jobs list.
 - [ ] Edit/delete jobs.
+- [ ] Admin premium upgrade selector shows payment method choices and starts checkout.
 - [ ] Access stats and moderation screens.
 
 ## 6. UI/UX Validation
@@ -56,6 +65,7 @@ Use this checklist before demo or deployment.
 - [ ] JWT-protected routes reject invalid/empty tokens.
 - [ ] SQL scripts used are versioned under `backend/sql`.
 - [ ] No production secrets hardcoded.
+- [ ] Delete account flow is verified on a disposable test user.
 
 ## 9. Demo Readiness
 - [ ] Seed at least 5 sample jobs.

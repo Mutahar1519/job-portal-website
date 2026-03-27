@@ -25,6 +25,12 @@ exports.acceptShiftApplication = (req, res) => {
   const applicationId = Number(req.params.applicationId);
   if (!applicationId) return res.status(400).json({ message: "Invalid application" });
 
+  const ALLOWED_PAYMENT_METHODS = ["card", "applepay", "gpay", "paypal", "bank_transfer"];
+  const paymentMethod = (req.body && req.body.payment_method) || "card";
+  if (!ALLOWED_PAYMENT_METHODS.includes(paymentMethod)) {
+    return res.status(400).json({ message: "Invalid payment method. Allowed: " + ALLOWED_PAYMENT_METHODS.join(", ") });
+  }
+
   const sql = `
     SELECT a.id AS application_id, a.user_id AS worker_id,
            j.id AS job_id, j.posted_by, j.is_shift, j.shift_pay_cents, j.shift_currency, j.shift_status

@@ -45,6 +45,8 @@ const renderCompanyAvatar = (job) => {
   return `<span class="job-company-avatar job-company-avatar-fallback" aria-hidden="true">${getCompanyInitials(job.company_name || "Company")}</span>`;
 };
 
+const buildJobDetailHref = (jobId) => `job.html?jobId=${jobId}&id=${jobId}`;
+
 const renderJobCard = (job, options = {}) => {
   const { includeSaveButton = true, saved = false } = options;
   const matchScore = getMatchScore(job);
@@ -102,7 +104,7 @@ const renderJobCard = (job, options = {}) => {
       <p class="job-desc job-card-description">${description}</p>
 
       <div class="job-card-actions">
-        <a href="job.html?jobId=${job.id}" class="btn btn-ghost job-action-btn">Details</a>
+        <a href="${buildJobDetailHref(job.id)}" class="btn btn-ghost job-action-btn" data-job-id="${job.id}">Details</a>
         <a href="apply.html?jobId=${job.id}" class="apply-btn job-action-btn" data-job-id="${job.id}"><i class="fa-solid fa-rocket"></i> Apply Now</a>
         ${includeSaveButton ? `<button class="btn btn-outline save-btn" type="button" data-save-id="${job.id}" data-saved="${saved ? 1 : 0}">${saved ? "Saved" : "Save"}</button>` : ""}
       </div>
@@ -118,6 +120,8 @@ async function loadJobs() {
   const experience = document.getElementById("experienceFilter")?.value || "";
   const salary = document.getElementById("salaryFilter")?.value || "";
   const remoteOnly = document.getElementById("remoteOnly")?.checked || false;
+  const activeWorkTypeBtn = document.querySelector("#workTypeFilters .work-type-btn.active");
+  const workType = activeWorkTypeBtn ? activeWorkTypeBtn.dataset.workType || "" : "";
   const skeleton = document.getElementById("jobsSkeleton");
   const resultsCount = document.getElementById("jobsResultCount");
   const resultsHint = document.getElementById("jobsResultHint");
@@ -139,7 +143,7 @@ async function loadJobs() {
     // Filter jobs client-side
     const filtered = (jobs || []).filter(job => {
       const titleMatch = !q || job.title.toLowerCase().includes(q.toLowerCase());
-      const categoryMatch = !category || job.category === category;
+      const categoryMatch = !category || (job.category || "").toLowerCase().includes(category.toLowerCase()) || job.category === category;
       const locationValue = (job.location || "").toLowerCase();
       const locationMatch = !location || locationValue.includes(location.toLowerCase());
       const jobTypeValue = (job.job_type || job.jobType || "").toLowerCase();
@@ -147,8 +151,9 @@ async function loadJobs() {
       const experienceMatch = !experience || (job.description || "").toLowerCase().includes(experience);
       const remoteMatch = !remoteOnly || locationValue.includes("remote") || locationValue.includes("hybrid");
       const salaryMatch = !salary || matchSalary(job, salary);
+      const workTypeMatch = !workType || locationValue.includes(workType.toLowerCase()) || (job.work_type || "").toLowerCase().includes(workType.toLowerCase());
 
-      return titleMatch && categoryMatch && locationMatch && typeMatch && experienceMatch && remoteMatch && salaryMatch;
+      return titleMatch && categoryMatch && locationMatch && typeMatch && experienceMatch && remoteMatch && salaryMatch && workTypeMatch;
     });
 
     if (!filtered.length) {
@@ -287,6 +292,11 @@ const getSearchState = () => {
 };
 
 document.getElementById("jobs")?.addEventListener("click", async (event) => {
+  const detailsLink = event.target.closest("a[data-job-id]");
+  if (detailsLink) {
+    sessionStorage.setItem("lastJobId", detailsLink.getAttribute("data-job-id"));
+  }
+
   const button = event.target.closest(".save-btn");
   if (!button) return;
 
@@ -358,3 +368,13 @@ const seedSearchState = () => {
 
 seedSearchState();
 loadJobs();
+
+
+// Work type filter button handler
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("#workTypeFilters .work-type-btn");
+  if (!btn) return;
+  document.querySelectorAll("#workTypeFilters .work-type-btn").forEach((b) => b.classList.remove("active"));
+  btn.classList.add("active");
+  loadJobs();
+});

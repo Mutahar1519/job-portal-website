@@ -146,6 +146,46 @@
 
   <div id="toast"></div>
 
+  <!-- Shift Payment Modal -->
+  <div id="shiftPaymentModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shiftPaymentTitle">
+    <div class="modal-inner glass-card" style="max-width:480px;width:100%;padding:28px;">
+      <h3 id="shiftPaymentTitle" style="margin-bottom:4px;">Select Payment Method</h3>
+      <p class="p-muted" style="margin-bottom:18px;font-size:13px;">Choose your preferred payment method for this shift. Hosted checkout may still continue through the default card processor.</p>
+      <div id="shiftPaymentOptions" class="payment-method-grid" role="listbox" aria-label="Payment methods">
+        <button class="payment-method-option" role="option" data-method="card" tabindex="0">
+          <span class="payment-method-icon"><i class="fa-solid fa-credit-card"></i></span>
+          <span>Credit / Debit Card</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="applepay" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-apple"></i></span>
+          <span>Apple Pay</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="gpay" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-google-pay"></i></span>
+          <span>Google Pay</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="paypal" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-paypal"></i></span>
+          <span>PayPal</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="bank_transfer" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-solid fa-building-columns"></i></span>
+          <span>Bank Transfer</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+      </div>
+      <p id="shiftPaymentSelectedText" class="payment-method-selected" aria-live="polite">Selected: Card</p>
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button id="shiftPaymentConfirm" class="btn btn-primary" type="button" style="flex:1;">Confirm Payment</button>
+        <button id="shiftPaymentCancel" class="btn btn-outline" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <footer class="site-footer">
     <div class="footer-grid">
       <div>

@@ -22,7 +22,8 @@ const creds = {
 
 const state = {
   tokens: {},
-  jobs: []
+  jobs: [],
+  seekerApplications: []
 };
 
 const log = (msg) => console.log(`[smoke] ${msg}`);
@@ -52,6 +53,32 @@ async function assertStatus(path, expected, options = {}, label = path) {
   return json;
 }
 
+async function assertResponse(path, validate, options = {}, label = path) {
+  const { res, json } = await request(path, options);
+  const result = validate({ status: res.status, body: json });
+  if (result !== true) {
+    throw new Error(`${label} failed validation: ${result}. Response: ${JSON.stringify(json)}`);
+  }
+  log(`${label} -> ${res.status}`);
+  return json;
+}
+
+async function assertPageContains(path, markers, label = path) {
+  const { res, json } = await request(path);
+  if (res.status !== 200) {
+    throw new Error(`${label} expected 200 but got ${res.status}`);
+  }
+
+  const html = typeof json === "string" ? json : JSON.stringify(json);
+  for (const marker of markers) {
+    if (!html.includes(marker)) {
+      throw new Error(`${label} missing marker: ${marker}`);
+    }
+  }
+
+  log(`${label} -> 200`);
+}
+
 async function login(role) {
   const payload = creds[role];
   const json = await assertStatus(
@@ -72,8 +99,71 @@ async function login(role) {
   state.tokens[role] = json.token;
 }
 
+async function registerTempSeeker() {
+  const timestamp = Date.now();
+  const email = `smoke-seeker-${timestamp}@demo.local`;
+  const password = "Demo@1234";
+
+  await assertStatus(
+    "/api/users/register",
+    [200, 201],
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: `Smoke Seeker ${timestamp}`,
+        email,
+        password,
+        phone: "+1 555 000 2000",
+        country: "UK",
+        city: "London",
+        role: "job_seeker"
+      })
+    },
+    "register-temp-seeker"
+  );
+
+  const loginJson = await assertStatus(
+    "/api/users/login",
+    [200],
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    },
+    "login-temp-seeker"
+  );
+
+  if (!loginJson?.token) {
+    throw new Error("login-temp-seeker missing token");
+  }
+
+  return { email, password, token: loginJson.token };
+}
+
+function buildPdfBlob() {
+  return new Blob(
+    [
+      "%PDF-1.4\n",
+      "1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n",
+      "2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n",
+      "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\n",
+      "trailer<</Root 1 0 R>>\n%%EOF\n"
+    ],
+    { type: "application/pdf" }
+  );
+}
+
 async function run() {
   log(`Base URL: ${BASE_URL}`);
+
+  await assertPageContains("/login.html", ["id=\"oauthProviders\"", "loginForm"], "page-login");
+  await assertPageContains("/register.html", ["id=\"oauthProviders\"", "registerForm"], "page-register");
+  await assertPageContains("/jobs.html", ["id=\"searchInput\"", "id=\"jobsResultCount\"", "id=\"jobs\""], "page-jobs");
+  await assertPageContains("/dashboard.html", ["id=\"applications\"", "id=\"savedJobs\"", "id=\"shiftAlerts\""], "page-dashboard");
+  await assertPageContains("/post-jobs.html", ["id=\"postPaymentModal\"", "id=\"donationModal\""], "page-post-job");
+  await assertPageContains("/admin.html", ["id=\"adminPaymentModal\"", "reviewQueue"], "page-admin");
+  await assertPageContains("/employer.html", ["id=\"shiftPaymentModal\"", "pipeline-board"], "page-employer");
 
   await assertStatus("/api/health", [200], {}, "health");
 
@@ -84,6 +174,8 @@ async function run() {
   await login("employer");
   await login("seeker");
 
+  await assertStatus("/api/auth/providers", [200], {}, "auth-providers");
+
   await assertStatus(
     "/api/employer/stats",
     [200],
@@ -93,7 +185,7 @@ async function run() {
     "employer-stats"
   );
 
-  await assertStatus(
+  const seekerApplications = await assertStatus(
     "/api/applications/my",
     [200],
     {
@@ -101,6 +193,7 @@ async function run() {
     },
     "seeker-applications"
   );
+  state.seekerApplications = Array.isArray(seekerApplications) ? seekerApplications : [];
 
   const newJobTitle = `Smoke Job ${Date.now()}`;
   const createdJob = await assertStatus(
@@ -124,15 +217,59 @@ async function run() {
     "post-job"
   );
 
-  const targetJob = state.jobs[0] || createdJob;
-  const targetJobId = targetJob && (targetJob.id || targetJob.job_id || createdJob.id);
+  const alreadyAppliedIds = new Set(
+    state.seekerApplications
+      .map((item) => Number(item.job_id || item.id))
+      .filter((value) => Number.isFinite(value) && value > 0)
+  );
+  const applyTargetJob = state.jobs.find((job) => {
+    const jobId = Number(job?.id || job?.job_id);
+    return Number.isFinite(jobId) && jobId > 0 && !alreadyAppliedIds.has(jobId);
+  });
+  const targetJob = applyTargetJob || state.jobs[0] || createdJob;
+  const targetJobId = Number(targetJob && (targetJob.id || targetJob.job_id));
 
-  if (!targetJobId) {
-    warn("No available job ID found for apply-job test; skipping application create.");
+  if (targetJobId) {
+    await assertPageContains(
+      `/job.html?jobId=${targetJobId}`,
+      ["id=\"jobDetailTitle\"", "id=\"companyReviewForm\"", "id=\"reportJobForm\""],
+      "page-job-detail"
+    );
+
+    await assertResponse(
+      `/api/jobs/${targetJobId}`,
+      ({ status, body }) => {
+        if (status !== 200) return `expected 200, got ${status}`;
+        const jobId = Number(body && (body.id || body.job_id));
+        if (!Number.isFinite(jobId) || jobId !== targetJobId) {
+          return `expected job id ${targetJobId}, got ${jobId || "unknown"}`;
+        }
+        if (!body?.title) return "missing job title";
+        return true;
+      },
+      {},
+      "job-detail-api"
+    );
   } else {
+    warn("No available job ID found for job detail smoke checks; skipping page-job-detail and job-detail-api.");
+  }
+
+  const companyJob = state.jobs.find((job) => job && job.company_id);
+  if (companyJob?.company_id) {
     await assertStatus(
-      `/api/jobs/${targetJobId}/apply`,
-      [200, 201, 400],
+      `/api/reviews/company/${companyJob.company_id}`,
+      [200],
+      {},
+      "company-reviews"
+    );
+  } else {
+    warn("No job with company_id available; skipping company reviews smoke check.");
+  }
+
+  if (targetJobId) {
+    await assertStatus(
+      `/api/jobs/${targetJobId}/report`,
+      [200, 201],
       {
         method: "POST",
         headers: {
@@ -140,10 +277,121 @@ async function run() {
           Authorization: `Bearer ${state.tokens.seeker}`
         },
         body: JSON.stringify({
-          cover_letter: "Smoke test application submission."
+          reason: "spam",
+          details: "Smoke test report submission"
         })
       },
+      "report-job"
+    );
+  }
+
+  await assertStatus(
+    "/api/admin/reviews?status=pending&source=all",
+    [200],
+    {
+      headers: { Authorization: `Bearer ${state.tokens.admin}` }
+    },
+    "admin-reviews-all"
+  );
+
+  await assertResponse(
+    "/api/payments/create-checkout-session",
+    ({ status, body }) => {
+      if (status !== 200) return `expected 200, got ${status}`;
+      if (!body?.url) return "missing checkout url";
+      return true;
+    },
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${state.tokens.employer}`
+      },
+      body: JSON.stringify({
+        mode: "create",
+        donation_cents: 200,
+        payment_method: "paypal"
+      })
+    },
+    "payment-create-session"
+  );
+
+  await assertResponse(
+    "/api/payments/create-donation-session",
+    ({ status, body }) => {
+      if (status !== 200) return `expected 200, got ${status}`;
+      if (!body?.url) return "missing donation session url";
+      return true;
+    },
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${state.tokens.seeker}`
+      },
+      body: JSON.stringify({
+        context: "post",
+        amount_cents: 200,
+        payment_method: "bank_transfer"
+      })
+    },
+    "payment-donation-session"
+  );
+
+  if (!targetJobId) {
+    warn("No available job ID found for apply-job test; skipping application create.");
+  } else {
+    const form = new FormData();
+    form.append("cover_letter", "Smoke test application submission.");
+    form.append("full_name", "Alice Smoke Tester");
+    form.append("email", creds.seeker.email);
+    form.append("phone", "+1 555 000 1000");
+    form.append("country", "UK");
+    form.append("cv", buildPdfBlob(), "smoke.pdf");
+
+    await assertResponse(
+      `/api/jobs/${targetJobId}/apply`,
+      ({ status, body }) => {
+        if (status === 201) return true;
+        return `expected 201 for fresh application, got ${status} with message ${(body && body.message) || "unknown"}`;
+      },
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${state.tokens.seeker}`
+        },
+        body: form
+      },
       "apply-job"
+    );
+
+    const duplicateForm = new FormData();
+    duplicateForm.append("cover_letter", "Smoke test duplicate application submission.");
+    duplicateForm.append("full_name", "Alice Smoke Tester");
+    duplicateForm.append("email", creds.seeker.email);
+    duplicateForm.append("phone", "+1 555 000 1000");
+    duplicateForm.append("country", "UK");
+    duplicateForm.append("cv", buildPdfBlob(), "smoke-duplicate.pdf");
+
+    await assertResponse(
+      `/api/jobs/${targetJobId}/apply`,
+      ({ status, body }) => {
+        if (status !== 400) {
+          return `expected duplicate application to return 400, got ${status}`;
+        }
+        if ((body && body.message) === "You have already applied for this job") {
+          return true;
+        }
+        return `expected duplicate application message, got ${(body && body.message) || "unknown"}`;
+      },
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${state.tokens.seeker}`
+        },
+        body: duplicateForm
+      },
+      "apply-job-duplicate"
     );
   }
 
@@ -161,6 +409,47 @@ async function run() {
   } catch (err) {
     warn(`admin-jobs check failed: ${err.message}`);
   }
+
+  const tempSeeker = await registerTempSeeker();
+
+  await assertStatus(
+    "/api/users/me",
+    [200],
+    {
+      headers: { Authorization: `Bearer ${tempSeeker.token}` }
+    },
+    "temp-user-me"
+  );
+
+  await assertStatus(
+    "/api/users/me",
+    [200],
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${tempSeeker.token}` }
+    },
+    "temp-user-delete"
+  );
+
+  await assertResponse(
+    "/api/users/login",
+    ({ status, body }) => {
+      if (status !== 401) return `expected 401 after deletion, got ${status}`;
+      if ((body && body.message) !== "Invalid email or password") {
+        return `unexpected message ${(body && body.message) || "unknown"}`;
+      }
+      return true;
+    },
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: tempSeeker.email,
+        password: tempSeeker.password
+      })
+    },
+    "temp-user-login-after-delete"
+  );
 
   log("Smoke test completed.");
 }

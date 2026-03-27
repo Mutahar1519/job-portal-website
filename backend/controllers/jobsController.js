@@ -466,3 +466,36 @@ exports.applyJob = (req, res) => {
     );
   });
 };
+
+/* === REPORT JOB === */
+exports.reportJob = (req, res) => {
+  const jobId = parseInt(req.params.id);
+  const userId = req.user?.id || null;
+  const { reason = "other", details = "" } = req.body;
+
+  const allowedReasons = ["spam", "misleading", "inappropriate", "duplicate", "scam", "other"];
+  const safeReason = allowedReasons.includes(reason) ? reason : "other";
+
+  // Create table if not exists, then insert
+  const ensureTable =
+    "CREATE TABLE IF NOT EXISTS job_reports (" +
+    "  id INT AUTO_INCREMENT PRIMARY KEY," +
+    "  job_id INT NOT NULL," +
+    "  user_id INT," +
+    "  reason VARCHAR(50) NOT NULL," +
+    "  details TEXT," +
+    "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+    ")";
+
+  db.query(ensureTable, (err) => {
+    if (err) return res.status(500).json({ message: "DB error", error: err.message });
+    db.query(
+      "INSERT INTO job_reports (job_id, user_id, reason, details) VALUES (?, ?, ?, ?)",
+      [jobId, userId, safeReason, details.slice(0, 1000)],
+      (err) => {
+        if (err) return res.status(500).json({ message: "Failed to submit report", error: err.message });
+        res.json({ message: "Report submitted. Thank you." });
+      }
+    );
+  });
+};

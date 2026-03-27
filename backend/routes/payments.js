@@ -12,6 +12,23 @@ const PREMIUM_CURRENCY = process.env.PREMIUM_CURRENCY || "usd";
 const USE_MOCK_PAYMENTS = process.env.USE_MOCK_PAYMENTS === "true" || !STRIPE_SECRET_KEY;
 const MAX_DONATION_CENTS = 5000;
 const { notifyShiftAlerts } = require("../utils/shiftAlerts");
+const ALLOWED_PAYMENT_METHODS = ["card", "applepay", "gpay", "paypal", "bank_transfer"];
+
+const normalizePaymentMethod = (value) => {
+  const method = String(value || "card").trim().toLowerCase();
+  return ALLOWED_PAYMENT_METHODS.includes(method) ? method : null;
+};
+
+const mapToStripePaymentMethods = (paymentMethod) => {
+  const methodMap = {
+    "card": ["card"],
+    "applepay": ["apple_pay"],
+    "gpay": ["google_pay"],
+    "paypal": ["paypal"],
+    "bank_transfer": ["sepa_debit", "us_bank_account"]
+  };
+  return methodMap[paymentMethod] || ["card"];
+};
 
 if (!STRIPE_SECRET_KEY) {
   console.warn("⚠️ STRIPE_SECRET_KEY is not set. Using mock payments.");
@@ -21,7 +38,8 @@ const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 
 router.post("/create-checkout-session", auth, async (req, res) => {
 
-  const { mode, jobId, donation_cents } = req.body;
+  const { mode, jobId, donation_cents, payment_method } = req.body;
+  const paymentMethod = normalizePaymentMethod(payment_method);
 
   if (!mode || !["create", "upgrade"].includes(mode)) {
     return res.status(400).json({ message: "Invalid payment mode" });
@@ -29,6 +47,10 @@ router.post("/create-checkout-session", auth, async (req, res) => {
 
   if (mode === "upgrade" && !jobId) {
     return res.status(400).json({ message: "jobId is required" });
+  }
+
+  if (!paymentMethod) {
+    return res.status(400).json({ message: "Invalid payment method. Allowed: " + ALLOWED_PAYMENT_METHODS.join(", ") });
   }
 
   const donationCents = Number(donation_cents || 0);
@@ -48,7 +70,7 @@ router.post("/create-checkout-session", auth, async (req, res) => {
     if (USE_MOCK_PAYMENTS) {
       const mockSessionId = `mock_${Date.now()}`;
       const mockUrl = successUrl.replace("{CHECKOUT_SESSION_ID}", mockSessionId);
-      return res.json({ url: mockUrl, mock: true });
+      return res.json({ url: mockUrl, mock: true, payment_method: paymentMethod });
     }
 
     const lineItems = [
@@ -79,15 +101,17 @@ router.post("/create-checkout-session", auth, async (req, res) => {
       });
     }
 
+    const paymentMethodTypes = mapToStripePaymentMethods(paymentMethod);
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
+      payment_method_types: paymentMethodTypes,
       line_items: lineItems,
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
         mode,
-        jobId: jobId ? String(jobId) : ""
+        jobId: jobId ? String(jobId) : "",
+        payment_method: paymentMethod
       }
     });
 
@@ -198,8 +222,9 @@ router.post("/confirm-shift", auth, (req, res) => {
 });
 
 router.post("/create-donation-session", auth, async (req, res) => {
-  const { context, amount_cents } = req.body;
+  const { context, amount_cents, payment_method } = req.body;
   const donationCents = Number(amount_cents || 0);
+  const paymentMethod = normalizePaymentMethod(payment_method);
 
   if (!context || !["apply", "post"].includes(context)) {
     return res.status(400).json({ message: "Invalid donation context" });
@@ -209,6 +234,10 @@ router.post("/create-donation-session", auth, async (req, res) => {
     return res.status(400).json({ message: "Invalid donation amount" });
   }
 
+  if (!paymentMethod) {
+    return res.status(400).json({ message: "Invalid payment method. Allowed: " + ALLOWED_PAYMENT_METHODS.join(", ") });
+  }
+
   try {
     const successUrl = `${FRONTEND_URL}/${context === "apply" ? "apply.html" : "post-jobs.html"}?donation=success&context=${context}&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${FRONTEND_URL}/${context === "apply" ? "apply.html" : "post-jobs.html"}?donation=cancel&context=${context}`;
@@ -216,12 +245,13 @@ router.post("/create-donation-session", auth, async (req, res) => {
     if (USE_MOCK_PAYMENTS) {
       const mockSessionId = `mock_${Date.now()}`;
       const mockUrl = successUrl.replace("{CHECKOUT_SESSION_ID}", mockSessionId);
-      return res.json({ url: mockUrl, mock: true });
+      return res.json({ url: mockUrl, mock: true, payment_method: paymentMethod });
     }
 
+    const paymentMethodTypes = mapToStripePaymentMethods(paymentMethod);
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
+      payment_method_types: paymentMethodTypes,
       line_items: [
         {
           quantity: 1,
@@ -239,7 +269,8 @@ router.post("/create-donation-session", auth, async (req, res) => {
       cancel_url: cancelUrl,
       metadata: {
         mode: "donation",
-        context
+        context,
+        payment_method: paymentMethod
       }
     });
 

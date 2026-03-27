@@ -33,6 +33,7 @@
   let adminUsersCache = [];
   let editJobId = null;
   let reviewStatusFilter = "pending";
+  let reviewSourceFilter = "portal";
   let grantHistoryFilter = "all";
 
   const adminJobForm = document.getElementById("adminJobForm");
@@ -372,7 +373,7 @@
   function loadReviewQueue(status = reviewStatusFilter) {
     reviewStatusFilter = status;
 
-    adminAuthFetch(`${API}/admin/reviews?status=${encodeURIComponent(reviewStatusFilter)}`)
+    adminAuthFetch(`${API}/admin/reviews?status=${encodeURIComponent(reviewStatusFilter)}&source=${encodeURIComponent(reviewSourceFilter)}`)
       .then(res => res.json())
       .then(reviews => {
         const container = document.getElementById("reviewQueue");
@@ -387,7 +388,8 @@
             approved: "published",
             hidden: "hidden"
           };
-          container.innerHTML = `<p>No ${labels[reviewStatusFilter] || "matching"} reviews</p>`;
+          const sourceLabel = reviewSourceFilter === "all" ? "reviews" : `${reviewSourceFilter} reviews`;
+          container.innerHTML = `<p>No ${labels[reviewStatusFilter] || "matching"} ${sourceLabel}</p>`;
           return;
         }
 
@@ -396,25 +398,28 @@
           const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
           const created = review.created_at ? new Date(review.created_at).toLocaleString() : "";
           const emailRow = review.email ? `<p class="meta">${esc(review.email)}</p>` : "";
+          const source = review.source || "portal";
+          const sourceLabel = source === "company" ? "Company review" : "Portal review";
+          const sourceBadge = `<span class="tag-pill ${source === "company" ? "bg-cyan-100 text-cyan-700" : "bg-indigo-100 text-indigo-700"}">${sourceLabel}</span>`;
 
           let actionButtons = `
-            <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+            <button class="btn btn-outline" onclick="deleteReview(${review.id}, '${source}')">Delete</button>
           `;
 
           if (reviewStatusFilter === "pending") {
             actionButtons = `
-              <button class="btn btn-primary" onclick="approveReview(${review.id})">Approve</button>
-              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+              <button class="btn btn-primary" onclick="approveReview(${review.id}, '${source}')">Approve</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id}, '${source}')">Delete</button>
             `;
           } else if (reviewStatusFilter === "approved") {
             actionButtons = `
-              <button class="btn btn-outline" onclick="hideReview(${review.id})">Hide</button>
-              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+              <button class="btn btn-outline" onclick="hideReview(${review.id}, '${source}')">Hide</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id}, '${source}')">Delete</button>
             `;
           } else if (reviewStatusFilter === "hidden") {
             actionButtons = `
-              <button class="btn btn-primary" onclick="unhideReview(${review.id})">Unhide</button>
-              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+              <button class="btn btn-primary" onclick="unhideReview(${review.id}, '${source}')">Unhide</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id}, '${source}')">Delete</button>
             `;
           }
 
@@ -426,7 +431,10 @@
                   <p class="meta">${esc(review.role)}</p>
                   ${emailRow}
                 </div>
-                <span class="review-stars">${stars}</span>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+                  ${sourceBadge}
+                  <span class="review-stars">${stars}</span>
+                </div>
               </div>
               <p class="review-message">${esc(review.message)}</p>
               ${created ? `<p class="meta">Submitted: ${created}</p>` : ""}
@@ -448,6 +456,26 @@
 
   function setReviewFilter(status) {
     loadReviewQueue(status);
+  }
+
+  function updateReviewSourceButtons() {
+    const states = {
+      portal: document.getElementById("reviewSourcePortal"),
+      company: document.getElementById("reviewSourceCompany"),
+      all: document.getElementById("reviewSourceAll")
+    };
+
+    Object.entries(states).forEach(([key, button]) => {
+      if (!button) return;
+      button.classList.toggle("btn-primary", key === reviewSourceFilter);
+      button.classList.toggle("btn-ghost", key !== reviewSourceFilter);
+    });
+  }
+
+  function setReviewSourceFilter(source) {
+    reviewSourceFilter = source || "portal";
+    updateReviewSourceButtons();
+    loadReviewQueue(reviewStatusFilter);
   }
 
   function renderShiftJobs(shiftJobs) {
@@ -634,18 +662,81 @@
   }
 
   function makePremium(id) {
-    adminAuthFetch(`${API}/payments/create-checkout-session`, {
-      method: "POST",
-      body: JSON.stringify({ mode: "upgrade", jobId: id })
-    }).then(async (res) => {
-      const data = await res.json();
-      if (!res.ok || !data.url) {
-        alert(data.message || "Failed to start payment");
-        return;
-      }
-      window.location.href = data.url;
+    openAdminPaymentModal().then((paymentMethod) => {
+      if (!paymentMethod) return;
+
+      adminAuthFetch(`${API}/payments/create-checkout-session`, {
+        method: "POST",
+        body: JSON.stringify({ mode: "upgrade", jobId: id, payment_method: paymentMethod })
+      }).then(async (res) => {
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          alert(data.message || "Failed to start payment");
+          return;
+        }
+        window.location.href = data.url;
+      });
     });
   }
+
+  const ADMIN_PAYMENT_LABELS = {
+    card: "Card",
+    applepay: "Apple Pay",
+    gpay: "Google Pay",
+    paypal: "PayPal",
+    bank_transfer: "Bank Transfer"
+  };
+  let adminPaymentResolver = null;
+
+  function getAdminPaymentButtons() {
+    return Array.from(document.querySelectorAll("#adminPaymentOptions .payment-method-option"));
+  }
+
+  function setAdminPaymentSelection(method, focus = false) {
+    const selectedText = document.getElementById("adminPaymentSelectedText");
+    getAdminPaymentButtons().forEach((btn) => {
+      const selected = btn.dataset.method === method;
+      btn.classList.toggle("is-selected", selected);
+      btn.setAttribute("aria-selected", selected ? "true" : "false");
+      btn.setAttribute("tabindex", selected ? "0" : "-1");
+      if (selected && focus) btn.focus();
+    });
+    if (selectedText) selectedText.textContent = `Selected: ${ADMIN_PAYMENT_LABELS[method] || method}`;
+  }
+
+  function openAdminPaymentModal() {
+    return new Promise((resolve) => {
+      adminPaymentResolver = resolve;
+      document.getElementById("adminPaymentModal")?.classList.remove("hidden");
+      setAdminPaymentSelection("card");
+    });
+  }
+
+  function closeAdminPaymentModal(method) {
+    document.getElementById("adminPaymentModal")?.classList.add("hidden");
+    if (adminPaymentResolver) {
+      adminPaymentResolver(method || null);
+      adminPaymentResolver = null;
+    }
+  }
+
+  document.addEventListener("click", (event) => {
+    const option = event.target.closest("#adminPaymentOptions .payment-method-option");
+    if (option) {
+      setAdminPaymentSelection(option.dataset.method, true);
+      return;
+    }
+
+    if (event.target.closest("#adminPaymentConfirm")) {
+      const selected = document.querySelector("#adminPaymentOptions .payment-method-option.is-selected");
+      closeAdminPaymentModal(selected?.dataset.method || "card");
+      return;
+    }
+
+    if (event.target.closest("#adminPaymentCancel")) {
+      closeAdminPaymentModal(null);
+    }
+  });
 
   function editJob(id) {
     const job = adminJobsCache.find(item => String(item.id) === String(id));
@@ -681,28 +772,28 @@
     }).then(() => loadApplications());
   }
 
-  function approveReview(id) {
-    adminAuthFetch(`${API}/admin/reviews/${id}/approve`, {
+  function approveReview(id, source = "portal") {
+    adminAuthFetch(`${API}/admin/reviews/${id}/approve?source=${encodeURIComponent(source)}`, {
       method: "PUT"
     }).then(() => loadReviewQueue(reviewStatusFilter));
   }
 
-  function hideReview(id) {
-    adminAuthFetch(`${API}/admin/reviews/${id}/hide`, {
+  function hideReview(id, source = "portal") {
+    adminAuthFetch(`${API}/admin/reviews/${id}/hide?source=${encodeURIComponent(source)}`, {
       method: "PUT"
     }).then(() => loadReviewQueue(reviewStatusFilter));
   }
 
-  function unhideReview(id) {
-    adminAuthFetch(`${API}/admin/reviews/${id}/unhide`, {
+  function unhideReview(id, source = "portal") {
+    adminAuthFetch(`${API}/admin/reviews/${id}/unhide?source=${encodeURIComponent(source)}`, {
       method: "PUT"
     }).then(() => loadReviewQueue(reviewStatusFilter));
   }
 
-  function deleteReview(id) {
+  function deleteReview(id, source = "portal") {
     if (!confirm("Delete this review permanently?")) return;
 
-    adminAuthFetch(`${API}/admin/reviews/${id}`, {
+    adminAuthFetch(`${API}/admin/reviews/${id}?source=${encodeURIComponent(source)}`, {
       method: "DELETE"
     }).then(() => loadReviewQueue(reviewStatusFilter));
   }
@@ -993,6 +1084,7 @@
   window.unhideReview = unhideReview;
   window.deleteReview = deleteReview;
   window.setReviewFilter = setReviewFilter;
+  window.setReviewSourceFilter = setReviewSourceFilter;
   window.disputeShift = disputeShift;
   window.refundShift = refundShift;
   window.releaseShift = releaseShift;
@@ -1010,6 +1102,7 @@
 
   loadJobs();
   loadApplications();
+  updateReviewSourceButtons();
   loadReviewQueue();
   loadShiftEscrows();
   loadUsers();

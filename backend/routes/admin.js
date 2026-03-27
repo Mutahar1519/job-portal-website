@@ -31,6 +31,44 @@ db.query(
 );
 
 db.query(
+  `CREATE TABLE IF NOT EXISTS company_reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    company_id INT NOT NULL,
+    user_id INT NULL,
+    reviewer_name VARCHAR(120),
+    rating TINYINT NOT NULL,
+    message TEXT,
+    approved TINYINT(1) DEFAULT 0,
+    is_hidden TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_company_reviews_company (company_id),
+    INDEX idx_company_reviews_status (approved, is_hidden)
+  )`,
+  (err) => {
+    if (err) {
+      console.warn("company_reviews bootstrap failed:", err.message);
+    }
+  }
+);
+
+const getReviewSource = (value) => {
+  const source = String(value || "portal").toLowerCase();
+  if (source === "company" || source === "all") return source;
+  return "portal";
+};
+
+const buildReviewWhereClause = (status) => {
+  const filters = {
+    pending: "approved = 0",
+    approved: "approved = 1 AND is_hidden = 0",
+    hidden: "approved = 1 AND is_hidden = 1",
+    all: "1 = 1"
+  };
+
+  return filters[status] || filters.pending;
+};
+
+db.query(
   `CREATE TABLE IF NOT EXISTS admin_role_grants (
     id INT AUTO_INCREMENT PRIMARY KEY,
     target_user_id INT NOT NULL,
@@ -97,7 +135,7 @@ router.put("/settings/auto-approval", adminAuth, async (req, res) => {
 /* Get all users */
 router.get("/users", adminAuth, (req, res) => {
   db.query(
-    "SELECT id, name, email, role, verified, is_admin, is_blocked, created_at FROM users ORDER BY created_at DESC",
+    "SELECT id, name, role, verified, is_admin, is_blocked, created_at FROM users ORDER BY created_at DESC",
     (err, users) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(users);
@@ -455,20 +493,38 @@ router.get("/stats", adminAuth, (req, res) => {
 // REVIEWS (admin)
 router.get("/reviews", adminAuth, (req, res) => {
   const status = String(req.query.status || "pending").toLowerCase();
-  const filters = {
-    pending: "approved = 0",
-    approved: "approved = 1 AND is_hidden = 0",
-    hidden: "approved = 1 AND is_hidden = 1",
-    all: "1 = 1"
-  };
+  const source = getReviewSource(req.query.source);
+  const where = buildReviewWhereClause(status);
 
-  const where = filters[status] || filters.pending;
+  let sql = `
+    SELECT id, 'portal' AS source, NULL AS company_id, name, role, email, rating, message, approved, is_hidden, created_at
+    FROM reviews
+    WHERE ${where}
+  `;
+
+  if (source === "company") {
+    sql = `
+      SELECT id, 'company' AS source, company_id, reviewer_name AS name, 'Company review' AS role, NULL AS email, rating, message, approved, is_hidden, created_at
+      FROM company_reviews
+      WHERE ${where}
+    `;
+  } else if (source === "all") {
+    sql = `
+      SELECT id, source, company_id, name, role, email, rating, message, approved, is_hidden, created_at
+      FROM (
+        SELECT id, 'portal' AS source, NULL AS company_id, name, role, email, rating, message, approved, is_hidden, created_at
+        FROM reviews
+        WHERE ${where}
+        UNION ALL
+        SELECT id, 'company' AS source, company_id, reviewer_name AS name, 'Company review' AS role, NULL AS email, rating, message, approved, is_hidden, created_at
+        FROM company_reviews
+        WHERE ${where}
+      ) review_feed
+    `;
+  }
 
   db.query(
-    `SELECT id, name, role, email, rating, message, approved, is_hidden, created_at
-     FROM reviews
-     WHERE ${where}
-     ORDER BY created_at DESC`,
+    `${sql} ORDER BY created_at DESC`,
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
@@ -477,8 +533,9 @@ router.get("/reviews", adminAuth, (req, res) => {
 });
 
 router.put("/reviews/:id/approve", adminAuth, (req, res) => {
+  const table = getReviewSource(req.query.source) === "company" ? "company_reviews" : "reviews";
   db.query(
-    "UPDATE reviews SET approved = 1, is_hidden = 0 WHERE id = ?",
+    `UPDATE ${table} SET approved = 1, is_hidden = 0 WHERE id = ?`,
     [req.params.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -489,8 +546,9 @@ router.put("/reviews/:id/approve", adminAuth, (req, res) => {
 });
 
 router.put("/reviews/:id/hide", adminAuth, (req, res) => {
+  const table = getReviewSource(req.query.source) === "company" ? "company_reviews" : "reviews";
   db.query(
-    "UPDATE reviews SET approved = 1, is_hidden = 1 WHERE id = ?",
+    `UPDATE ${table} SET approved = 1, is_hidden = 1 WHERE id = ?`,
     [req.params.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -501,8 +559,9 @@ router.put("/reviews/:id/hide", adminAuth, (req, res) => {
 });
 
 router.put("/reviews/:id/unhide", adminAuth, (req, res) => {
+  const table = getReviewSource(req.query.source) === "company" ? "company_reviews" : "reviews";
   db.query(
-    "UPDATE reviews SET approved = 1, is_hidden = 0 WHERE id = ?",
+    `UPDATE ${table} SET approved = 1, is_hidden = 0 WHERE id = ?`,
     [req.params.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -513,8 +572,9 @@ router.put("/reviews/:id/unhide", adminAuth, (req, res) => {
 });
 
 router.delete("/reviews/:id", adminAuth, (req, res) => {
+  const table = getReviewSource(req.query.source) === "company" ? "company_reviews" : "reviews";
   db.query(
-    "DELETE FROM reviews WHERE id = ?",
+    `DELETE FROM ${table} WHERE id = ?`,
     [req.params.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });

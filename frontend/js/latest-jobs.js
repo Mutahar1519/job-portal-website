@@ -127,6 +127,8 @@ const renderCompanyAvatar = (job) => {
   return `<span class="job-company-avatar job-company-avatar-fallback" aria-hidden="true">${getCompanyInitials(job.company_name || "Company")}</span>`;
 };
 
+const buildJobDetailHref = (jobId) => `job.html?jobId=${jobId}&id=${jobId}`;
+
 const renderJobCard = (job, options = {}) => {
   const { includeSaveButton = false, saved = false } = options;
   const matchScore = getMatchScore(job);
@@ -184,7 +186,7 @@ const renderJobCard = (job, options = {}) => {
           <p class="job-desc job-card-description">${jobDescription}</p>
 
       <div class="job-card-actions">
-        <a href="job.html?jobId=${job.id}" class="btn btn-ghost job-action-btn">Details</a>
+        <a href="${buildJobDetailHref(job.id)}" class="btn btn-ghost job-action-btn" data-job-id="${job.id}">Details</a>
         <a href="apply.html?jobId=${job.id}" class="apply-btn job-action-btn" data-job-id="${job.id}"><i class="fa-solid fa-rocket"></i> Apply Now</a>
         ${includeSaveButton ? `<button class="btn btn-outline save-btn" type="button" data-save-id="${job.id}" data-saved="${saved ? 1 : 0}">${saved ? "Saved" : "Save"}</button>` : ""}
       </div>
@@ -193,6 +195,11 @@ const renderJobCard = (job, options = {}) => {
 };
 
 document.getElementById("latestJobs")?.addEventListener("click", async (event) => {
+  const detailsLink = event.target.closest('a[data-job-id]');
+  if (detailsLink) {
+    sessionStorage.setItem("lastJobId", detailsLink.getAttribute("data-job-id"));
+  }
+
   const button = event.target.closest(".save-btn");
   if (!button) return;
 

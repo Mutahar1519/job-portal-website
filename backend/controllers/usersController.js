@@ -498,6 +498,35 @@ exports.updateEmployerProfile = (req, res) => {
   );
 };
 
+/* DELETE CURRENT USER */
+exports.deleteMe = (req, res) => {
+  db.query(
+    "SELECT id, photo_url FROM users WHERE id = ?",
+    [req.user.id],
+    (findErr, rows) => {
+      if (findErr) return res.status(500).json({ error: findErr.message });
+      if (!rows.length) return res.status(404).json({ message: "User not found" });
+
+      const user = rows[0];
+      db.query(
+        "DELETE FROM users WHERE id = ?",
+        [req.user.id],
+        (deleteErr, result) => {
+          if (deleteErr) return res.status(500).json({ error: deleteErr.message });
+          if (result.affectedRows === 0) return res.status(404).json({ message: "User not found" });
+
+          if (user.photo_url && user.photo_url.startsWith("/uploads/photos/")) {
+            const photoPath = require("path").join(__dirname, "..", user.photo_url.replace(/^\//, ""));
+            require("fs").unlink(photoPath, () => {});
+          }
+
+          res.json({ message: "Account deleted successfully" });
+        }
+      );
+    }
+  );
+};
+
 /* REQUEST PASSWORD RESET */
 exports.forgotPassword = (req, res) => {
   const email = (req.body.email || "").trim().toLowerCase();

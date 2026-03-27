@@ -144,4 +144,43 @@
     refreshShiftBadge();
     setInterval(refreshShiftBadge, 60000);
   }
+
+  const oauthContainer = document.getElementById("oauthProviders");
+  if (oauthContainer) {
+    fetch(`${API}/auth/providers`)
+      .then((res) => res.json())
+      .then((providers) => {
+        const actions = [];
+
+        if (providers?.google) {
+          actions.push(`
+            <button class="btn btn-outline" type="button" data-oauth-provider="google" style="width:100%;display:flex;justify-content:center;align-items:center;gap:10px;">
+              <i class="fa-brands fa-google"></i>
+              Continue with Google
+            </button>
+          `);
+        }
+
+        if (!actions.length) {
+          oauthContainer.innerHTML = "";
+          return;
+        }
+
+        oauthContainer.innerHTML = `
+          <div class="p-muted" style="text-align:center;margin:4px 0 12px;">Or continue with</div>
+          ${actions.join("")}
+        `;
+
+        oauthContainer.querySelectorAll("[data-oauth-provider]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const provider = button.getAttribute("data-oauth-provider");
+            window.location.href = `${API}/auth/${provider}`;
+          });
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to load auth providers", err);
+        oauthContainer.innerHTML = "";
+      });
+  }
 })();

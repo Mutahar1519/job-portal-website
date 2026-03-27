@@ -8462,3 +8462,57 @@ body.dark #toast {
   box-shadow: 0 6px 24px rgba(5, 150, 105, 0.4);
 }
 
+
+/* ============================================================
+   SHIFT PAYMENT MODAL - Payment Method Cards
+   ============================================================ */
+.modal { position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px; }
+.modal.hidden { display:none; }
+
+.payment-method-grid { display:grid;gap:10px; }
+
+.payment-method-option {
+  display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;
+  border:2px solid var(--border,#e2e8f0);border-radius:12px;background:var(--card-bg,#fff);
+  cursor:pointer;text-align:left;font-size:14px;font-weight:500;color:var(--text,#1e293b);
+  transition:border-color 150ms,box-shadow 150ms,background 150ms;
+}
+.payment-method-option:hover { border-color:var(--brand,#2563eb);background:var(--hover-bg,#f1f5f9); }
+.payment-method-option:focus-visible { outline:2px solid var(--brand,#2563eb);outline-offset:2px; }
+.payment-method-option.is-selected {
+  border-color:var(--brand,#2563eb);
+  box-shadow:0 0 0 3px rgba(37,99,235,.15);
+  background:var(--brand-subtle,#eff6ff);
+}
+
+.payment-method-icon { font-size:20px;width:28px;text-align:center;flex-shrink:0; }
+
+.payment-method-check {
+  margin-left:auto;color:var(--brand,#2563eb);font-size:18px;
+  opacity:0;transform:scale(0.8);
+  transition:opacity 200ms ease,transform 200ms ease;
+}
+.payment-method-option.is-selected .payment-method-check { opacity:1;transform:scale(1); }
+.payment-method-option.selection-animate .payment-method-check {
+  animation:paymentCheckPulse 280ms ease-out;
+}
+@keyframes paymentCheckPulse {
+  0%   { scale:0.84; }
+  55%  { scale:1.14; }
+  100% { scale:1; }
+}
+
+.payment-method-selected { font-size:13px;margin:10px 2px 0;color:var(--text-muted,#64748b); }
+
+/* Dark mode payment cards */
+body.dark .payment-method-option { background:#1e293b;border-color:#334155;color:#e2e8f0; }
+body.dark .payment-method-option:hover { background:#263547;border-color:#3b82f6; }
+body.dark .payment-method-option.is-selected { background:#1d3461;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2); }
+
+/* Work type filter buttons */
+.work-type-filters { display:flex;gap:8px;flex-wrap:wrap;margin-top:8px; }
+.work-type-btn { padding:6px 14px;border-radius:20px;border:1.5px solid var(--border,#cbd5e1);background:transparent;cursor:pointer;font-size:13px;font-weight:500;color:var(--text,#1e293b);transition:all 150ms; }
+.work-type-btn:hover { border-color:var(--brand,#2563eb);color:var(--brand,#2563eb); }
+.work-type-btn.active { background:var(--brand,#2563eb);border-color:var(--brand,#2563eb);color:#fff; }
+body.dark .work-type-btn { color:#e2e8f0;border-color:#334155; }
+body.dark .work-type-btn.active { background:#3b82f6;border-color:#3b82f6;color:#fff; }

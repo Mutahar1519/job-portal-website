@@ -75,6 +75,7 @@ router.post("/", auth, employerOnly, uploadJobImage.single("job_image"), jobsCon
 /* APPLY job */
 router.post("/:id/apply", auth, upload.single("cv"), applicationsController.applyJob);
 
-
+/* REPORT job */
+router.post("/:id/report", auth, jobsController.reportJob);
 
 module.exports = router;

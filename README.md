@@ -2,6 +2,8 @@
 
 Enterprise Job Portal System developed as part of university coursework.
 
+**Status**: ✅ Ready for demo and deployment (see [docs/DELIVERY_READY_2026-03-27.md](docs/DELIVERY_READY_2026-03-27.md) for details)
+
 ## GitHub Repository
 https://github.com/Mutahar1519/job-portal-website
 
@@ -82,11 +84,23 @@ npm install
 
 3. Run SQL schema/migrations.
 
-4. Start backend:
+4. Start backend (auto-kills existing processes on port 3000):
 ```bash
 cd backend
-node server.js
+npm start
 ```
+
+   Or directly:
+   ```bash
+   cd backend
+   node start.js
+   ```
+
+   To start without auto-cleanup:
+   ```bash
+   cd backend
+   npm run start:direct
+   ```
 
 5. (Optional) Seed demo accounts and sample data:
 ```bash

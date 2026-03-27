@@ -1,6 +1,44 @@
 const existingToken = localStorage.getItem("token");
 const existingUserRaw = localStorage.getItem("user");
 
+async function completeOAuthLogin() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  if (!token) return false;
+
+  try {
+    localStorage.setItem("token", token);
+    const res = await fetch(`${API}/users/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const user = await res.json();
+
+    if (!res.ok) {
+      throw new Error(user.message || "OAuth login failed");
+    }
+
+    localStorage.setItem("user", JSON.stringify(user));
+    window.history.replaceState({}, document.title, "login.html");
+
+    if (user.is_admin || user.role === "admin") {
+      window.location.href = "admin.html";
+    } else if (user.role === "employer") {
+      window.location.href = "employer.html";
+    } else {
+      window.location.href = "dashboard.html";
+    }
+    return true;
+  } catch (err) {
+    console.error(err);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    alert(err.message || "OAuth login failed");
+    return false;
+  }
+}
+
+completeOAuthLogin();
+
 if (existingToken && existingUserRaw) {
   try {
     const existingUser = JSON.parse(existingUserRaw);

@@ -1,9 +1,12 @@
 # Sample Parity Readiness (March 9, 2026)
 
+> Status note (March 27, 2026): This document remains useful for design-direction context. For the current functional truth audit after recent fixes, use `docs/TRUTH_MATRIX_2026-03-27.md`.
+
 ## Current Verdict
 - UI/UX parity with the sample style: High
 - Runtime stability for key pages: Verified on route checks
 - Architecture parity with sample React-style structure: Partial
+- Functional completeness parity with all previously claimed portal features: See `docs/TRUTH_MATRIX_2026-03-27.md`
 
 ## Completed
 - Multi-page visual redesign across core pages (home, jobs, job detail, dashboard, admin, profile, employer, company, menu, about, resume, auth).
