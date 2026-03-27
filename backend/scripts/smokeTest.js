@@ -26,6 +26,27 @@ const state = {
   seekerApplications: []
 };
 
+function extractJobId(job) {
+  return Number(
+    job?.id ||
+    job?.job_id ||
+    job?.job?.id ||
+    job?.job?.job_id ||
+    job?.data?.id ||
+    job?.data?.job_id ||
+    job?.data?.job?.id ||
+    job?.data?.job?.job_id
+  );
+}
+
+function normalizeJobsList(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.jobs)) return payload.jobs;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.jobs)) return payload.data.jobs;
+  return [];
+}
+
 const log = (msg) => console.log(`[smoke] ${msg}`);
 const warn = (msg) => console.warn(`[smoke:warn] ${msg}`);
 
@@ -168,7 +189,7 @@ async function run() {
   await assertStatus("/api/health", [200], {}, "health");
 
   const jobs = await assertStatus("/api/jobs", [200], {}, "list-jobs");
-  state.jobs = Array.isArray(jobs) ? jobs : [];
+  state.jobs = normalizeJobsList(jobs);
 
   await login("admin");
   await login("employer");
@@ -217,17 +238,24 @@ async function run() {
     "post-job"
   );
 
+  if (!Number.isFinite(extractJobId(createdJob)) || extractJobId(createdJob) <= 0) {
+    const jobsAfterCreate = await assertStatus("/api/jobs", [200], {}, "list-jobs-after-create");
+    state.jobs = normalizeJobsList(jobsAfterCreate);
+  }
+
   const alreadyAppliedIds = new Set(
     state.seekerApplications
       .map((item) => Number(item.job_id || item.id))
       .filter((value) => Number.isFinite(value) && value > 0)
   );
   const applyTargetJob = state.jobs.find((job) => {
-    const jobId = Number(job?.id || job?.job_id);
+    const jobId = extractJobId(job);
     return Number.isFinite(jobId) && jobId > 0 && !alreadyAppliedIds.has(jobId);
   });
-  const targetJob = applyTargetJob || state.jobs[0] || createdJob;
-  const targetJobId = Number(targetJob && (targetJob.id || targetJob.job_id));
+  const createdByTitle = state.jobs.find((job) => (job?.title || "") === newJobTitle);
+  // Prefer the fresh job we just created to avoid collisions with existing applications.
+  const targetJob = createdJob || createdByTitle || applyTargetJob || state.jobs[0];
+  const targetJobId = extractJobId(targetJob);
 
   if (targetJobId) {
     await assertPageContains(
