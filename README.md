@@ -3,7 +3,7 @@
 Enterprise Job Portal System developed as part of university coursework.
 
 ## GitHub Repository
-https://github.com/mzain7610/Enterprise_pro-project
+https://github.com/Mutahar1519/job-portal-website
 
 ## Team Members
 - Mutahar Yousaf – Backend, Database, Frontend Development
