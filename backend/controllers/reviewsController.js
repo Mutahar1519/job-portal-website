@@ -1,5 +1,50 @@
 const db = require("../config/mysql");
 
+const ensureCompanyReviewsSchema = () => {
+  db.query(
+    `CREATE TABLE IF NOT EXISTS company_reviews (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      company_id INT NOT NULL,
+      user_id INT NULL,
+      reviewer_name VARCHAR(120),
+      reviewer_role VARCHAR(120) NULL,
+      rating TINYINT NOT NULL,
+      message TEXT,
+      approved TINYINT(1) DEFAULT 0,
+      is_hidden TINYINT(1) DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_company_reviews_company (company_id),
+      INDEX idx_company_reviews_status (approved, is_hidden)
+    )`,
+    (err) => {
+      if (err) {
+        console.warn("company_reviews bootstrap failed:", err.message);
+      }
+    }
+  );
+
+  const alters = [
+    "ALTER TABLE company_reviews ADD COLUMN user_id INT NULL",
+    "ALTER TABLE company_reviews ADD COLUMN reviewer_name VARCHAR(120) NULL",
+    "ALTER TABLE company_reviews ADD COLUMN reviewer_role VARCHAR(120) NULL",
+    "ALTER TABLE company_reviews MODIFY COLUMN reviewer_role VARCHAR(120) NULL",
+    "ALTER TABLE company_reviews ADD COLUMN approved TINYINT(1) DEFAULT 0",
+    "ALTER TABLE company_reviews ADD COLUMN is_hidden TINYINT(1) DEFAULT 0",
+    "ALTER TABLE company_reviews ADD INDEX idx_company_reviews_company (company_id)",
+    "ALTER TABLE company_reviews ADD INDEX idx_company_reviews_status (approved, is_hidden)"
+  ];
+
+  alters.forEach((sql) => {
+    db.query(sql, (err) => {
+      if (err && err.code !== "ER_DUP_FIELDNAME" && err.code !== "ER_DUP_KEYNAME") {
+        console.warn("company_reviews alter failed:", err.message);
+      }
+    });
+  });
+};
+
+ensureCompanyReviewsSchema();
+
 const isEmail = (value) => {
   return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 };
@@ -66,37 +111,25 @@ exports.getCompanyReviews = (req, res) => {
   const companyId = parseInt(req.params.companyId);
   if (!companyId) return res.status(400).json({ message: "Invalid company" });
 
-  const ensureTable =
-    "CREATE TABLE IF NOT EXISTS company_reviews (" +
-    "  id INT AUTO_INCREMENT PRIMARY KEY," +
-    "  company_id INT NOT NULL," +
-    "  user_id INT," +
-    "  reviewer_name VARCHAR(120)," +
-    "  rating TINYINT NOT NULL," +
-    "  message TEXT," +
-    "  approved TINYINT(1) DEFAULT 0," +
-    "  is_hidden TINYINT(1) DEFAULT 0," +
-    "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
-    ")";
-
-  db.query(ensureTable, (err) => {
-    if (err) return res.status(500).json({ message: "DB error" });
-    db.query(
-      "SELECT reviewer_name, rating, message, created_at FROM company_reviews WHERE company_id = ? AND approved = 1 AND is_hidden = 0 ORDER BY created_at DESC LIMIT 20",
-      [companyId],
-      (err, rows) => {
-        if (err) return res.status(500).json({ message: "Failed to load reviews" });
-        res.json(rows);
+  db.query(
+    "SELECT reviewer_name, rating, message, created_at FROM company_reviews WHERE company_id = ? AND approved = 1 AND is_hidden = 0 ORDER BY created_at DESC LIMIT 20",
+    [companyId],
+    (err, rows) => {
+      if (err) {
+        console.error("getCompanyReviews error:", err.message);
+        return res.status(500).json({ message: "Failed to load reviews" });
       }
-    );
-  });
+      res.json(rows);
+    }
+  );
 };
 
 exports.createCompanyReview = (req, res) => {
   const companyId = parseInt(req.params.companyId);
   if (!companyId) return res.status(400).json({ message: "Invalid company" });
 
-  const reviewerName = (req.body.reviewer_name || req.body.name || "").trim().slice(0, 120);
+  const reviewerName = (req.body.reviewer_name || req.body.name || req.user?.name || "").trim().slice(0, 120);
+  const reviewerRole = (req.body.reviewer_role || req.body.role || req.user?.role || "Candidate").trim().slice(0, 120);
   const rating = parseInt(req.body.rating);
   const message = (req.body.message || "").trim().slice(0, 1000);
   const userId = req.user?.id || null;
@@ -105,28 +138,29 @@ exports.createCompanyReview = (req, res) => {
   if (!rating || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be 1-5" });
   if (!message) return res.status(400).json({ message: "Review message required" });
 
-  const ensureTable =
-    "CREATE TABLE IF NOT EXISTS company_reviews (" +
-    "  id INT AUTO_INCREMENT PRIMARY KEY," +
-    "  company_id INT NOT NULL," +
-    "  user_id INT," +
-    "  reviewer_name VARCHAR(120)," +
-    "  rating TINYINT NOT NULL," +
-    "  message TEXT," +
-    "  approved TINYINT(1) DEFAULT 0," +
-    "  is_hidden TINYINT(1) DEFAULT 0," +
-    "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
-    ")";
-
-  db.query(ensureTable, (err) => {
-    if (err) return res.status(500).json({ message: "DB error" });
-    db.query(
-      "INSERT INTO company_reviews (company_id, user_id, reviewer_name, rating, message, approved) VALUES (?, ?, ?, ?, ?, 0)",
-      [companyId, userId, reviewerName, rating, message],
-      (err) => {
-        if (err) return res.status(500).json({ message: "Failed to save review" });
-        res.status(201).json({ message: "Review submitted for approval. Thank you!" });
+  db.query(
+    "SELECT id FROM companies WHERE id = ? LIMIT 1",
+    [companyId],
+    (companyErr, companyRows) => {
+      if (companyErr) {
+        console.error("createCompanyReview company lookup error:", companyErr.message);
+        return res.status(500).json({ message: "Failed to save review" });
       }
-    );
-  });
+      if (!companyRows.length) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+
+      db.query(
+        "INSERT INTO company_reviews (company_id, user_id, reviewer_name, reviewer_role, rating, message, approved) VALUES (?, ?, ?, ?, ?, ?, 0)",
+        [companyId, userId, reviewerName, reviewerRole || null, rating, message],
+        (err) => {
+          if (err) {
+            console.error("createCompanyReview insert error:", err.message);
+            return res.status(500).json({ message: "Failed to save review" });
+          }
+          res.status(201).json({ message: "Review submitted for approval. Thank you!" });
+        }
+      );
+    }
+  );
 };

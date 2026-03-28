@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -26,7 +26,6 @@
       <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
         <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
       </a>
-      <button id="themeToggle" class="btn btn-ghost">&#9999;&#65039;</button>
       <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
@@ -70,20 +69,31 @@
 
     <section class="dashboard-tabs" aria-label="Dashboard sections">
       <a href="#dashboard-overview" class="dashboard-tab is-active"><i class="fa-solid fa-chart-simple"></i> Overview</a>
+      <a href="#recommendations-panel" class="dashboard-tab"><i class="fa-solid fa-wand-magic-sparkles"></i> For You</a>
       <a href="#applications-panel" class="dashboard-tab"><i class="fa-solid fa-file-lines"></i> Applications</a>
+      <a href="#interviews-panel" class="dashboard-tab"><i class="fa-solid fa-calendar-check"></i> Interviews</a>
       <a href="#saved-jobs-panel" class="dashboard-tab"><i class="fa-solid fa-bookmark"></i> Saved Jobs</a>
+      <a href="#referrals-panel" class="dashboard-tab"><i class="fa-solid fa-user-plus"></i> Referrals</a>
       <a href="#alerts-panel" class="dashboard-tab"><i class="fa-solid fa-bell-concierge"></i> Job Alerts</a>
       <a href="#shift-alerts" class="dashboard-tab"><i class="fa-solid fa-bell"></i> Alerts</a>
     </section>
 
     <section id="dashboard-overview" class="section-block quick-actions">
+      <a class="action-card" href="#recommendations-panel">
+        <div>
+          <p class="eyebrow">AI picks</p>
+          <h3>Recommended</h3>
+          <p class="p-muted">Jobs matched to your profile and alerts.</p>
+        </div>
+        <span class="action-arrow">→</span>
+      </a>
       <a class="action-card" href="#shift-alerts">
         <div>
           <p class="eyebrow">Alerts</p>
           <h3>Shift alerts</h3>
           <p class="p-muted">View urgent opportunities as soon as they appear.</p>
         </div>
-        <span class="action-arrow">â†’</span>
+        <span class="action-arrow">→</span>
       </a>
       <a class="action-card" href="#alerts-panel">
         <div>
@@ -91,7 +101,7 @@
           <h3>Job alerts</h3>
           <p class="p-muted">Manage keywords, location targets, and frequency.</p>
         </div>
-        <span class="action-arrow">â†’</span>
+        <span class="action-arrow">→</span>
       </a>
       <a class="action-card" href="#saved-jobs-panel">
         <div>
@@ -99,8 +109,24 @@
           <h3>Saved jobs</h3>
           <p class="p-muted">Keep shortlisted roles ready for quick apply.</p>
         </div>
-        <span class="action-arrow">â†’</span>
+        <span class="action-arrow">→</span>
       </a>
+    </section>
+
+    <section id="recommendations-panel" class="section-block dashboard-panel">
+      <div class="section-head">
+        <p class="eyebrow">Personalised picks</p>
+        <h2 class="section-title">Recommended for you</h2>
+        <p class="p-muted">Based on your profile, job alerts, and experience.</p>
+      </div>
+      <div id="recommendationsEmpty" class="p-muted" style="display:none;">
+        <p>Complete your <a href="profile.html">profile</a> and set up <a href="#alerts-panel">job alerts</a> to get personalised recommendations.</p>
+      </div>
+      <div id="recommendationsGrid" class="jobs-grid"></div>
+      <div id="recommendationsSkeleton" class="skeleton-grid hidden"></div>
+      <div style="margin-top:16px;">
+        <button id="loadMoreRecommendations" class="btn btn-outline" type="button" style="display:none;">Load more</button>
+      </div>
     </section>
 
     <section class="filters filters-card">
@@ -137,12 +163,89 @@
       <div id="applications" class="app-grid"></div>
     </section>
 
+    <section class="section-block dashboard-panel" id="interviews-panel">
+      <div class="section-head">
+        <p class="eyebrow">Hiring updates</p>
+        <h2 class="section-title">Interviews & background checks</h2>
+        <p class="p-muted">Track upcoming interviews and download calendar invites. Monitor background check progress in one place.</p>
+      </div>
+      <div class="interview-reminder-settings">
+        <label class="form-label" for="interviewReminderEnabled">Interview reminders</label>
+        <div class="interview-reminder-controls">
+          <label class="interview-reminder-toggle" for="interviewReminderEnabled">
+            <input id="interviewReminderEnabled" type="checkbox" />
+            <span>Enable in-app reminders</span>
+          </label>
+          <select id="interviewReminderLeadTime" class="form-input" aria-label="Reminder lead time in minutes">
+            <option value="10">10 min before</option>
+            <option value="30">30 min before</option>
+            <option value="60">60 min before</option>
+          </select>
+          <button id="interviewReminderSaveBtn" class="btn btn-outline" type="button">Save reminder settings</button>
+        </div>
+      </div>
+      <div class="interview-panels">
+        <div>
+          <h3 class="section-subtitle">Interviews</h3>
+          <div id="myInterviews" class="app-grid"></div>
+        </div>
+        <div>
+          <h3 class="section-subtitle">Background checks</h3>
+          <div id="myBackgroundChecks" class="app-grid"></div>
+        </div>
+      </div>
+    </section>
+
     <section id="saved-jobs-panel" class="section-block dashboard-panel">
       <div class="section-head">
         <p class="eyebrow">Saved</p>
         <h2 class="section-title">Saved jobs</h2>
       </div>
       <div id="savedJobs" class="jobs-grid"></div>
+    </section>
+
+    <section id="referrals-panel" class="section-block dashboard-panel">
+      <div class="section-head">
+        <p class="eyebrow">Growth</p>
+        <h2 class="section-title">Referral bonus program</h2>
+        <p class="p-muted">Refer candidates and earn rewards when they get hired.</p>
+      </div>
+      <div class="referral-summary-grid">
+        <div class="referral-stat-card">
+          <span class="stat-label">Rewards earned</span>
+          <span id="referralRewardsEarned" class="stat-value">$0</span>
+        </div>
+        <div class="referral-stat-card">
+          <span class="stat-label">Paid out</span>
+          <span id="referralRewardsPaid" class="stat-value">$0</span>
+        </div>
+        <div class="referral-stat-card">
+          <span class="stat-label">Pending rewards</span>
+          <span id="referralRewardsPending" class="stat-value">$0</span>
+        </div>
+      </div>
+
+      <div class="glass-card" style="padding:14px;">
+        <form id="referralForm" class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="referralName">Candidate name (optional)</label>
+            <input id="referralName" class="form-input" type="text" maxlength="160" placeholder="Alex Morgan" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="referralEmail">Candidate email</label>
+            <input id="referralEmail" class="form-input" type="email" maxlength="255" placeholder="candidate@email.com" required />
+          </div>
+          <div class="form-group" style="grid-column:1/-1;">
+            <label class="form-label" for="referralNote">Notes (optional)</label>
+            <textarea id="referralNote" class="form-input" rows="3" maxlength="1000" placeholder="Strong frontend engineer with startup experience."></textarea>
+          </div>
+          <div class="form-group form-actions">
+            <button class="btn btn-primary" type="submit">Create referral</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="referralsList" class="app-grid"></div>
     </section>
 
     <section id="shift-alerts" class="section-block dashboard-panel">
@@ -205,7 +308,12 @@
               <option value="Design">Design</option>
               <option value="Operations">Operations</option>
               <option value="General">General</option>
+              <option value="Other">Other (custom)</option>
             </select>
+          </div>
+          <div class="form-group" id="alertCategoryCustomWrap" style="display:none;">
+            <label class="form-label" for="alertCategoryCustom">Custom Category</label>
+            <input id="alertCategoryCustom" name="alertCategoryCustom" class="form-input" type="text" placeholder="Enter custom category" maxlength="100" />
           </div>
           <div class="form-group">
             <label class="form-label" for="alertType">Job type</label>

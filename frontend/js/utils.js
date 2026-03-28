@@ -25,33 +25,24 @@ function safeParseJson(value, label) {
   }
 }
 
-/* 🔐 authFetch: auto‑attach token */
-function authFetch(url, options = {}) {
-  const token = localStorage.getItem("token");
-  const isFormData = options.body instanceof FormData;
-  const baseHeaders = {
-    ...(options.headers || {})
+/* 🔐 authFetch: defined in config.js as a var — available globally.
+   Do not redefine here. If config.js is not loaded, define a basic fallback. */
+if (typeof authFetch === "undefined") {
+  // eslint-disable-next-line no-var
+  var authFetch = function(url, options = {}) {
+    const token = localStorage.getItem("token");
+    const isFormData = options.body instanceof FormData;
+    const method = String(options.method || "GET").toUpperCase();
+    const shouldSetJsonHeader = !isFormData && !["GET", "HEAD"].includes(method);
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...(shouldSetJsonHeader ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {})
+      }
+    });
   };
-
-  if (!isFormData) {
-    baseHeaders["Content-Type"] = "application/json";
-  }
-
-  if (token) {
-    baseHeaders.Authorization = `Bearer ${token}`;
-  }
-
-  return fetch(url, {
-    ...options,
-    headers: {
-      ...baseHeaders
-    }
-  }).then(res => {
-    if (!res.ok && res.status === 401) {
-      console.error(`[authFetch] 401 Unauthorized for ${url}. Token may be expired or invalid.`);
-    }
-    return res;
-  });
 }
 
 /* 🚪 Logout */

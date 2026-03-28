@@ -2,10 +2,31 @@ const db = require("../config/mysql");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
+const { sendMail } = require("../utils/mailer");
 
 const isEmail = (value) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || "");
+};
+
+const parseSkills = (value) => {
+  const raw = Array.isArray(value)
+    ? value
+    : String(value || "").split(",");
+
+  const normalized = [];
+  const seen = new Set();
+
+  for (const item of raw) {
+    const clean = String(item || "").trim().replace(/\s+/g, " ");
+    if (!clean || clean.length > 50) continue;
+    const key = clean.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    normalized.push(clean);
+    if (normalized.length >= 30) break;
+  }
+
+  return normalized;
 };
 
 const normalizeRole = (value) => {
@@ -13,27 +34,6 @@ const normalizeRole = (value) => {
   if (!role) return "job_seeker";
   if (["job_seeker", "employer", "admin"].includes(role)) return role;
   return null;
-};
-
-const getMailer = () => {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM;
-
-  if (!host || !user || !pass || !from) {
-    return null;
-  }
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass }
-  });
-
-  return { transporter, from };
 };
 
 const createEmailVerification = (user, cb) => {
@@ -51,21 +51,19 @@ const createEmailVerification = (user, cb) => {
         if (insertErr) return cb(insertErr);
 
         const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email.html?token=${token}`;
-        const mailer = getMailer();
 
-        if (mailer) {
-          try {
-            await mailer.transporter.sendMail({
-              from: mailer.from,
-              to: user.email,
-              subject: "Verify your JobPortal email",
-              text: `Hi ${user.name || ""},\n\nVerify your email: ${verifyUrl}\nThis link expires in 24 hours.\n\nIf you did not create this account, you can ignore this email.`
-            });
-          } catch (mailErr) {
-            console.error("Verification email failed:", mailErr);
+        try {
+          const result = await sendMail({
+            to: user.email,
+            subject: "Verify your JobPortal email",
+            text: `Hi ${user.name || ""},\n\nVerify your email: ${verifyUrl}\nThis link expires in 24 hours.\n\nIf you did not create this account, you can ignore this email.`
+          });
+
+          if (!result) {
+            console.warn("Email delivery unavailable. Verification link:", verifyUrl);
           }
-        } else {
-          console.warn("SMTP not configured. Verification link:", verifyUrl);
+        } catch (mailErr) {
+          console.error("Verification email failed:", mailErr);
         }
 
         return cb(null);
@@ -233,8 +231,7 @@ exports.loginUser = (req, res) => {
     }
 
     /* 🔐 CREATE TOKEN */
-    // Use consistent JWT secret
-    const JWT_SECRET = "secret123";
+    const JWT_SECRET = process.env.JWT_SECRET || "secret123";
     const token = jwt.sign(
       { id: user.id, is_admin: !!user.is_admin, role: user.role || "job_seeker" },
       JWT_SECRET,
@@ -498,6 +495,248 @@ exports.updateEmployerProfile = (req, res) => {
   );
 };
 
+/* GET SKILLS FOR CURRENT USER */
+exports.getMySkills = (req, res) => {
+  db.query(
+    `SELECT
+      us.skill_id,
+      s.name,
+      COUNT(se.id) AS endorsements_count,
+      MAX(CASE WHEN se.endorsed_by_user_id = ? THEN 1 ELSE 0 END) AS endorsed_by_me
+     FROM user_skills us
+     JOIN skills s ON s.id = us.skill_id
+     LEFT JOIN skill_endorsements se
+       ON se.skill_id = us.skill_id
+      AND se.endorsed_user_id = us.user_id
+     WHERE us.user_id = ?
+     GROUP BY us.skill_id, s.name
+     ORDER BY endorsements_count DESC, s.name ASC`,
+    [req.user.id, req.user.id],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows || []);
+    }
+  );
+};
+
+/* GET SKILLS FOR ANY USER */
+exports.getUserSkills = (req, res) => {
+  const userId = Number(req.params.userId);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: "Invalid user id" });
+  }
+
+  db.query(
+    `SELECT
+      us.skill_id,
+      s.name,
+      COUNT(se.id) AS endorsements_count,
+      MAX(CASE WHEN se.endorsed_by_user_id = ? THEN 1 ELSE 0 END) AS endorsed_by_me
+     FROM user_skills us
+     JOIN skills s ON s.id = us.skill_id
+     LEFT JOIN skill_endorsements se
+       ON se.skill_id = us.skill_id
+      AND se.endorsed_user_id = us.user_id
+     WHERE us.user_id = ?
+     GROUP BY us.skill_id, s.name
+     ORDER BY endorsements_count DESC, s.name ASC`,
+    [req.user.id, userId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows || []);
+    }
+  );
+};
+
+/* REPLACE SKILLS FOR CURRENT USER */
+exports.updateMySkills = (req, res) => {
+  const skills = parseSkills(req.body.skills);
+  const userId = req.user.id;
+
+  if (!skills.length) {
+    db.query("DELETE FROM user_skills WHERE user_id = ?", [userId], (deleteErr) => {
+      if (deleteErr) return res.status(500).json({ error: deleteErr.message });
+
+      db.query("DELETE FROM skill_endorsements WHERE endorsed_user_id = ?", [userId], (endorseDeleteErr) => {
+        if (endorseDeleteErr) return res.status(500).json({ error: endorseDeleteErr.message });
+
+        db.query(
+          "UPDATE job_seeker_profiles SET skills = NULL WHERE user_id = ?",
+          [userId],
+          (profileErr) => {
+            if (profileErr) return res.status(500).json({ error: profileErr.message });
+            return res.json({ message: "Skills updated", skills: [] });
+          }
+        );
+      });
+    });
+    return;
+  }
+
+  const skillRows = skills.map((name) => [name, name.toLowerCase()]);
+  const placeholders = skills.map(() => "?").join(",");
+
+  db.query(
+    "INSERT INTO skills (name, name_normalized) VALUES ? ON DUPLICATE KEY UPDATE name = VALUES(name)",
+    [skillRows],
+    (insertErr) => {
+      if (insertErr) return res.status(500).json({ error: insertErr.message });
+
+      db.query(
+        `SELECT id, name, name_normalized
+         FROM skills
+         WHERE name_normalized IN (${placeholders})`,
+        skills.map((item) => item.toLowerCase()),
+        (fetchErr, skillEntities) => {
+          if (fetchErr) return res.status(500).json({ error: fetchErr.message });
+          if (!skillEntities.length) return res.status(500).json({ message: "Failed to resolve skills" });
+
+          const selectedIds = skillEntities.map((item) => Number(item.id)).filter((id) => Number.isInteger(id) && id > 0);
+          if (!selectedIds.length) return res.status(500).json({ message: "Failed to resolve skill ids" });
+
+          db.query("DELETE FROM user_skills WHERE user_id = ?", [userId], (deleteErr) => {
+            if (deleteErr) return res.status(500).json({ error: deleteErr.message });
+
+            const userSkillRows = selectedIds.map((skillId) => [userId, skillId]);
+            db.query(
+              "INSERT INTO user_skills (user_id, skill_id) VALUES ?",
+              [userSkillRows],
+              (linkErr) => {
+                if (linkErr) return res.status(500).json({ error: linkErr.message });
+
+                db.query(
+                  `DELETE FROM skill_endorsements
+                   WHERE endorsed_user_id = ?
+                     AND skill_id NOT IN (${selectedIds.map(() => "?").join(",")})`,
+                  [userId, ...selectedIds],
+                  (endorseCleanupErr) => {
+                    if (endorseCleanupErr) return res.status(500).json({ error: endorseCleanupErr.message });
+
+                    db.query(
+                      "UPDATE job_seeker_profiles SET skills = ? WHERE user_id = ?",
+                      [skills.join(", "), userId],
+                      (profileErr) => {
+                        if (profileErr) return res.status(500).json({ error: profileErr.message });
+
+                        db.query(
+                          `SELECT
+                            us.skill_id,
+                            s.name,
+                            COUNT(se.id) AS endorsements_count,
+                            MAX(CASE WHEN se.endorsed_by_user_id = ? THEN 1 ELSE 0 END) AS endorsed_by_me
+                           FROM user_skills us
+                           JOIN skills s ON s.id = us.skill_id
+                           LEFT JOIN skill_endorsements se
+                             ON se.skill_id = us.skill_id
+                            AND se.endorsed_user_id = us.user_id
+                           WHERE us.user_id = ?
+                           GROUP BY us.skill_id, s.name
+                           ORDER BY endorsements_count DESC, s.name ASC`,
+                          [userId, userId],
+                          (listErr, rows) => {
+                            if (listErr) return res.status(500).json({ error: listErr.message });
+                            return res.json({ message: "Skills updated", skills: rows || [] });
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          });
+        }
+      );
+    }
+  );
+};
+
+/* ENDORSE USER SKILL */
+exports.endorseUserSkill = (req, res) => {
+  const targetUserId = Number(req.params.userId);
+  const skillId = Number(req.params.skillId);
+
+  if (!Number.isInteger(targetUserId) || targetUserId <= 0 || !Number.isInteger(skillId) || skillId <= 0) {
+    return res.status(400).json({ message: "Invalid user id or skill id" });
+  }
+
+  if (targetUserId === req.user.id) {
+    return res.status(400).json({ message: "You cannot endorse your own skill" });
+  }
+
+  db.query(
+    "SELECT id FROM user_skills WHERE user_id = ? AND skill_id = ? LIMIT 1",
+    [targetUserId, skillId],
+    (existsErr, rows) => {
+      if (existsErr) return res.status(500).json({ error: existsErr.message });
+      if (!rows.length) return res.status(404).json({ message: "Skill not found for this user" });
+
+      db.query(
+        `INSERT IGNORE INTO skill_endorsements (skill_id, endorsed_user_id, endorsed_by_user_id)
+         VALUES (?, ?, ?)`,
+        [skillId, targetUserId, req.user.id],
+        (insertErr, result) => {
+          if (insertErr) return res.status(500).json({ error: insertErr.message });
+          return res.json({
+            message: result.affectedRows ? "Skill endorsed" : "Skill already endorsed",
+            endorsed: result.affectedRows > 0
+          });
+        }
+      );
+    }
+  );
+};
+
+/* REMOVE ENDORSEMENT */
+exports.removeSkillEndorsement = (req, res) => {
+  const targetUserId = Number(req.params.userId);
+  const skillId = Number(req.params.skillId);
+
+  if (!Number.isInteger(targetUserId) || targetUserId <= 0 || !Number.isInteger(skillId) || skillId <= 0) {
+    return res.status(400).json({ message: "Invalid user id or skill id" });
+  }
+
+  db.query(
+    `DELETE FROM skill_endorsements
+     WHERE skill_id = ? AND endorsed_user_id = ? AND endorsed_by_user_id = ?`,
+    [skillId, targetUserId, req.user.id],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ removed: result.affectedRows > 0 });
+    }
+  );
+};
+
+/* GET PUBLIC PROFILE */
+exports.getPublicProfile = (req, res) => {
+  const userId = Number(req.params.userId);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: "Invalid user id" });
+  }
+
+  db.query(
+    `SELECT u.id, u.name, u.role, u.city, u.country, u.photo_url,
+            p.job_title, p.skills, p.experience_years, p.current_company,
+            p.preferred_job_type, p.location, p.resume_url, p.about, p.linkedin_url, p.portfolio_url
+     FROM users u
+     LEFT JOIN job_seeker_profiles p ON p.user_id = u.id
+     WHERE u.id = ?
+     LIMIT 1`,
+    [userId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!rows.length) return res.status(404).json({ message: "User not found" });
+
+      const row = rows[0];
+      if (row.role !== "job_seeker" && !req.user?.is_admin && Number(req.user?.id) !== userId) {
+        return res.status(403).json({ message: "Public profile is available for job seekers only" });
+      }
+
+      return res.json(row);
+    }
+  );
+};
+
 /* DELETE CURRENT USER */
 exports.deleteMe = (req, res) => {
   db.query(
@@ -556,21 +795,19 @@ exports.forgotPassword = (req, res) => {
           if (insertErr) return res.status(500).json({ error: insertErr.message });
 
           const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password.html?token=${token}`;
-          const mailer = getMailer();
 
-          if (mailer) {
-            try {
-              await mailer.transporter.sendMail({
-                from: mailer.from,
-                to: user.email,
-                subject: "Reset your JobPortal password",
-                text: `Hi ${user.name || ""},\n\nReset your password: ${resetUrl}\nThis link expires in 30 minutes.\n\nIf you did not request this, you can ignore this email.`
-              });
-            } catch (mailErr) {
-              console.error("Password reset email failed:", mailErr);
+          try {
+            const result = await sendMail({
+              to: user.email,
+              subject: "Reset your JobPortal password",
+              text: `Hi ${user.name || ""},\n\nReset your password: ${resetUrl}\nThis link expires in 30 minutes.\n\nIf you did not request this, you can ignore this email.`
+            });
+
+            if (!result) {
+              console.warn("Email delivery unavailable. Password reset link:", resetUrl);
             }
-          } else {
-            console.warn("SMTP not configured. Password reset link:", resetUrl);
+          } catch (mailErr) {
+            console.error("Password reset email failed:", mailErr);
           }
 
           return res.json({ message: "If that email exists, a reset link was sent." });

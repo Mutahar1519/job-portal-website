@@ -17,17 +17,36 @@
     return;
   }
 
-  const adminAuthFetch = window.authFetch
+  let hasHandledAdminAuthFailure = false;
+  const handleAdminAuthFailure = () => {
+    if (hasHandledAdminAuthFailure) return;
+    hasHandledAdminAuthFailure = true;
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    alert("Your admin session expired. Please login again.");
+    window.location.href = "login.html?redirect=admin.html";
+  };
+
+  const baseAdminFetch = window.authFetch
     ? window.authFetch
     : (url, options = {}) => {
         return fetch(url, {
           ...options,
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${adminToken}`
+            Authorization: `Bearer ${adminToken}`,
+            ...(options.headers || {})
           }
         });
       };
+
+  const adminAuthFetch = async (url, options = {}) => {
+    const res = await baseAdminFetch(url, options);
+    if (res.status === 401) {
+      handleAdminAuthFailure();
+    }
+    return res;
+  };
 
   let adminJobsCache = [];
   let adminUsersCache = [];
@@ -35,12 +54,131 @@
   let reviewStatusFilter = "pending";
   let reviewSourceFilter = "portal";
   let grantHistoryFilter = "all";
+  let supportFilter = "open";
+  let activeSupportTicketId = null;
+  let supportPollTimer = null;
+  let supportMineOnly = false;
+  let supportSocket = null;
+  let lastSupportTicketsError = "";
+  let lastSupportThreadError = "";
+  let supportTicketsLoading = false;
+  let supportThreadLoading = false;
+  let lastSupportTicketsSignature = "";
+  let lastSupportThreadSignature = "";
+  let lastSupportTicketsFetchAt = 0;
+  let lastSupportThreadFetchAt = 0;
+  let supportRefreshTimer = null;
+  let supportRetryTimer = null;
+  let supportConsecutiveFailures = 0;
+
+  const SUPPORT_MIN_REFRESH_MS = 1500;
+  const SUPPORT_REFRESH_DEBOUNCE_MS = 500;
+  const ADMIN_JOB_ACTION_KEY = "adminJobActionFeedback";
+
+  const formatDateTime = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    return Number.isNaN(date.valueOf()) ? "" : date.toLocaleString();
+  };
+
+  const buildSupportReplyTemplate = (templateKey) => {
+    const adminName = String(adminUser?.name || "JobPortal support").trim();
+    const signature = `\n\n- ${adminName}`;
+    const templates = {
+      greeting: `Hi, this is ${adminName} from JobPortal support. How can I help you today?`,
+      checking: `Thanks for reaching out. ${adminName} is checking this for you now and will update you shortly.`,
+      ask_steps: `${adminName} needs the page name and exact steps so this issue can be reproduced quickly.`,
+      refresh_login: `${adminName} asks you to try a hard refresh (Ctrl+F5) and login again. Let us know if the issue still appears.`,
+      issue_fixed: `${adminName} has applied a fix from our side. Please test again and confirm whether it is resolved.`
+    };
+    return `${templates[templateKey] || ""}${templates[templateKey] ? signature : ""}`.trim();
+  };
+
+  const storeAdminJobActionFeedback = (payload) => {
+    try {
+      sessionStorage.setItem(ADMIN_JOB_ACTION_KEY, JSON.stringify(payload));
+    } catch (_err) {
+      // ignore storage failures
+    }
+  };
+
+  const consumeAdminJobActionFeedback = () => {
+    try {
+      const raw = sessionStorage.getItem(ADMIN_JOB_ACTION_KEY);
+      if (!raw) return null;
+      sessionStorage.removeItem(ADMIN_JOB_ACTION_KEY);
+      return JSON.parse(raw);
+    } catch (_err) {
+      sessionStorage.removeItem(ADMIN_JOB_ACTION_KEY);
+      return null;
+    }
+  };
+
+  const highlightAdminJobCard = (jobId, message) => {
+    const card = document.querySelector(`[data-job-id="${String(jobId)}"]`);
+    if (!card) return;
+
+    card.style.border = "2px solid rgba(37, 99, 235, 0.9)";
+    card.style.boxShadow = "0 0 0 4px rgba(59, 130, 246, 0.18)";
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (typeof toast === "function" && message) {
+      toast(message);
+    }
+
+    setTimeout(() => {
+      card.style.border = "";
+      card.style.boxShadow = "";
+    }, 4500);
+  };
+
+  const applyPendingAdminJobFeedback = () => {
+    const feedback = consumeAdminJobActionFeedback();
+    if (!feedback?.jobId) return;
+    const label = feedback.action === "reboost"
+      ? `Re-boost confirmed for job #${feedback.jobId}`
+      : `Job #${feedback.jobId} updated successfully`;
+    setTimeout(() => highlightAdminJobCard(feedback.jobId, label), 120);
+  };
+
+  function buildSupportTicketsSignature(tickets) {
+    return JSON.stringify(
+      (tickets || []).map((t) => [
+        t.ticket_id,
+        t.status,
+        Number(t.unread_admin_count || 0),
+        t.updated_at || "",
+        t.assigned_admin_id || ""
+      ])
+    );
+  }
+
+  function buildSupportThreadSignature(payload) {
+    const ticket = payload?.ticket || {};
+    const rows = Array.isArray(payload?.messages) ? payload.messages : [];
+    return JSON.stringify({
+      ticketId: ticket.ticket_id || "",
+      status: ticket.status || "",
+      unread: Number(ticket.unread_user_count || 0),
+      messages: rows.map((m) => [m.id, m.sender_type, m.message, m.created_at])
+    });
+  }
+
+  function scheduleSupportRefresh() {
+    if (supportRefreshTimer) return;
+    supportRefreshTimer = setTimeout(() => {
+      supportRefreshTimer = null;
+      loadSupportTickets(supportFilter, { force: true });
+      loadSupportTicketMessages({ force: true });
+    }, SUPPORT_REFRESH_DEBOUNCE_MS);
+  }
 
   const adminJobForm = document.getElementById("adminJobForm");
   const adminJobTitle = document.getElementById("adminJobTitle");
   const adminJobLocation = document.getElementById("adminJobLocation");
   const adminJobType = document.getElementById("adminJobType");
   const adminJobCategory = document.getElementById("adminJobCategory");
+  const adminJobCategoryCustomWrap = document.getElementById("adminJobCategoryCustomWrap");
+  const adminJobCategoryCustom = document.getElementById("adminJobCategoryCustom");
   const adminJobDescription = document.getElementById("adminJobDescription");
   const adminJobPremium = document.getElementById("adminJobPremium");
   const adminJobSubmit = document.getElementById("adminJobSubmit");
@@ -48,6 +186,98 @@
   const autoApproveToggle = document.getElementById("autoApproveToggle");
   const autoApproveMeta = document.getElementById("autoApproveMeta");
   const saveAutoApproveBtn = document.getElementById("saveAutoApproveBtn");
+  const supportTicketsContainer = document.getElementById("supportTickets");
+  const supportThread = document.getElementById("supportThread");
+  const supportThreadTitle = document.getElementById("supportThreadTitle");
+  const supportThreadMeta = document.getElementById("supportThreadMeta");
+  const supportInboxMeta = document.getElementById("supportInboxMeta");
+  const supportReplyForm = document.getElementById("supportReplyForm");
+  const supportReplyInput = document.getElementById("supportReplyInput");
+  const supportQuickReplies = document.getElementById("supportQuickReplies");
+  const jobAppsModal = document.getElementById("jobApplicationsModal");
+  const jobAppsModalTitle = document.getElementById("jobApplicationsModalTitle");
+  const jobAppsModalList = document.getElementById("jobApplicationsModalList");
+  const jobAppsModalClose = document.getElementById("jobApplicationsModalClose");
+
+  let activeApplicationsJobId = null;
+
+  const baseJobCategories = new Set([
+    "IT",
+    "Marketing",
+    "Finance",
+    "Healthcare",
+    "Education",
+    "Engineering",
+    "Sales",
+    "Design",
+    "Operations",
+    "General"
+  ]);
+
+  const syncAdminCustomCategoryField = () => {
+    const isOther = (adminJobCategory?.value || "").toLowerCase() === "other";
+    if (adminJobCategoryCustomWrap) {
+      adminJobCategoryCustomWrap.style.display = isOther ? "block" : "none";
+    }
+    if (!isOther && adminJobCategoryCustom) {
+      adminJobCategoryCustom.value = "";
+    }
+  };
+
+  const resolveAdminCategoryPayload = () => {
+    const selected = (adminJobCategory?.value || "").trim();
+    if (selected.toLowerCase() !== "other") {
+      return { category: selected, category_custom: "" };
+    }
+    return {
+      category: "Other",
+      category_custom: (adminJobCategoryCustom?.value || "").trim()
+    };
+  };
+
+  const loadSocketClient = () =>
+    new Promise((resolve, reject) => {
+      if (window.io) {
+        resolve(window.io);
+        return;
+      }
+
+      const existing = document.getElementById("socketIoClientScript");
+      if (existing) {
+        existing.addEventListener("load", () => resolve(window.io), { once: true });
+        existing.addEventListener("error", reject, { once: true });
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = "socketIoClientScript";
+      script.src = `${API.replace(/\/api$/, "")}/socket.io/socket.io.js`;
+      script.onload = () => resolve(window.io);
+      script.onerror = () => reject(new Error("Failed to load realtime client"));
+      document.head.appendChild(script);
+    });
+
+  async function connectSupportRealtime() {
+    if (!adminToken || supportSocket) return;
+    try {
+      const ioFactory = await loadSocketClient();
+      if (!ioFactory) return;
+      supportSocket = ioFactory(API.replace(/\/api$/, ""), {
+        transports: ["websocket", "polling"],
+        auth: { token: adminToken }
+      });
+
+      supportSocket.on("support:new-message", () => {
+        scheduleSupportRefresh();
+      });
+
+      supportSocket.on("support:ticket-updated", () => {
+        scheduleSupportRefresh();
+      });
+    } catch (err) {
+      console.error("Failed to connect support realtime:", err);
+    }
+  }
 
   const params = new URLSearchParams(window.location.search);
   const paymentStatus = params.get("payment");
@@ -55,12 +285,12 @@
   const mode = params.get("mode");
   const paidJobId = params.get("jobId");
 
-  if (paymentStatus === "success" && mode === "upgrade" && sessionId && paidJobId) {
+  if (paymentStatus === "success" && (mode === "upgrade" || mode === "reboost") && sessionId && paidJobId) {
     adminAuthFetch(`${API}/payments/confirm`, {
       method: "POST",
       body: JSON.stringify({
         sessionId,
-        mode: "upgrade",
+        mode,
         jobId: paidJobId
       })
     }).then(async (res) => {
@@ -69,10 +299,49 @@
         alert(data.message || "Payment confirmation failed");
         return;
       }
-      alert("Job upgraded to premium ✅");
+      storeAdminJobActionFeedback({ action: mode, jobId: paidJobId, at: Date.now() });
+      if (typeof toast === "function") {
+        toast(mode === "reboost" ? `Job #${paidJobId} re-boosted successfully` : `Job #${paidJobId} upgraded to premium`);
+      }
       window.history.replaceState({}, document.title, "admin.html");
       loadJobs();
     });
+  }
+
+  function renderJobMonetizationBadges(job) {
+    const badges = [];
+
+    if (job.is_premium) {
+      badges.push('<span class="tag-pill bg-amber-100 text-amber-700">Premium</span>');
+    }
+
+    if (Number(job.reboost_count || 0) > 0) {
+      badges.push(`<span class="tag-pill bg-indigo-100 text-indigo-700">Re-boosted ${Number(job.reboost_count)}x</span>`);
+    }
+
+    if (job.repost_of_job_id) {
+      const parentTitle = (job.repost_of_title || "Original job").trim();
+      badges.push(`<span class="tag-pill bg-violet-100 text-violet-700" title="${esc(parentTitle)}">Repost of #${esc(job.repost_of_job_id)}</span>`);
+    }
+
+    return badges.join("");
+  }
+
+  function renderJobMonetizationMeta(job) {
+    const lines = [];
+
+    if (Number(job.reboost_count || 0) > 0) {
+      const lastReboosted = formatDateTime(job.last_reboosted_at);
+      lines.push(lastReboosted ? `Last re-boosted: ${lastReboosted}` : "This job has been re-boosted.");
+    }
+
+    if (job.repost_of_job_id) {
+      const parentTitle = (job.repost_of_title || "Original job").trim();
+      lines.push(`Repost lineage: #${esc(job.repost_of_job_id)} from ${esc(parentTitle)}`);
+    }
+
+    if (!lines.length) return "";
+    return `<div class="p-muted" style="margin-top:4px;">${lines.join(" • ")}</div>`;
   }
 
   function loadJobs() {
@@ -124,24 +393,26 @@
           `;
 
           jobsContainer.innerHTML += `
-            <article class="job-card admin-record">
+            <article class="job-card admin-record" data-job-id="${esc(job.id)}">
               <div class="admin-record-head">
                 <div>
                   <h4>${esc(job.title)}</h4>
                   <p class="p-muted">${esc(job.location || "No location")} \u2022 ${esc(job.job_type || job.jobType || "General")} \u2022 ${esc(job.category || "General")}</p>
                 </div>
                 <div class="admin-record-badges">
-                  ${job.is_premium ? '<span class="tag-pill bg-amber-100 text-amber-700">Premium</span>' : ""}
+                  ${renderJobMonetizationBadges(job)}
                   ${shiftBadge ? '<span class="tag-pill bg-cyan-100 text-cyan-700">Shift</span>' : ""}
                   ${shiftPaid ? '<span class="tag-pill bg-green-100 text-green-700">Paid</span>' : ""}
                   <span class="tag-pill ${job.is_approved ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}">${job.is_approved ? "Approved" : "Pending"}</span>
                 </div>
               </div>
               ${moderationMeta}
+              ${renderJobMonetizationMeta(job)}
               <div class="admin-record-actions">
                 <button class="btn btn-outline" onclick="editJob('${job.id}')">Edit</button>
                 <button class="btn btn-outline" onclick="approveJob('${job.id}')">Approve</button>
                 <button class="btn btn-outline" onclick="makePremium('${job.id}')">Premium</button>
+                <button class="btn btn-outline" onclick="reboostJob('${job.id}')">Re-Boost</button>
                 <button class="btn btn-outline" onclick="viewJobApplications('${job.id}')">Applications</button>
                 <button class="btn btn-outline" onclick="deleteJob('${job.id}')">Delete</button>
                 ${shiftAction}
@@ -149,6 +420,8 @@
             </article>
           `;
         });
+
+        applyPendingAdminJobFeedback();
       })
       .catch(err => {
         console.error("Error loading jobs:", err);
@@ -163,7 +436,7 @@
     adminAuthFetch(`${API}/applications/admin`)
       .then(res => res.json())
       .then(apps => {
-        renderApplications(apps, "Applications");
+        renderApplications(apps, "Applications", { containerId: "applications" });
       })
       .catch(err => {
         console.error("Error loading applications:", err);
@@ -172,6 +445,51 @@
           container.innerHTML = `<p class="empty-state" style="color: #ef4444;">Error loading applications: ${err.message}</p>`;
         }
       });
+  }
+
+  function renderApplicationsListHtml(apps) {
+    if (!apps.length) {
+      return "<p>No applications found</p>";
+    }
+
+    return apps.map((app) => {
+      const created = app.created_at
+        ? new Date(app.created_at).toLocaleDateString()
+        : "";
+
+      const jobTitle = app.job_title ? app.job_title : "";
+      const applicantName = app.applicant_name || app.full_name || app.user_name || "Candidate";
+      const userRef = app.user_ref || (app.user_id ? `U${String(app.user_id).padStart(6, "0")}` : "U000000");
+      const jobRef = app.job_ref || (app.job_id ? `J${String(app.job_id).padStart(6, "0")}` : "");
+
+      return `
+        <article class="job-card admin-record" data-job-id="${esc(app.job_id)}">
+          ${jobTitle ? `<h4>${esc(jobTitle)}${jobRef ? ` <span class="p-muted">(${esc(jobRef)})</span>` : ""}</h4>` : ""}
+          <p>${esc(applicantName)} <span class="p-muted">(${esc(userRef)})</span></p>
+          <p>Status: <strong>${esc(app.status)}</strong></p>
+          <p>Applied: ${created}</p>
+          <div class="admin-record-actions" style="margin-top:10px;">
+            <select id="status-${app.id}" class="form-input">
+              <option value="pending" ${app.status === "pending" ? "selected" : ""}>Pending</option>
+              <option value="reviewed" ${app.status === "reviewed" ? "selected" : ""}>Reviewed</option>
+              <option value="accepted" ${app.status === "accepted" ? "selected" : ""}>Accepted</option>
+              <option value="rejected" ${app.status === "rejected" ? "selected" : ""}>Rejected</option>
+            </select>
+            <button class="btn btn-outline" onclick="updateApplicationStatus(${app.id})">Update</button>
+          </div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  function openJobApplicationsModal() {
+    if (!jobAppsModal) return;
+    jobAppsModal.classList.remove("hidden");
+  }
+
+  function closeJobApplicationsModal() {
+    if (!jobAppsModal) return;
+    jobAppsModal.classList.add("hidden");
   }
 
   function loadUsers() {
@@ -290,16 +608,17 @@
         alert(data.message || "Failed to request admin grant");
         return;
       }
-      alert(data.message || "Approval requested. Ask test@sample.com for code.");
+      const approver = data?.approver_email ? `Approver: ${data.approver_email}` : "Approval requested.";
+      alert(data.message || approver);
       loadGrantHistory();
     });
   }
 
   function promoteUserToAdmin(userId) {
-    const approvalEmail = prompt("Enter approver email (must be test@sample.com):", "test@sample.com");
-    if (!approvalEmail) return;
+    const approvalEmail = prompt("Enter approver email (leave blank to auto-match by approval code):", "");
+    if (approvalEmail === null) return;
 
-    const approvalCode = prompt("Enter approval code received from test@sample.com:");
+    const approvalCode = prompt("Enter approval code:");
     if (!approvalCode) return;
 
     adminAuthFetch(`${API}/admin/users/${userId}/make-admin`, {
@@ -514,12 +833,15 @@
             </div>
             <div class="admin-record-badges">
               <span class="tag-pill bg-cyan-100 text-cyan-700">Shift</span>
+              ${renderJobMonetizationBadges(job)}
               ${wageLabel ? `<span class="tag-pill bg-green-100 text-green-700">${wageLabel}</span>` : ""}
               <span class="tag-pill bg-yellow-100 text-yellow-700">${status}</span>
             </div>
           </div>
+          ${renderJobMonetizationMeta(job)}
           <div class="admin-record-actions">
             <button class="btn btn-outline" onclick="approveJob('${job.id}')">Approve</button>
+            <button class="btn btn-outline" onclick="reboostJob('${job.id}')">Re-Boost</button>
             <button class="btn btn-outline" onclick="viewJobApplications('${job.id}')">Applications</button>
             <button class="btn btn-outline" onclick="deleteJob('${job.id}')">Delete</button>
             <button class="btn btn-outline" onclick="resendShiftAlerts(${job.id}, '${job.shift_paid ? "paid" : "posted"}')">Resend Alerts</button>
@@ -579,59 +901,42 @@
   }
 
   function viewJobApplications(jobId) {
+    activeApplicationsJobId = String(jobId);
     adminAuthFetch(`${API}/admin/jobs/${jobId}/applications`)
-      .then(res => res.json())
-      .then(apps => {
-        renderApplications(apps, `Applications for Job #${jobId}`);
-        const appsContainer = document.getElementById("applications");
-        if (appsContainer) {
-          appsContainer.scrollIntoView({ behavior: "smooth", block: "start" });
+      .then(async (res) => {
+        const data = await res.json().catch(() => ([]));
+        if (!res.ok) {
+          throw new Error(data?.message || `HTTP ${res.status} while loading applications`);
         }
+        return data;
+      })
+      .then(apps => {
+        if (jobAppsModalTitle) {
+          jobAppsModalTitle.textContent = `Applications for Job #${jobId}`;
+        }
+        if (jobAppsModalList) {
+          jobAppsModalList.innerHTML = renderApplicationsListHtml(Array.isArray(apps) ? apps : []);
+        }
+        openJobApplicationsModal();
+      })
+      .catch((err) => {
+        if (jobAppsModalTitle) {
+          jobAppsModalTitle.textContent = `Applications for Job #${jobId}`;
+        }
+        if (jobAppsModalList) {
+          jobAppsModalList.innerHTML = `<p class="empty-state" style="color:#ef4444;">${esc(err.message || "Failed to load applications")}</p>`;
+        }
+        openJobApplicationsModal();
       });
   }
 
-  function renderApplications(apps, title) {
-    const container = document.getElementById("applications");
+  function renderApplications(apps, title, options = {}) {
+    const containerId = options.containerId || "applications";
+    const container = document.getElementById(containerId);
     if (!container) return;
 
-    if (!apps.length) {
-      container.innerHTML = "<p>No applications found</p>";
-      return;
-    }
-
-    container.innerHTML = `<h4 style="margin-bottom:10px;">${title}</h4>`;
-    apps.forEach(app => {
-      const created = app.created_at
-        ? new Date(app.created_at).toLocaleDateString()
-        : "";
-
-      const cvLink = app.cv_path
-        ? `<a href="${app.cv_path}" target="_blank" class="apply-btn">CV</a>`
-        : "";
-
-      const jobTitle = app.job_title ? app.job_title : "";
-      const applicantName = app.full_name || app.user_name || "";
-      const applicantEmail = app.email || app.user_email || "";
-
-      container.innerHTML += `
-        <article class="job-card admin-record">
-          ${jobTitle ? `<h4>${esc(jobTitle)}</h4>` : ""}
-          <p>${esc(applicantName)} ${applicantEmail ? "\u2022 " + esc(applicantEmail) : ""}</p>
-          <p>Status: <strong>${esc(app.status)}</strong></p>
-          <p>Applied: ${created}</p>
-          ${cvLink}
-          <div class="admin-record-actions" style="margin-top:10px;">
-            <select id="status-${app.id}" class="form-input">
-              <option value="pending" ${app.status === "pending" ? "selected" : ""}>Pending</option>
-              <option value="reviewed" ${app.status === "reviewed" ? "selected" : ""}>Reviewed</option>
-              <option value="accepted" ${app.status === "accepted" ? "selected" : ""}>Accepted</option>
-              <option value="rejected" ${app.status === "rejected" ? "selected" : ""}>Rejected</option>
-            </select>
-            <button class="btn btn-outline" onclick="updateApplicationStatus(${app.id})">Update</button>
-          </div>
-        </article>
-      `;
-    });
+    const safeApps = Array.isArray(apps) ? apps : [];
+    container.innerHTML = `<h4 style="margin-bottom:10px;">${title}</h4>${renderApplicationsListHtml(safeApps)}`;
   }
 
   function approveJob(id) {
@@ -661,13 +966,13 @@
       .catch((err) => alert("Purge request failed: " + err.message));
   }
 
-  function makePremium(id) {
+  function startAdminPayment(mode, id) {
     openAdminPaymentModal().then((paymentMethod) => {
       if (!paymentMethod) return;
 
       adminAuthFetch(`${API}/payments/create-checkout-session`, {
         method: "POST",
-        body: JSON.stringify({ mode: "upgrade", jobId: id, payment_method: paymentMethod })
+        body: JSON.stringify({ mode, jobId: id, payment_method: paymentMethod })
       }).then(async (res) => {
         const data = await res.json();
         if (!res.ok || !data.url) {
@@ -677,6 +982,14 @@
         window.location.href = data.url;
       });
     });
+  }
+
+  function makePremium(id) {
+    startAdminPayment("upgrade", id);
+  }
+
+  function reboostJob(id) {
+    startAdminPayment("reboost", id);
   }
 
   const ADMIN_PAYMENT_LABELS = {
@@ -746,7 +1059,18 @@
     adminJobTitle.value = job.title || "";
     adminJobLocation.value = job.location || "";
     adminJobType.value = job.job_type || job.jobType || "";
-    adminJobCategory.value = job.category || "";
+    const existingCategory = (job.category || "").trim();
+    if (baseJobCategories.has(existingCategory)) {
+      adminJobCategory.value = existingCategory;
+      if (adminJobCategoryCustom) adminJobCategoryCustom.value = "";
+    } else if (existingCategory) {
+      adminJobCategory.value = "Other";
+      if (adminJobCategoryCustom) adminJobCategoryCustom.value = existingCategory;
+    } else {
+      adminJobCategory.value = "";
+      if (adminJobCategoryCustom) adminJobCategoryCustom.value = "";
+    }
+    syncAdminCustomCategoryField();
     adminJobDescription.value = job.description || "";
     adminJobPremium.checked = !!job.is_premium;
 
@@ -758,6 +1082,7 @@
   function resetAdminJobForm() {
     editJobId = null;
     adminJobForm.reset();
+    syncAdminCustomCategoryField();
     adminJobSubmit.textContent = "Add Job";
     adminJobCancel.style.display = "none";
   }
@@ -769,7 +1094,13 @@
     adminAuthFetch(`${API}/applications/${id}/status`, {
       method: "PUT",
       body: JSON.stringify({ status: select.value })
-    }).then(() => loadApplications());
+    }).then(() => {
+      if (activeApplicationsJobId) {
+        viewJobApplications(activeApplicationsJobId);
+      } else {
+        loadApplications();
+      }
+    });
   }
 
   function approveReview(id, source = "portal") {
@@ -841,14 +1172,28 @@
   }
 
   if (adminJobForm) {
+    adminJobCategory?.addEventListener("change", syncAdminCustomCategoryField);
+
     adminJobForm.addEventListener("submit", (event) => {
       event.preventDefault();
+
+      const resolvedCategory = resolveAdminCategoryPayload();
+      if (!resolvedCategory.category) {
+        alert("Please select a category");
+        return;
+      }
+      if (resolvedCategory.category.toLowerCase() === "other" && !resolvedCategory.category_custom) {
+        alert("Please enter a custom category");
+        adminJobCategoryCustom?.focus();
+        return;
+      }
 
       const payload = {
         title: adminJobTitle.value.trim(),
         location: adminJobLocation.value.trim(),
         job_type: adminJobType.value.trim(),
-        category: adminJobCategory.value.trim(),
+        category: resolvedCategory.category,
+        category_custom: resolvedCategory.category_custom,
         description: adminJobDescription.value.trim(),
         is_premium: adminJobPremium.checked
       };
@@ -872,6 +1217,8 @@
   if (adminJobCancel) {
     adminJobCancel.addEventListener("click", resetAdminJobForm);
   }
+
+  syncAdminCustomCategoryField();
 
   function loadStats() {
     adminAuthFetch(`${API}/admin/stats`)
@@ -1070,6 +1417,310 @@
     });
   }
 
+  function stopSupportPolling() {
+    if (supportPollTimer) {
+      clearInterval(supportPollTimer);
+      supportPollTimer = null;
+    }
+  }
+
+  function loadSupportTickets(status = supportFilter, options = {}) {
+    supportFilter = status;
+    if (!supportTicketsContainer) return;
+    if (supportTicketsLoading) return;
+    const now = Date.now();
+    if (!options.force && now - lastSupportTicketsFetchAt < SUPPORT_MIN_REFRESH_MS) return;
+    if (document.visibilityState !== "visible" && !options.force) return;
+
+    supportTicketsLoading = true;
+    lastSupportTicketsFetchAt = now;
+
+    const mine = supportMineOnly ? "&mine=1" : "";
+    adminAuthFetch(`${API}/chat/live-support/admin/tickets?status=${encodeURIComponent(supportFilter)}&limit=100${mine}`)
+      .then(async (res) => {
+        const rows = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(rows?.message || `HTTP ${res.status} while loading support tickets`);
+        }
+        return rows;
+      })
+      .then(rows => {
+        const tickets = Array.isArray(rows) ? rows : [];
+        const nextSignature = buildSupportTicketsSignature(tickets);
+
+        if (supportInboxMeta) {
+          const unreadTotal = tickets.reduce((sum, item) => sum + Number(item.unread_admin_count || 0), 0);
+          supportInboxMeta.textContent = `${tickets.length} tickets loaded${supportMineOnly ? " • My tickets only" : ""} • ${unreadTotal} unread admin messages.`;
+        }
+
+        if (nextSignature === lastSupportTicketsSignature) {
+          lastSupportTicketsError = "";
+          supportConsecutiveFailures = 0;
+          return;
+        }
+
+        lastSupportTicketsSignature = nextSignature;
+        if (!tickets.length) {
+          supportTicketsContainer.innerHTML = '<p class="empty-state">No support tickets found.</p>';
+          supportConsecutiveFailures = 0;
+          return;
+        }
+
+        supportTicketsContainer.innerHTML = "";
+        tickets.forEach(ticket => {
+          const updated = ticket.updated_at ? new Date(ticket.updated_at).toLocaleString() : "";
+          const selected = String(ticket.ticket_id) === String(activeSupportTicketId);
+          const statusClass = ticket.status === "closed"
+            ? "bg-slate-100 text-slate-700"
+            : ticket.status === "waiting_user"
+              ? "bg-green-100 text-green-700"
+              : ticket.status === "waiting_support"
+                ? "bg-amber-100 text-amber-700"
+                : "bg-blue-100 text-blue-700";
+          const unreadBadge = Number(ticket.unread_admin_count || 0) > 0
+            ? `<span class="tag-pill bg-red-100 text-red-700">${esc(String(ticket.unread_admin_count))} unread</span>`
+            : "";
+          const assignedBadge = ticket.assigned_admin_name
+            ? `<span class="tag-pill bg-indigo-100 text-indigo-700">${esc(ticket.assigned_admin_name)}</span>`
+            : "<span class=\"tag-pill bg-slate-100 text-slate-700\">Unassigned</span>";
+          const repliedBadge = ticket.last_replied_admin_name
+            ? `<span class="tag-pill bg-emerald-100 text-emerald-700">Last reply: ${esc(ticket.last_replied_admin_name)}</span>`
+            : "";
+
+          const card = document.createElement("article");
+          card.className = "job-card admin-record";
+          if (selected) {
+            card.style.border = "1px solid var(--primary, #2563eb)";
+          }
+          card.style.cursor = "pointer";
+          card.innerHTML = `
+            <div class="admin-record-head">
+              <div>
+                <h4>${esc(ticket.ticket_id)}</h4>
+                <p class="p-muted">${esc(ticket.user_name || ticket.user_email_masked || "Unknown user")}</p>
+                <p class="p-muted">${esc(ticket.last_message_preview || "No messages yet")}</p>
+                <p class="p-muted">Updated: ${updated}</p>
+              </div>
+              <div class="admin-record-badges">
+                ${unreadBadge}
+                ${assignedBadge}
+                ${repliedBadge}
+                <span class="tag-pill ${statusClass}">${esc(ticket.status || "open")}</span>
+              </div>
+            </div>
+          `;
+
+          card.addEventListener("click", () => {
+            openSupportTicket(ticket.ticket_id);
+          });
+
+          supportTicketsContainer.appendChild(card);
+        });
+        lastSupportTicketsError = "";
+        supportConsecutiveFailures = 0;
+      })
+      .catch(err => {
+        const errText = err?.message || "Unknown error";
+        supportConsecutiveFailures += 1;
+
+        if (errText !== lastSupportTicketsError) {
+          console.error("Error loading support tickets:", err);
+          lastSupportTicketsError = errText;
+        }
+
+        const nextRetryMs = Math.min(30000, 1000 * Math.pow(2, Math.min(5, supportConsecutiveFailures - 1)));
+        if (supportInboxMeta) {
+          supportInboxMeta.textContent = `Support inbox is temporarily unavailable. Retrying in ${Math.ceil(nextRetryMs / 1000)}s.`;
+        }
+
+        // Avoid flicker: keep last successful list visible if present.
+        if (!supportTicketsContainer.children.length) {
+          supportTicketsContainer.innerHTML = `<p class="empty-state" style="color:#ef4444;">Error loading support tickets: ${esc(err.message || "Failed to fetch")}</p>`;
+        }
+
+        if (supportRetryTimer) {
+          clearTimeout(supportRetryTimer);
+        }
+        supportRetryTimer = setTimeout(() => {
+          supportRetryTimer = null;
+          loadSupportTickets(supportFilter, { force: true });
+        }, nextRetryMs);
+      })
+      .finally(() => {
+        supportTicketsLoading = false;
+      });
+  }
+
+  function renderSupportThread(payload) {
+    if (!supportThread) return;
+    const ticket = payload?.ticket || {};
+    const rows = Array.isArray(payload?.messages) ? payload.messages : [];
+    const nextSignature = buildSupportThreadSignature(payload);
+
+    if (nextSignature === lastSupportThreadSignature) {
+      return;
+    }
+
+    lastSupportThreadSignature = nextSignature;
+
+    supportThread.innerHTML = "";
+    rows.forEach(item => {
+      const sender = String(item.sender_type || "").toLowerCase();
+      const bubble = document.createElement("div");
+      const isUser = sender === "user";
+      bubble.className = isUser ? "support-bubble user" : "support-bubble";
+      if (sender === "system") {
+        bubble.style.opacity = "0.8";
+        bubble.style.fontSize = "12px";
+        bubble.textContent = `[System] ${item.message}`;
+      } else {
+        const supportLabel = item.sender_name || ticket.last_replied_admin_name || "Support";
+        bubble.textContent = `${isUser ? "User" : supportLabel}: ${item.message}`;
+      }
+      supportThread.appendChild(bubble);
+    });
+    supportThread.scrollTop = supportThread.scrollHeight;
+
+    if (supportThreadTitle) {
+      supportThreadTitle.textContent = `${ticket.ticket_id || activeSupportTicketId || "Ticket"} (${ticket.status || "open"})`;
+    }
+    if (supportThreadMeta) {
+      const assigned = ticket.assigned_admin_name || "Unassigned";
+      const repliedBy = ticket.last_replied_admin_name || "No admin reply yet";
+      const updatedAt = formatDateTime(ticket.updated_at);
+      supportThreadMeta.innerHTML = `Assigned: <span class="support-ticket-chip">${esc(assigned)}</span> <span style="margin-left:10px;">Last replied by: <span class="support-ticket-chip">${esc(repliedBy)}</span></span> <span style="margin-left:10px;">User unread: ${esc(String(ticket.unread_user_count || 0))}</span>${updatedAt ? ` <span style="margin-left:10px;">Updated: ${esc(updatedAt)}</span>` : ""}`;
+    }
+  }
+
+  function loadSupportTicketMessages(options = {}) {
+    if (!activeSupportTicketId || !supportThread) return;
+    if (supportThreadLoading) return;
+    const now = Date.now();
+    if (!options.force && now - lastSupportThreadFetchAt < SUPPORT_MIN_REFRESH_MS) return;
+    if (document.visibilityState !== "visible" && !options.force) return;
+
+    supportThreadLoading = true;
+    lastSupportThreadFetchAt = now;
+
+    adminAuthFetch(`${API}/chat/live-support/${encodeURIComponent(activeSupportTicketId)}/messages`)
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data?.message || `HTTP ${res.status} while loading support thread`);
+        }
+        return data;
+      })
+      .then(data => {
+        if (data?.message && !data?.messages) {
+          throw new Error(data.message);
+        }
+        renderSupportThread(data);
+        lastSupportThreadError = "";
+      })
+      .catch(err => {
+        const errText = err?.message || "Unknown error";
+        if (errText !== lastSupportThreadError) {
+          console.error("Error loading support thread:", err);
+          lastSupportThreadError = errText;
+        }
+        // Avoid visual jitter by only showing an error if no prior thread is visible.
+        if (!supportThread.children.length) {
+          supportThread.innerHTML = `<p class="empty-state" style="color:#ef4444;">${esc(err.message || "Failed to load thread")}</p>`;
+        }
+      })
+      .finally(() => {
+        supportThreadLoading = false;
+      });
+  }
+
+  function openSupportTicket(ticketId) {
+    activeSupportTicketId = ticketId;
+    lastSupportThreadSignature = "";
+    if (supportSocket) supportSocket.emit("support:join-ticket", ticketId);
+    loadSupportTickets(supportFilter, { force: true });
+    loadSupportTicketMessages({ force: true });
+    stopSupportPolling();
+    supportPollTimer = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      loadSupportTicketMessages({ force: true });
+      loadSupportTickets(supportFilter, { force: true });
+    }, 8000);
+  }
+
+  function setSupportFilter(status) {
+    supportMineOnly = false;
+    loadSupportTickets(status);
+  }
+
+  function setSupportMineFilter() {
+    supportMineOnly = !supportMineOnly;
+    loadSupportTickets(supportFilter);
+  }
+
+  function closeSupportTicket() {
+    if (!activeSupportTicketId) {
+      alert("Select a support ticket first");
+      return;
+    }
+
+    adminAuthFetch(`${API}/chat/live-support/admin/tickets/${encodeURIComponent(activeSupportTicketId)}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status: "closed" })
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to close ticket");
+        return;
+      }
+      loadSupportTickets(supportFilter);
+      loadSupportTicketMessages();
+    });
+  }
+
+  function sendSupportReply(message) {
+    if (!activeSupportTicketId) {
+      alert("Select a support ticket first");
+      return;
+    }
+
+    adminAuthFetch(`${API}/chat/live-support/${encodeURIComponent(activeSupportTicketId)}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ message })
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to send reply");
+        }
+        loadSupportTicketMessages();
+        loadSupportTickets(supportFilter);
+      })
+      .catch(err => {
+        console.error(err);
+        alert(err.message || "Failed to send reply");
+      });
+  }
+
+  function assignSupportTicketToMe() {
+    if (!activeSupportTicketId) {
+      alert("Select a support ticket first");
+      return;
+    }
+
+    adminAuthFetch(`${API}/chat/live-support/admin/tickets/${encodeURIComponent(activeSupportTicketId)}/assign`, {
+      method: "PUT",
+      body: JSON.stringify({ adminId: adminUser.id })
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to assign ticket");
+        return;
+      }
+      loadSupportTickets(supportFilter);
+      loadSupportTicketMessages();
+    });
+  }
+
   window.loadJobs = loadJobs;
   window.approveJob = approveJob;
   window.deleteJob = deleteJob;
@@ -1097,8 +1748,40 @@
   window.setGrantHistoryFilter = setGrantHistoryFilter;
   window.loadCompanies = loadCompanies;
   window.deleteCompany = deleteCompany;
+  window.setSupportFilter = setSupportFilter;
+  window.setSupportMineFilter = setSupportMineFilter;
+  window.closeSupportTicket = closeSupportTicket;
+  window.assignSupportTicketToMe = assignSupportTicketToMe;
 
   saveAutoApproveBtn?.addEventListener("click", saveModerationSettings);
+  supportReplyForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const value = (supportReplyInput?.value || "").trim();
+    if (!value) return;
+    supportReplyInput.value = "";
+    sendSupportReply(value);
+  });
+
+  supportQuickReplies?.addEventListener("click", (event) => {
+    const btn = event.target.closest("button[data-template]");
+    if (!btn || !supportReplyInput) return;
+    supportReplyInput.value = buildSupportReplyTemplate(String(btn.dataset.template || "").trim());
+    supportReplyInput.focus();
+  });
+
+  jobAppsModalClose?.addEventListener("click", closeJobApplicationsModal);
+
+  jobAppsModal?.addEventListener("click", (event) => {
+    if (event.target === jobAppsModal) {
+      closeJobApplicationsModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeJobApplicationsModal();
+    }
+  });
 
   loadJobs();
   loadApplications();
@@ -1108,6 +1791,38 @@
   loadUsers();
   loadGrantHistory();
   loadCompanies();
+  loadSupportTickets();
+  connectSupportRealtime();
   loadStats();
   loadModerationSettings();
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      scheduleSupportRefresh();
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    stopSupportPolling();
+    if (supportRetryTimer) {
+      clearTimeout(supportRetryTimer);
+      supportRetryTimer = null;
+    }
+  });
+
+  // Export all onclick handler functions to global scope
+  window.editJob = editJob;
+  window.approveJob = approveJob;
+  window.makePremium = makePremium;
+  window.reboostJob = reboostJob;
+  window.viewJobApplications = viewJobApplications;
+  window.deleteJob = deleteJob;
+  window.updateApplicationStatus = updateApplicationStatus;
+  window.toggleUserBlock = toggleUserBlock;
+  window.toggleUserVerify = toggleUserVerify;
+  window.deleteUserAccount = deleteUserAccount;
+  window.deleteReview = deleteReview;
+  window.approveReview = approveReview;
+  window.hideReview = hideReview;
+  window.unhideReview = unhideReview;
 })();

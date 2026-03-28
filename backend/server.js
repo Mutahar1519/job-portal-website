@@ -1,10 +1,63 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+const http = require("http");
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
+const jwt = require("jsonwebtoken");
+const { Server } = require("socket.io");
 const db = require("./config/mysql");
+const chatController = require("./controllers/chatController");
 
 const app = express();
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: true,
+    credentials: true
+  }
+});
+
+chatController.setRealtimeEmitter(io);
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  if (!token) {
+    socket.user = null;
+    return next();
+  }
+
+  try {
+    socket.user = jwt.verify(token, process.env.JWT_SECRET || "secret123");
+    return next();
+  } catch (_err) {
+    socket.user = null;
+    return next();
+  }
+});
+
+io.on("connection", (socket) => {
+  if (socket.user?.id) {
+    socket.join(`support-user:${socket.user.id}`);
+  }
+
+  if (socket.user?.is_admin) {
+    socket.join("support-admin");
+  }
+
+  socket.on("support:join-ticket", (ticketId) => {
+    const normalized = String(ticketId || "").trim();
+    if (normalized) {
+      socket.join(`support-ticket:${normalized}`);
+    }
+  });
+
+  socket.on("support:leave-ticket", (ticketId) => {
+    const normalized = String(ticketId || "").trim();
+    if (normalized) {
+      socket.leave(`support-ticket:${normalized}`);
+    }
+  });
+});
 
 app.use(cors());
 app.use(express.json());
@@ -77,6 +130,9 @@ const messagesRoutes = require("./routes/messages");
 const employerRoutes = require("./routes/employer");
 const shiftsRoutes = require("./routes/shifts");
 const authRoutes = require("./routes/auth");
+const notificationsRoutes = require("./routes/notifications");
+const recommendationsRoutes = require("./routes/recommendations");
+const referralsRoutes = require("./routes/referrals");
 
 app.use("/api/jobs", jobsRoutes);
 app.use("/api/users", usersRoutes);
@@ -93,6 +149,9 @@ app.use("/api/messages", messagesRoutes);
 app.use("/api/employer", employerRoutes);
 app.use("/api/shifts", shiftsRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/notifications", notificationsRoutes);
+app.use("/api/recommendations", recommendationsRoutes);
+app.use("/api/referrals", referralsRoutes);
 
 runSchemaChecks();
 
@@ -142,7 +201,7 @@ app.use((err, req, res, next) => {
 
 const PORT = Number(process.env.PORT) || 3000;
 
-const server = app.listen(PORT, () => {
+const server = httpServer.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });
 

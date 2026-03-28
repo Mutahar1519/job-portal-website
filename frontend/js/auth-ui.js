@@ -22,6 +22,8 @@
   const navBar = document.querySelector(".navbar");
   let shiftBadge = null;
   let bellLink = document.getElementById("shiftBell");
+  let supportBadge = null;
+  let supportLink = document.getElementById("supportBell");
 
   // DEFAULT: hide admin + post job
   if (adminLink) adminLink.style.display = "none";
@@ -90,6 +92,39 @@
 
       bellLink.style.display = "inline-flex";
     }
+
+    if (!supportLink) {
+      supportLink = document.createElement("a");
+      supportLink.id = "supportBell";
+      supportLink.href = "#support-chat";
+      supportLink.className = "nav-bell";
+      supportLink.setAttribute("aria-label", "Support messages");
+      supportLink.innerHTML = '<span class="nav-bell-icon"><i class="fa-solid fa-headset"></i></span>';
+
+      supportBadge = document.createElement("span");
+      supportBadge.className = "nav-badge hidden";
+      supportBadge.textContent = "0";
+      supportLink.appendChild(supportBadge);
+
+      supportLink.addEventListener("click", (event) => {
+        event.preventDefault();
+        const toggle = document.getElementById("supportToggle");
+        toggle?.click();
+      });
+
+      if (navBar) {
+        const anchor = bellLink || navBar.querySelector(".nav-profile-chip") || navBar.querySelector("#logoutBtn");
+        if (anchor) {
+          anchor.insertAdjacentElement("beforebegin", supportLink);
+        } else {
+          navBar.appendChild(supportLink);
+        }
+      }
+    } else {
+      supportBadge = supportLink.querySelector(".nav-badge");
+    }
+
+    supportLink.style.display = "inline-flex";
   } else {
     // Not logged in
     if (loginLink) loginLink.style.display = "inline-block";
@@ -97,7 +132,52 @@
     if (userInfo) userInfo.classList.add("hidden");
     if (profileLink) profileLink.style.display = "none";
     if (bellLink) bellLink.style.display = "none";
+    if (supportLink) supportLink.style.display = "none";
   }
+
+  const isLoggedIn = !!(uiToken && uiUser);
+  const canPostJobs = !!(isLoggedIn && (uiUser.is_admin || uiUser.role === "admin" || uiUser.role === "employer"));
+  const canAccessAdmin = !!(isLoggedIn && (uiUser.is_admin || uiUser.role === "admin"));
+  const authOnlyPages = new Set(["dashboard.html", "profile.html", "menu.html"]);
+
+  const resolvePageName = (href) => {
+    if (!href) return "";
+    try {
+      const url = new URL(href, window.location.href);
+      const path = url.pathname || "";
+      const parts = path.split("/").filter(Boolean);
+      return (parts[parts.length - 1] || "").toLowerCase();
+    } catch {
+      return "";
+    }
+  };
+
+  Array.from(document.querySelectorAll("a[href]")).forEach((anchor) => {
+    const pageName = resolvePageName(anchor.getAttribute("href"));
+    if (!pageName) return;
+
+    anchor.addEventListener("click", (event) => {
+      if (authOnlyPages.has(pageName) && !isLoggedIn) {
+        event.preventDefault();
+        alert("Please login first");
+        window.location.href = "login.html";
+        return;
+      }
+
+      if (pageName === "post-jobs.html" && !canPostJobs) {
+        event.preventDefault();
+        alert("You need to login as employer or admin to post jobs");
+        window.location.href = "login.html";
+        return;
+      }
+
+      if (pageName === "admin.html" && !canAccessAdmin) {
+        event.preventDefault();
+        alert("You need to login as admin to access this page");
+        window.location.href = "login.html";
+      }
+    });
+  });
 
   const refreshShiftBadge = async () => {
     if (!uiToken || !shiftBadge || !window.API) return;
@@ -131,6 +211,38 @@
     }
   };
 
+  const refreshSupportBadge = async () => {
+    if (!uiToken || !supportBadge || !window.API) return;
+
+    const request = window.authFetch
+      ? window.authFetch
+      : (url, options = {}) => {
+          return fetch(url, {
+            ...options,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${uiToken}`
+            }
+          });
+        };
+
+    try {
+      const res = await request(`${API}/chat/live-support/unread-count`);
+      const data = await res.json();
+      if (!res.ok) return;
+      const unread = Number(data?.unread || 0);
+      if (unread > 0) {
+        supportBadge.textContent = String(unread > 99 ? "99+" : unread);
+        supportBadge.classList.remove("hidden");
+      } else {
+        supportBadge.textContent = "0";
+        supportBadge.classList.add("hidden");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // LOGOUT
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
@@ -142,7 +254,9 @@
 
   if (uiToken && uiUser) {
     refreshShiftBadge();
+    refreshSupportBadge();
     setInterval(refreshShiftBadge, 60000);
+    setInterval(refreshSupportBadge, 30000);
   }
 
   const oauthContainer = document.getElementById("oauthProviders");

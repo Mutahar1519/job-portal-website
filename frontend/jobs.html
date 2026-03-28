@@ -29,7 +29,6 @@
       <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
         <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
       </a>
-      <button id="themeToggle" class="btn btn-ghost">🌙</button>
       <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
@@ -70,7 +69,9 @@
         <option value="Legal">Legal</option>
         <option value="HR & Recruiting">HR &amp; Recruiting</option>
         <option value="General">General</option>
+        <option value="Other">Other (custom)</option>
       </select>
+      <input type="text" id="categoryFilterCustom" class="form-input" placeholder="Type custom category" style="display:none;margin-top:8px;" maxlength="100">
     </div>
     <button class="job-search-btn" onclick="loadJobs()">Search</button>
   </div>
@@ -99,27 +100,22 @@
       <label for="experienceFilter">Experience</label>
       <select id="experienceFilter">
         <option value="">Any</option>
-        <option value="junior">Junior</option>
-        <option value="mid">Mid</option>
-        <option value="senior">Senior</option>
-        <option value="lead">Lead</option>
+        <option value="Entry-level">Entry-level</option>
+        <option value="Junior">Junior</option>
+        <option value="Mid-level">Mid-level</option>
+        <option value="Senior">Senior</option>
+        <option value="Lead">Lead</option>
+        <option value="Executive">Executive</option>
       </select>
     </div>
     <div class="form-field">
-      <label for="salaryFilter">Salary</label>
-      <select id="salaryFilter">
-        <option value="">Any</option>
-        <option value="0-50000">Up to $50k</option>
-        <option value="50000-100000">$50k - $100k</option>
-        <option value="100000+">$100k+</option>
-        <option value="shift">Shift pay listed</option>
-      </select>
+      <label>Salary ($)</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="salaryMinFilter" placeholder="Min" min="0" step="1000" style="flex:1;min-width:0;">
+        <span style="opacity:.6">—</span>
+        <input type="number" id="salaryMaxFilter" placeholder="Max" min="0" step="1000" style="flex:1;min-width:0;">
+      </div>
     </div>
-    <label class="filter-check">
-      <input type="checkbox" id="remoteOnly" />
-      Remote only
-    </label>
-
     <div class="form-field" style="grid-column:1/-1;">
       <label>Work type</label>
       <div class="work-type-filters" id="workTypeFilters">
@@ -128,6 +124,16 @@
         <button class="work-type-btn" data-work-type="Hybrid" type="button">Hybrid</button>
         <button class="work-type-btn" data-work-type="On-site" type="button">On-site</button>
       </div>
+    </div>
+  </div>
+
+  <div id="savedSearchesPanel" class="form-field" style="display:none;margin-top:12px;">
+    <label style="font-weight:600;font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;opacity:.7;">Saved searches</label>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+      <select id="savedSearchSelect" style="flex:1;min-width:180px;padding:8px 12px;border:1px solid var(--border,#e5e7eb);border-radius:8px;background:var(--surface,#fff);color:inherit;font-size:.9rem;">
+        <option value="">Apply a saved search…</option>
+      </select>
+      <button id="saveSearchBtn" class="btn btn-outline" type="button" style="white-space:nowrap;">Save this search</button>
     </div>
   </div>
 
@@ -140,6 +146,50 @@
     <h3 class="jobs-results-title"><span id="jobsResultCount">0</span> roles found</h3>
   </div>
   <p id="jobsResultHint" class="p-muted">Refine filters to get more relevant matches.</p>
+</section>
+
+<section id="salaryInsights" class="jobs-salary-insights" aria-live="polite">
+  <div class="salary-insights-head">
+    <div>
+      <p class="eyebrow">Salary insights</p>
+      <h3 class="jobs-results-title">Market snapshot for your current filters</h3>
+    </div>
+    <span id="salaryInsightsMeta" class="p-muted">Loading salary intelligence...</span>
+  </div>
+
+  <div class="salary-insights-grid">
+    <article class="salary-kpi">
+      <p class="salary-kpi-label">Average salary</p>
+      <p id="insightAvgSalary" class="salary-kpi-value">-</p>
+    </article>
+    <article class="salary-kpi">
+      <p class="salary-kpi-label">Average min</p>
+      <p id="insightAvgMin" class="salary-kpi-value">-</p>
+    </article>
+    <article class="salary-kpi">
+      <p class="salary-kpi-label">Average max</p>
+      <p id="insightAvgMax" class="salary-kpi-value">-</p>
+    </article>
+    <article class="salary-kpi">
+      <p class="salary-kpi-label">Salary data coverage</p>
+      <p id="insightCoverage" class="salary-kpi-value">-</p>
+    </article>
+  </div>
+
+  <div class="salary-insights-lists">
+    <div class="salary-list-block">
+      <h4>Top categories</h4>
+      <ul id="insightTopCategories"></ul>
+    </div>
+    <div class="salary-list-block">
+      <h4>Top locations</h4>
+      <ul id="insightTopLocations"></ul>
+    </div>
+    <div class="salary-list-block">
+      <h4>By experience level</h4>
+      <ul id="insightByExperience"></ul>
+    </div>
+  </div>
 </section>
 
 <div id="jobs" class="jobs-grid"></div>
@@ -168,11 +218,11 @@
 </footer>
 
 <script src="js/config.js"></script>
+<script src="js/utils.js"></script>
 <script src="js/jobs-search.js"></script>
 <script src="js/navbar.js"></script>
 <script src="js/auth-ui.js"></script>
 <script src="js/theme.js" defer></script>
-<script src="js/utils.js"></script>
 <script src="js/support-chat.js"></script>
 <div id="toast"></div>
 </body>

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -26,7 +26,6 @@
       <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
         <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
       </a>
-      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
       <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
@@ -52,6 +51,7 @@
 
     <section class="employer-tabs" aria-label="Employer sections">
       <a href="#employer-jobs" class="employer-tab is-active"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+      <a href="#employer-bulk" class="employer-tab"><i class="fa-solid fa-file-csv"></i> Bulk Upload</a>
       <a href="#employer-analytics" class="employer-tab"><i class="fa-solid fa-chart-line"></i> Analytics</a>
       <a href="#employer-pipeline" class="employer-tab"><i class="fa-solid fa-users"></i> Pipeline</a>
       <a href="#employer-messages" class="employer-tab"><i class="fa-solid fa-comments"></i> Messages</a>
@@ -66,12 +66,38 @@
         <div class="toolbar-group">
           <label class="filter-label" for="jobSelect">Active role</label>
           <select id="jobSelect" class="form-input"></select>
+          <p id="selectedJobMeta" class="p-muted" style="margin-top:8px;"></p>
         </div>
         <div class="toolbar-actions">
+          <button id="renewJobBtn" class="btn btn-outline" type="button">Renew job (30 days)</button>
+          <button id="reboostJobBtn" class="btn btn-outline" type="button">Re-Boost job</button>
           <button id="refreshJobs" class="btn btn-outline" type="button">Refresh</button>
           <a class="btn btn-primary" href="post-jobs.html">Post a job</a>
         </div>
       </div>
+    </section>
+
+    <section id="employer-bulk" class="section-block employer-panel">
+      <div class="section-head">
+        <p class="eyebrow">Bulk posting</p>
+        <h2 class="section-title">Upload multiple jobs from CSV</h2>
+        <p class="p-muted">Validate rows first with Dry Run, then create all valid jobs in one click.</p>
+      </div>
+
+      <div class="bulk-upload-toolbar">
+        <button id="downloadBulkTemplateBtn" class="btn btn-outline" type="button">Download CSV template</button>
+        <label class="btn btn-outline" for="bulkCsvFile" style="cursor:pointer;">Choose CSV</label>
+        <input id="bulkCsvFile" type="file" accept=".csv,text/csv" style="display:none;" />
+        <span id="bulkCsvMeta" class="p-muted">No file selected</span>
+      </div>
+
+      <div class="bulk-upload-actions">
+        <button id="bulkDryRunBtn" class="btn btn-outline" type="button">Dry Run Validation</button>
+        <button id="bulkUploadBtn" class="btn btn-primary" type="button">Create Jobs</button>
+      </div>
+
+      <div id="bulkUploadResult" class="bulk-upload-result p-muted">Upload a CSV to start.</div>
+      <div id="bulkUploadIssues" class="admin-list"></div>
     </section>
 
     <section id="employer-analytics" class="section-block employer-panel">

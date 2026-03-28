@@ -5,13 +5,25 @@ const fs = require("fs");
 const multer = require("multer");
 const db = require("../config/mysql");
 
-// Bootstrap: add photo_url to users table if missing
+// Bootstrap: add photo_url to users table if missing.
 db.query(
-  "ALTER TABLE users ADD COLUMN photo_url VARCHAR(255) NULL",
-  (err) => {
-    if (err && err.code !== "ER_DUP_FIELDNAME") {
-      console.warn("users.photo_url bootstrap:", err.message);
+  `SELECT 1 AS ok
+   FROM INFORMATION_SCHEMA.COLUMNS
+   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'photo_url'
+   LIMIT 1`,
+  (checkErr, rows) => {
+    if (checkErr) {
+      console.warn("users.photo_url bootstrap check:", checkErr.message);
+      return;
     }
+
+    if (rows.length) return;
+
+    db.query("ALTER TABLE users ADD COLUMN photo_url VARCHAR(255) NULL", (alterErr) => {
+      if (alterErr && alterErr.code !== "ER_DUP_FIELDNAME") {
+        console.warn("users.photo_url bootstrap:", alterErr.message);
+      }
+    });
   }
 );
 
@@ -26,6 +38,12 @@ const {
   updateJobSeekerProfile,
   getEmployerProfile,
   updateEmployerProfile,
+  getMySkills,
+  updateMySkills,
+  getPublicProfile,
+  getUserSkills,
+  endorseUserSkill,
+  removeSkillEndorsement,
   verifyEmail,
   forgotPassword,
   resetPassword
@@ -68,6 +86,12 @@ router.get("/job-seeker-profile", auth, getJobSeekerProfile);
 router.put("/job-seeker-profile", auth, updateJobSeekerProfile);
 router.get("/employer-profile", auth, getEmployerProfile);
 router.put("/employer-profile", auth, updateEmployerProfile);
+router.get("/skills/me", auth, getMySkills);
+router.put("/skills/me", auth, updateMySkills);
+router.get("/:userId/public-profile", auth, getPublicProfile);
+router.get("/:userId/skills", auth, getUserSkills);
+router.post("/:userId/skills/:skillId/endorse", auth, endorseUserSkill);
+router.delete("/:userId/skills/:skillId/endorse", auth, removeSkillEndorsement);
 
 // Profile photo upload
 router.post("/photo", auth, uploadPhoto.single("photo"), (req, res) => {

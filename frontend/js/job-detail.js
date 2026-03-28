@@ -298,6 +298,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   reviewer_name: companyReviewName?.value?.trim() || "",
+                  reviewer_role: currentUser?.role || "job_seeker",
                   rating: Number(companyReviewRating?.value || 0),
                   message: companyReviewMessage?.value?.trim() || ""
                 })

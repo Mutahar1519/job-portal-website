@@ -53,6 +53,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const previewBio = document.getElementById("profilePreviewBio");
   const avatarWrap = document.getElementById("profileAvatarWrap");
   const jobSeekerFields = document.getElementById("jobSeekerFields");
+  const skillsForm = document.getElementById("skillsForm");
+  const skillsManagerInput = document.getElementById("skillsInput");
+  const skillsList = document.getElementById("skillsList");
+  let endorsedSkills = [];
+  const viewedUserId = Number(new URLSearchParams(window.location.search).get("userId") || 0);
+  const isCrossProfileView = Number.isInteger(viewedUserId) && viewedUserId > 0;
 
   const setRoleUi = (currentUser) => {
     if (nameEl) nameEl.textContent = currentUser.name || "Your profile";
@@ -126,6 +132,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     return `${apiOrigin}${url}`;
   };
 
+  const resolveResumeUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    return `${apiOrigin}${url}`;
+  };
+
   const renderAvatar = (profile, displayName) => {
     const photo = resolvePhotoUrl(profile.photoData || profile.photoUrl || "");
     const initials = getInitials(displayName);
@@ -161,8 +173,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (previewBio) previewBio.textContent = profile.about || "";
 
     if (previewResume) {
-      if (profile.resumeLink) {
-        previewResume.href = profile.resumeLink;
+      const resumeHref = resolveResumeUrl(profile.resumeLink);
+      if (resumeHref) {
+        previewResume.href = resumeHref;
         previewResume.textContent = "Resume";
         previewResume.style.display = "inline-flex";
       } else {
@@ -288,6 +301,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       } catch (err) {
         console.error(err);
       }
+
+      try {
+        const resumeRes = await authFetch(`${API}/resumes/me`);
+        const resumeData = await resumeRes.json();
+        if (resumeRes.ok && resumeData?.file_path) {
+          profileData.resumeLink = resumeData.file_path;
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     setFormValues(profileData);
@@ -295,7 +318,142 @@ document.addEventListener("DOMContentLoaded", async () => {
     saveProfileData(profileData);
   };
 
+  const splitSkills = (value) => {
+    return String(value || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 30);
+  };
+
+  const renderSkillsManager = (skills) => {
+    if (!skillsList) return;
+
+    if (!skills.length) {
+      skillsList.innerHTML = '<p class="p-muted">No skills added yet. Add skills above to start collecting endorsements.</p>';
+      return;
+    }
+
+    skillsList.innerHTML = skills.map((skill) => {
+      const count = Number(skill.endorsements_count || 0);
+      const endorseBtn = isCrossProfileView
+        ? `<button class="btn ${skill.endorsed_by_me ? "btn-primary" : "btn-outline"} skill-endorse-btn" type="button" data-endorse-skill-id="${skill.skill_id}" data-endorsed-by-me="${Number(skill.endorsed_by_me || 0)}">${skill.endorsed_by_me ? "Endorsed" : "Endorse"}</button>`
+        : `<button class="btn btn-outline skill-remove-btn" type="button" data-remove-skill="${skill.name}">Remove</button>`;
+      return `
+        <div class="skill-row" data-skill-id="${skill.skill_id}">
+          <div class="skill-row-main">
+            <span class="pill">${skill.name}</span>
+            <span class="skill-row-count">${count} endorsement${count === 1 ? "" : "s"}</span>
+          </div>
+          ${endorseBtn}
+        </div>
+      `;
+    }).join("");
+  };
+
+  const setEndorsedSkills = (skills) => {
+    endorsedSkills = Array.isArray(skills) ? skills : [];
+    const names = endorsedSkills.map((item) => item.name).filter(Boolean);
+    profileData.skills = names.join(", ");
+    if (skillsInput) skillsInput.value = profileData.skills;
+    if (skillsManagerInput) skillsManagerInput.value = profileData.skills;
+    renderProfile(profileData);
+    renderSkillsManager(endorsedSkills);
+  };
+
+  const updateSkillsApi = async (skills) => {
+    const response = await authFetch(`${API}/users/skills/me`, {
+      method: "PUT",
+      body: JSON.stringify({ skills })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to update skills");
+    }
+    setEndorsedSkills(data.skills || []);
+    saveProfileData(profileData);
+  };
+
+  const loadMySkills = async () => {
+    if (isCrossProfileView) {
+      try {
+        const profileRes = await authFetch(`${API}/users/${viewedUserId}/public-profile`);
+        const profile = await profileRes.json();
+        if (!profileRes.ok) {
+          throw new Error(profile.message || "Failed to load public profile");
+        }
+
+        profileData.name = profile.name || "Candidate";
+        profileData.city = profile.city || "";
+        profileData.country = profile.country || "";
+        profileData.jobTitle = profile.job_title || "";
+        profileData.skills = profile.skills || "";
+        profileData.location = profile.location || "";
+        profileData.preferredJobType = profile.preferred_job_type || "";
+        profileData.currentCompany = profile.current_company || "";
+        profileData.experienceYears = profile.experience_years || "";
+        profileData.about = profile.about || "";
+        profileData.resumeLink = profile.resume_url || "";
+        profileData.photoUrl = profile.photo_url || "";
+        renderProfile(profileData);
+
+        if (form) form.style.display = "none";
+        const editPanel = document.getElementById("profile-edit-panel");
+        if (editPanel) {
+          const title = editPanel.querySelector(".section-title");
+          if (title) title.textContent = "Candidate public profile";
+          const subtitle = editPanel.querySelector(".p-muted");
+          if (subtitle) subtitle.textContent = "You are viewing a public candidate profile. You can endorse listed skills.";
+        }
+      } catch (err) {
+        console.error(err);
+      }
+
+      try {
+        const response = await authFetch(`${API}/users/${viewedUserId}/skills`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load user skills");
+        }
+        setEndorsedSkills(data || []);
+      } catch (err) {
+        console.warn("Cross-profile skills unavailable", err.message);
+        setEndorsedSkills(splitSkills(profileData.skills).map((name, idx) => ({
+          skill_id: idx + 1,
+          name,
+          endorsements_count: 0,
+          endorsed_by_me: 0
+        })));
+      }
+
+      return;
+    }
+
+    if (!(user.is_admin || user.role === "job_seeker")) {
+      if (skillsForm) skillsForm.style.display = "none";
+      if (skillsList) skillsList.innerHTML = '<p class="p-muted">Skills endorsements are available for job seeker profiles.</p>';
+      return;
+    }
+
+    try {
+      const response = await authFetch(`${API}/users/skills/me`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load skills");
+      }
+      setEndorsedSkills(data || []);
+    } catch (err) {
+      console.warn("Skills API unavailable, using profile skills fallback", err.message);
+      setEndorsedSkills(splitSkills(profileData.skills).map((name, idx) => ({
+        skill_id: idx + 1,
+        name,
+        endorsements_count: 0
+      })));
+    }
+  };
+
   hydrateProfile();
+  loadMySkills();
 
   const setCount = (id, value) => {
     const el = document.getElementById(id);
@@ -414,7 +572,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     profileData.location = locationInput?.value.trim() || "";
     profileData.about = bioInput?.value.trim() || "";
     profileData.photoUrl = photoInput?.value.trim() || profileData.photoUrl || "";
-    profileData.resumeLink = resumeInput?.value.trim() || "";
+    profileData.resumeLink = resumeInput?.value.trim() || profileData.resumeLink || "";
 
     saveProfileData(profileData);
     renderProfile(profileData);
@@ -478,6 +636,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (!profileRes.ok) {
             throw new Error(profileDataResp.message || "Failed to update job seeker profile");
           }
+
+          await updateSkillsApi(splitSkills(profileData.skills));
         }
 
         if (window.toast) {
@@ -615,6 +775,75 @@ document.addEventListener("DOMContentLoaded", async () => {
       } finally {
         downloadDataBtn.disabled = false;
         downloadDataBtn.textContent = "Download Data";
+      }
+    });
+  }
+
+  if (skillsForm) {
+    skillsForm.addEventListener("submit", async (event) => {
+      if (isCrossProfileView) {
+        event.preventDefault();
+        return;
+      }
+      event.preventDefault();
+      const inputSkills = splitSkills(skillsManagerInput?.value || "");
+      try {
+        await updateSkillsApi(inputSkills);
+        if (window.toast) {
+          window.toast("Skills updated");
+        }
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Failed to update skills");
+      }
+    });
+  }
+
+  if (skillsList) {
+    skillsList.addEventListener("click", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      const endorseSkillId = Number(target.getAttribute("data-endorse-skill-id") || 0);
+      if (isCrossProfileView && endorseSkillId) {
+        const endorsedByMe = Number(target.getAttribute("data-endorsed-by-me") || 0) === 1;
+        const method = endorsedByMe ? "DELETE" : "POST";
+        try {
+          const res = await authFetch(`${API}/users/${viewedUserId}/skills/${endorseSkillId}/endorse`, {
+            method
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            alert(data.message || "Failed to update endorsement");
+            return;
+          }
+
+          const refresh = await authFetch(`${API}/users/${viewedUserId}/skills`);
+          const refreshData = await refresh.json();
+          if (refresh.ok) {
+            setEndorsedSkills(refreshData || []);
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Failed to update endorsement");
+        }
+        return;
+      }
+
+      if (isCrossProfileView) return;
+
+      const removeSkill = target.getAttribute("data-remove-skill");
+      if (!removeSkill) return;
+
+      const remaining = endorsedSkills
+        .map((item) => item.name)
+        .filter((name) => String(name).toLowerCase() !== String(removeSkill).toLowerCase());
+
+      try {
+        await updateSkillsApi(remaining);
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Failed to remove skill");
       }
     });
   }

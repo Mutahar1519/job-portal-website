@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 
-// Shared JWT secret - MUST match all JWT generation and verification
-const JWT_SECRET = "secret123";
+// Shared JWT secret - reads from environment variable
+const JWT_SECRET = process.env.JWT_SECRET || "secret123";
 
 const generateToken = (user) => {
   return jwt.sign(

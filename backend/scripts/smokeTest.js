@@ -162,6 +162,47 @@ async function registerTempSeeker() {
   return { email, password, token: loginJson.token };
 }
 
+async function tryGetEmployerJobByTitle(title) {
+  if (!state.tokens.employer) return null;
+
+  try {
+    const myJobs = await assertStatus(
+      "/api/employer/jobs",
+      [200],
+      {
+        headers: { Authorization: `Bearer ${state.tokens.employer}` }
+      },
+      "employer-jobs"
+    );
+
+    const rows = Array.isArray(myJobs) ? myJobs : [];
+    return rows.find((job) => (job?.title || "") === title) || null;
+  } catch (err) {
+    warn(`Unable to fetch employer jobs for fallback target: ${err.message}`);
+    return null;
+  }
+}
+
+async function tryApproveJob(jobId) {
+  if (!jobId || !state.tokens.admin) return false;
+
+  try {
+    await assertStatus(
+      `/api/admin/jobs/${jobId}/approve`,
+      [200],
+      {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${state.tokens.admin}` }
+      },
+      "admin-approve-job"
+    );
+    return true;
+  } catch (err) {
+    warn(`Unable to approve fallback smoke job ${jobId}: ${err.message}`);
+    return false;
+  }
+}
+
 function buildPdfBlob() {
   return new Blob(
     [
@@ -238,6 +279,13 @@ async function run() {
     "post-job"
   );
 
+  let createdJobId = extractJobId(createdJob);
+
+  if (!Number.isFinite(createdJobId) || createdJobId <= 0) {
+    const employerJob = await tryGetEmployerJobByTitle(newJobTitle);
+    createdJobId = extractJobId(employerJob);
+  }
+
   if (!Number.isFinite(extractJobId(createdJob)) || extractJobId(createdJob) <= 0) {
     const jobsAfterCreate = await assertStatus("/api/jobs", [200], {}, "list-jobs-after-create");
     state.jobs = normalizeJobsList(jobsAfterCreate);
@@ -252,9 +300,19 @@ async function run() {
     const jobId = extractJobId(job);
     return Number.isFinite(jobId) && jobId > 0 && !alreadyAppliedIds.has(jobId);
   });
-  const createdByTitle = state.jobs.find((job) => (job?.title || "") === newJobTitle);
+  const createdByTitle = state.jobs.find((job) => extractJobId(job) === createdJobId || (job?.title || "") === newJobTitle);
+
+  if (!createdByTitle && Number.isFinite(createdJobId) && createdJobId > 0) {
+    const approved = await tryApproveJob(createdJobId);
+    if (approved) {
+      const jobsAfterApprove = await assertStatus("/api/jobs", [200], {}, "list-jobs-after-approve");
+      state.jobs = normalizeJobsList(jobsAfterApprove);
+    }
+  }
+
+  const createdAndApproved = state.jobs.find((job) => extractJobId(job) === createdJobId);
   // Prefer the fresh job we just created to avoid collisions with existing applications.
-  const targetJob = createdJob || createdByTitle || applyTargetJob || state.jobs[0];
+  const targetJob = createdAndApproved || createdByTitle || createdJob || applyTargetJob || state.jobs[0];
   const targetJobId = extractJobId(targetJob);
 
   if (targetJobId) {

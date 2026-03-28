@@ -1,33 +1,58 @@
 const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
 const adminAuth = require("../middleware/adminAuth");
 const db = require("../config/mysql");
+const { sendMail } = require("../utils/mailer");
 const { notifyShiftAlerts } = require("../utils/shiftAlerts");
 const { getPlatformSetting, setPlatformSetting, toBooleanSetting } = require("../utils/platformSettings");
 
 const DEFAULT_AUTO_APPROVAL_ENABLED = process.env.AUTO_APPROVE_JOBS !== "false";
-const ADMIN_APPROVER_EMAIL = "test@sample.com";
+const ADMIN_APPROVER_EMAIL = String(process.env.ADMIN_APPROVER_EMAIL || "").trim().toLowerCase();
 const ADMIN_GRANT_TTL_MINUTES = 30;
 
-// Best-effort schema bootstrap for review moderation state.
-db.query(
-  "ALTER TABLE reviews ADD COLUMN is_hidden TINYINT(1) NOT NULL DEFAULT 0",
-  (err) => {
-    if (err && err.code !== "ER_DUP_FIELDNAME") {
-      console.warn("reviews.is_hidden bootstrap failed:", err.message);
+const resolveAdminApproverEmail = (req) => {
+  const fallback = String(req?.user?.email || "").trim().toLowerCase();
+  return ADMIN_APPROVER_EMAIL || fallback || "admin@localhost";
+};
+
+const ensureColumn = (tableName, columnName, ddl, label) => {
+  db.query(
+    `SELECT 1 AS ok
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?
+     LIMIT 1`,
+    [tableName, columnName],
+    (checkErr, rows) => {
+      if (checkErr) {
+        console.warn(`${label} bootstrap check failed:`, checkErr.message);
+        return;
+      }
+
+      if (rows.length) return;
+
+      db.query(ddl, (alterErr) => {
+        if (alterErr && alterErr.code !== "ER_DUP_FIELDNAME") {
+          console.warn(`${label} bootstrap failed:`, alterErr.message);
+        }
+      });
     }
-  }
+  );
+};
+
+// Best-effort schema bootstrap for review moderation state.
+ensureColumn(
+  "reviews",
+  "is_hidden",
+  "ALTER TABLE reviews ADD COLUMN is_hidden TINYINT(1) NOT NULL DEFAULT 0",
+  "reviews.is_hidden"
 );
 
-db.query(
+ensureColumn(
+  "users",
+  "is_blocked",
   "ALTER TABLE users ADD COLUMN is_blocked TINYINT(1) NOT NULL DEFAULT 0",
-  (err) => {
-    if (err && err.code !== "ER_DUP_FIELDNAME") {
-      console.warn("users.is_blocked bootstrap failed:", err.message);
-    }
-  }
+  "users.is_blocked"
 );
 
 db.query(
@@ -88,27 +113,6 @@ db.query(
     }
   }
 );
-
-const getMailer = () => {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM;
-
-  if (!host || !user || !pass || !from) {
-    return null;
-  }
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass }
-  });
-
-  return { transporter, from };
-};
 
 router.get("/settings/auto-approval", adminAuth, async (req, res) => {
   const raw = await getPlatformSetting("auto_approve_jobs", String(DEFAULT_AUTO_APPROVAL_ENABLED));
@@ -190,10 +194,12 @@ router.delete("/users/:id", adminAuth, (req, res) => {
   });
 });
 
-/* Request admin grant approval from test@sample.com */
+/* Request admin grant approval */
 router.post("/users/:id/request-admin-grant", adminAuth, (req, res) => {
   const userId = Number(req.params.id);
   if (!userId) return res.status(400).json({ message: "Invalid user" });
+
+  const approverEmail = resolveAdminApproverEmail(req);
 
   db.query("SELECT id, name, email, is_admin FROM users WHERE id = ?", [userId], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -212,29 +218,27 @@ router.post("/users/:id/request-admin-grant", adminAuth, (req, res) => {
           `INSERT INTO admin_role_grants
             (target_user_id, requested_by_admin_id, approver_email, approval_code, status, expires_at)
            VALUES (?, ?, ?, ?, 'pending', ?)`,
-          [userId, req.user.id, ADMIN_APPROVER_EMAIL, approvalCode, expiresAt],
+          [userId, req.user.id, approverEmail, approvalCode, expiresAt],
           (insertErr) => {
             if (insertErr) return res.status(500).json({ error: insertErr.message });
 
-            const mailer = getMailer();
             const message = `Admin role grant requested for user ${target.name} (${target.email}).\nApproval code: ${approvalCode}\nExpires in ${ADMIN_GRANT_TTL_MINUTES} minutes.`;
 
-            if (mailer) {
-              mailer.transporter
-                .sendMail({
-                  from: mailer.from,
-                  to: ADMIN_APPROVER_EMAIL,
-                  subject: "JobPortal admin promotion approval required",
-                  text: message
-                })
-                .catch((mailErr) => console.error("Admin grant email failed:", mailErr.message));
-            } else {
-              console.warn(`[AdminGrant] SMTP not configured. Share this code with ${ADMIN_APPROVER_EMAIL}: ${approvalCode}`);
-            }
+            sendMail({
+              to: approverEmail,
+              subject: "JobPortal admin promotion approval required",
+              text: message
+            })
+              .then((result) => {
+                if (!result) {
+                  console.warn(`[AdminGrant] Email delivery unavailable. Share this code with ${approverEmail}: ${approvalCode}`);
+                }
+              })
+              .catch((mailErr) => console.error("Admin grant email failed:", mailErr.message));
 
             res.json({
-              message: `Approval requested. Ask ${ADMIN_APPROVER_EMAIL} for the approval code.`,
-              approver_email: ADMIN_APPROVER_EMAIL,
+              message: `Approval requested. Ask ${approverEmail} for the approval code.`,
+              approver_email: approverEmail,
               expires_in_minutes: ADMIN_GRANT_TTL_MINUTES
             });
           }
@@ -244,7 +248,7 @@ router.post("/users/:id/request-admin-grant", adminAuth, (req, res) => {
   });
 });
 
-/* Promote user to admin with approval from test@sample.com */
+/* Promote user to admin with approval code */
 router.put("/users/:id/make-admin", adminAuth, (req, res) => {
   const userId = Number(req.params.id);
   const approvalEmail = String((req.body && req.body.approvalEmail) || "").trim().toLowerCase();
@@ -252,21 +256,33 @@ router.put("/users/:id/make-admin", adminAuth, (req, res) => {
 
   if (!userId) return res.status(400).json({ message: "Invalid user" });
   if (!approvalCode) return res.status(400).json({ message: "Approval code is required" });
-  if (approvalEmail !== ADMIN_APPROVER_EMAIL) {
-    return res.status(400).json({ message: `Approval must come from ${ADMIN_APPROVER_EMAIL}` });
-  }
+
+  const sql = approvalEmail
+    ? `SELECT id, approver_email
+       FROM admin_role_grants
+       WHERE target_user_id = ?
+         AND approver_email = ?
+         AND approval_code = ?
+         AND status = 'pending'
+         AND expires_at > NOW()
+       ORDER BY created_at DESC
+       LIMIT 1`
+    : `SELECT id, approver_email
+       FROM admin_role_grants
+       WHERE target_user_id = ?
+         AND approval_code = ?
+         AND status = 'pending'
+         AND expires_at > NOW()
+       ORDER BY created_at DESC
+       LIMIT 1`;
+
+  const params = approvalEmail
+    ? [userId, approvalEmail, approvalCode]
+    : [userId, approvalCode];
 
   db.query(
-    `SELECT id
-     FROM admin_role_grants
-     WHERE target_user_id = ?
-       AND approver_email = ?
-       AND approval_code = ?
-       AND status = 'pending'
-       AND expires_at > NOW()
-     ORDER BY created_at DESC
-     LIMIT 1`,
-    [userId, ADMIN_APPROVER_EMAIL, approvalCode],
+    sql,
+    params,
     (err, grants) => {
       if (err) return res.status(500).json({ error: err.message });
       if (!grants.length) {
@@ -285,7 +301,7 @@ router.put("/users/:id/make-admin", adminAuth, (req, res) => {
             "UPDATE admin_role_grants SET status = 'approved', approved_at = NOW() WHERE id = ?",
             [grantId],
             () => {
-              res.json({ message: "User promoted to admin" });
+              res.json({ message: "User promoted to admin", approved_by: grants[0].approver_email });
             }
           );
         }
@@ -330,15 +346,24 @@ router.get("/users/grants/history", adminAuth, (req, res) => {
 
 // GET all jobs (admin)
 router.get("/jobs", adminAuth, (req, res) => {
-  db.query("SELECT * FROM jobs ORDER BY is_premium DESC, created_at DESC", (err, jobs) => {
+  db.query(
+    `SELECT j.*, parent.title AS repost_of_title
+     FROM jobs j
+     LEFT JOIN jobs parent ON parent.id = j.repost_of_job_id
+     ORDER BY j.is_premium DESC, j.created_at DESC`,
+    (err, jobs) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(jobs);
-  });
+    }
+  );
 });
 
 // ADD job (admin)
 router.post("/jobs", adminAuth, (req, res) => {
-  const { title, location, job_type, category, description, is_premium } = req.body;
+  const { title, location, job_type, description, is_premium } = req.body;
+  const requestedCategory = String(req.body.category || "").trim();
+  const categoryCustom = String(req.body.category_custom || "").trim();
+  const category = requestedCategory.toLowerCase() === "other" ? categoryCustom : requestedCategory;
 
   if (!title || !location || !job_type || !category || !description) {
     return res.status(400).json({ message: "All fields are required" });
@@ -356,7 +381,10 @@ router.post("/jobs", adminAuth, (req, res) => {
 
 // UPDATE job (admin)
 router.put("/jobs/:id", adminAuth, (req, res) => {
-  const { title, location, job_type, category, description, is_premium } = req.body;
+  const { title, location, job_type, description, is_premium } = req.body;
+  const requestedCategory = String(req.body.category || "").trim();
+  const categoryCustom = String(req.body.category_custom || "").trim();
+  const category = requestedCategory.toLowerCase() === "other" ? categoryCustom : requestedCategory;
 
   if (!title || !location || !job_type || !category || !description) {
     return res.status(400).json({ message: "All fields are required" });
@@ -433,9 +461,9 @@ router.delete("/jobs/:id", adminAuth, (req, res) => {
 // VIEW applications per job (admin)
 router.get("/jobs/:id/applications", adminAuth, (req, res) => {
   const sql = `
-    SELECT a.id, a.status, a.cover_letter, a.cv_path, a.created_at,
-           a.full_name, a.email, a.phone, a.country,
-           u.id AS user_id, u.name AS user_name, u.email AS user_email
+    SELECT a.id, a.status, a.created_at,
+           COALESCE(NULLIF(TRIM(a.full_name), ''), u.name, 'Candidate') AS applicant_name,
+           u.id AS user_id
     FROM applications a
     JOIN users u ON a.user_id = u.id
     WHERE a.job_id = ?
@@ -444,7 +472,11 @@ router.get("/jobs/:id/applications", adminAuth, (req, res) => {
 
   db.query(sql, [req.params.id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(results);
+    const safeRows = (results || []).map((row) => ({
+      ...row,
+      user_ref: `U${String(row.user_id || '').padStart(6, '0')}`
+    }));
+    res.json(safeRows);
   });
 });
 

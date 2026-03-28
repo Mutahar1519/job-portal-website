@@ -30,7 +30,6 @@
       <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
         <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
       </a>
-      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
       <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
@@ -65,7 +64,9 @@
       </article>
     </section>
 
-    <section class="glass-card admin-panel">
+    <div class="admin-layout">
+      <div class="admin-content">
+    <section id="admin-jobs-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Jobs</p>
@@ -112,7 +113,12 @@
             <option value="Design">Design</option>
             <option value="Operations">Operations</option>
             <option value="General">General</option>
+            <option value="Other">Other (custom)</option>
           </select>
+        </div>
+        <div class="form-group" id="adminJobCategoryCustomWrap" style="display:none;">
+          <label class="form-label" for="adminJobCategoryCustom">Custom Category</label>
+          <input type="text" id="adminJobCategoryCustom" name="adminJobCategoryCustom" class="form-input" placeholder="Enter custom category" maxlength="100">
         </div>
         <div class="form-group" style="grid-column:1/-1;">
           <label class="form-label" for="adminJobDescription">Description</label>
@@ -131,7 +137,7 @@
       <div id="jobs" class="admin-list"></div>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-applications-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Applications</p>
@@ -141,7 +147,7 @@
       <div id="applications" class="admin-list"></div>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-users-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Users</p>
@@ -149,11 +155,11 @@
         </div>
         <button class="btn btn-outline" type="button" onclick="loadUsers()">Reload Users</button>
       </div>
-      <p class="p-muted">Promoting a user to admin requires approval code from test@sample.com.</p>
+      <p class="p-muted">Promoting a user to admin requires an approval code from the configured approver email shown when you request the grant.</p>
       <div id="users" class="admin-list"></div>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-companies-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Companies</p>
@@ -164,7 +170,7 @@
       <div id="companies" class="admin-list"></div>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-grants-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Admin grants</p>
@@ -180,7 +186,7 @@
       <div id="grantHistory" class="admin-list"></div>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-reviews-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Reviews</p>
@@ -202,7 +208,7 @@
       <div id="reviewQueue" class="admin-list"></div>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-shifts-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Shifts</p>
@@ -212,7 +218,7 @@
       <div id="shiftEscrows" class="admin-list"></div>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-moderation-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">AI moderation</p>
@@ -228,7 +234,51 @@
       <button class="btn btn-outline" type="button" id="saveAutoApproveBtn">Save moderation settings</button>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-support-section" class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Support inbox</p>
+          <h3>Human support tickets</h3>
+          <p id="supportInboxMeta" class="p-muted" style="margin-top:6px;">Loading support inbox...</p>
+        </div>
+        <div class="admin-record-actions" style="gap:8px;">
+          <button class="btn btn-outline" type="button" onclick="setSupportMineFilter()">My tickets</button>
+          <button class="btn btn-outline" type="button" onclick="setSupportFilter('open')">Open</button>
+          <button class="btn btn-outline" type="button" onclick="setSupportFilter('waiting_support')">Waiting support</button>
+          <button class="btn btn-outline" type="button" onclick="setSupportFilter('waiting_user')">Waiting user</button>
+          <button class="btn btn-outline" type="button" onclick="setSupportFilter('closed')">Closed</button>
+          <button class="btn btn-outline" type="button" onclick="setSupportFilter('all')">All</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(280px, 1fr) minmax(340px, 1.3fr);gap:14px;">
+        <div id="supportTickets" class="admin-list"></div>
+        <div class="job-card" style="padding:14px;">
+          <div class="admin-record-head" style="margin-bottom:10px;">
+            <h4 id="supportThreadTitle" style="margin:0;">Select a ticket</h4>
+            <div class="admin-record-actions" style="gap:8px;">
+              <button class="btn btn-outline" type="button" onclick="assignSupportTicketToMe()">Assign to me</button>
+              <button class="btn btn-outline" type="button" onclick="closeSupportTicket()">Close ticket</button>
+            </div>
+          </div>
+          <p id="supportThreadMeta" class="p-muted" style="margin-bottom:10px;">No ticket selected.</p>
+          <div id="supportThread" class="support-messages" style="max-height:260px;"></div>
+          <form id="supportReplyForm" class="support-form" style="margin-top:10px;">
+            <textarea id="supportReplyInput" name="supportReply" class="form-input" rows="3" placeholder="Type your reply"></textarea>
+            <div id="supportQuickReplies" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+              <button type="button" class="btn btn-outline" data-template="greeting">Greeting</button>
+              <button type="button" class="btn btn-outline" data-template="checking">Checking now</button>
+              <button type="button" class="btn btn-outline" data-template="ask_steps">Ask steps</button>
+              <button type="button" class="btn btn-outline" data-template="refresh_login">Refresh/login</button>
+              <button type="button" class="btn btn-outline" data-template="issue_fixed">Issue fixed</button>
+            </div>
+            <button class="btn btn-primary" type="submit">Send reply</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="admin-analytics-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Analytics</p>
@@ -237,7 +287,35 @@
       </div>
       <canvas id="statsChart" height="220"></canvas>
     </section>
+      </div>
+
+      <aside class="glass-card admin-quick-nav" aria-label="Admin section navigation">
+        <p class="eyebrow">Quick navigation</p>
+        <h3>Jump to section</h3>
+        <a href="#statsSummary" class="admin-quick-link">Overview stats</a>
+        <a href="#admin-jobs-section" class="admin-quick-link">Jobs</a>
+        <a href="#admin-applications-section" class="admin-quick-link">Applications</a>
+        <a href="#admin-users-section" class="admin-quick-link">Users</a>
+        <a href="#admin-companies-section" class="admin-quick-link">Companies</a>
+        <a href="#admin-grants-section" class="admin-quick-link">Admin grants</a>
+        <a href="#admin-reviews-section" class="admin-quick-link">Reviews</a>
+        <a href="#admin-shifts-section" class="admin-quick-link">Shifts</a>
+        <a href="#admin-moderation-section" class="admin-quick-link">AI moderation</a>
+        <a href="#admin-support-section" class="admin-quick-link">Support inbox</a>
+        <a href="#admin-analytics-section" class="admin-quick-link">Analytics</a>
+      </aside>
+    </div>
   </main>
+
+  <div id="jobApplicationsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="jobApplicationsModalTitle">
+    <div class="modal-inner glass-card" style="max-width:920px;width:100%;padding:22px;">
+      <div class="admin-record-head" style="margin-bottom:12px;">
+        <h3 id="jobApplicationsModalTitle" style="margin:0;">Applications</h3>
+        <button id="jobApplicationsModalClose" class="btn btn-outline" type="button">Close</button>
+      </div>
+      <div id="jobApplicationsModalList" class="admin-list"></div>
+    </div>
+  </div>
 
   <div id="adminPaymentModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminPaymentTitle">
     <div class="modal-inner glass-card" style="max-width:480px;width:100%;padding:28px;">

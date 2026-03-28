@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -26,7 +26,6 @@
       <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
         <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
       </a>
-      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
       <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
@@ -224,6 +223,21 @@
           <span id="profileShiftAlerts" class="stat-value">0</span>
         </div>
       </div>
+
+      <div class="profile-endorsements-block">
+        <div class="section-head">
+          <p class="eyebrow">Skills Endorsements</p>
+          <h3 class="section-title">Build trust with endorsed skills</h3>
+          <p class="p-muted">Add your core skills and track endorsements from other users.</p>
+        </div>
+
+        <form id="skillsForm" class="skills-form" autocomplete="off">
+          <input id="skillsInput" class="form-input" type="text" placeholder="Add skills (comma separated), e.g. React, Node.js, SQL" />
+          <button class="btn btn-primary" type="submit">Save skills</button>
+        </form>
+
+        <div id="skillsList" class="skills-list" aria-live="polite"></div>
+      </div>
     </section>
 
     <section id="quick-links" class="section-block profile-panel">
@@ -258,6 +272,16 @@
         <p class="p-muted">Manage your account and data preferences.</p>
       </div>
       <div class="account-settings-grid">
+        <div class="glass-card settings-card">
+          <div class="settings-card-header">
+            <h3><i class="fa-solid fa-bell"></i> Email Notifications</h3>
+            <p class="p-muted">Control which emails you receive and how often.</p>
+          </div>
+          <a href="notifications-settings.html" class="btn btn-outline">
+            <i class="fa-solid fa-cog"></i> Manage Notifications
+          </a>
+        </div>
+
         <div class="glass-card settings-card">
           <div class="settings-card-header">
             <h3><i class="fa-solid fa-download"></i> Download Your Data</h3>

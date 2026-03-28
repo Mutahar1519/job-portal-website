@@ -48,6 +48,79 @@
 
   const nav = document.querySelector(".navbar");
 
+  const setupScrollReactiveNavbar = () => {
+    if (!nav) return;
+
+    const threshold = 10;
+    let ticking = false;
+
+    const applyState = () => {
+      const shouldBeTransparent = window.scrollY > threshold;
+      document.body.classList.toggle("navbar-scroll-transparent", shouldBeTransparent);
+      ticking = false;
+    };
+
+    applyState();
+
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(applyState);
+      },
+      { passive: true }
+    );
+  };
+
+  setupScrollReactiveNavbar();
+
+  const removeLegacyThemeToggle = () => {
+    const themeToggle = document.getElementById("themeToggle");
+    if (themeToggle) {
+      themeToggle.remove();
+    }
+  };
+
+  removeLegacyThemeToggle();
+
+  const ensureNavLeftLayout = () => {
+    if (!nav) return;
+
+    let navLeft = nav.querySelector(".nav-left");
+    if (!navLeft) {
+      navLeft = document.createElement("div");
+      navLeft.className = "nav-left";
+      const logo = nav.querySelector(".logo");
+      if (logo) {
+        nav.insertBefore(navLeft, logo);
+        navLeft.appendChild(logo);
+      } else {
+        nav.prepend(navLeft);
+      }
+    }
+
+    const navLinks = Array.from(nav.querySelectorAll("a.nav-link"));
+    navLinks.forEach((link) => {
+      if (link.parentElement !== navLeft) {
+        navLeft.appendChild(link);
+      }
+    });
+
+    const firstRightControl =
+      nav.querySelector("#paletteSwitcher") ||
+      nav.querySelector("#navMenuToggle") ||
+      nav.querySelector(".nav-profile-chip") ||
+      nav.querySelector("#themeToggle") ||
+      nav.querySelector("#logoutBtn");
+
+    if (firstRightControl && navLeft.nextElementSibling !== firstRightControl) {
+      nav.insertBefore(navLeft, firstRightControl);
+    }
+  };
+
+  ensureNavLeftLayout();
+
   // Guarantee a visible logo mark in navbar even on pages with legacy logo markup.
   const ensureNavLogoMark = () => {
     if (!nav) return;
@@ -59,11 +132,17 @@
     const logo = nav.querySelector(".logo");
     if (!logo) return;
 
+    const existingMark = logo.querySelector(".logo-mark");
+    if (existingMark) {
+      existingMark.textContent = "JP";
+      existingMark.setAttribute("aria-hidden", "true");
+      return;
+    }
+
     if (shouldForceFallback) {
       logo.querySelectorAll("i.fa-solid.fa-briefcase").forEach((node) => node.remove());
     }
 
-    if (logo.querySelector(".logo-mark")) return;
     if (logo.querySelector("i") && !shouldForceFallback) return;
 
     const icon = document.createElement("span");
@@ -76,26 +155,46 @@
   ensureNavLogoMark();
 
   const paletteOptions = ["default", "ocean", "sunset", "forest"];
+  const navHighlightOptions = ["mix", "solid"];
   const paletteLabels = {
     default: "Default",
     ocean: "Ocean",
     sunset: "Sunset",
     forest: "Forest",
   };
+  const navHighlightLabels = {
+    mix: "Mix",
+    solid: "Same",
+  };
+
+  const applyNavHighlightMode = (mode) => {
+    const selected = navHighlightOptions.includes(mode) ? mode : "mix";
+    document.body.classList.remove("nav-highlight-mix", "nav-highlight-solid");
+    document.body.classList.add(`nav-highlight-${selected}`);
+    localStorage.setItem("navHighlightMode", selected);
+  };
 
   const updatePaletteToggle = (selected) => {
     const paletteToggleBtn = document.getElementById("paletteToggle");
+    const highlightMode = localStorage.getItem("navHighlightMode") || "mix";
     if (paletteToggleBtn) {
-      paletteToggleBtn.textContent = `Palette: ${paletteLabels[selected] || "Default"}`;
+      paletteToggleBtn.textContent = `Palette: ${paletteLabels[selected] || "Default"} | Active: ${navHighlightLabels[highlightMode] || "Mix"}`;
       paletteToggleBtn.setAttribute(
         "aria-label",
-        `Choose palette (current: ${paletteLabels[selected] || "Default"})`
+        `Choose palette and navbar highlight mode (palette: ${paletteLabels[selected] || "Default"}, highlight: ${navHighlightLabels[highlightMode] || "Mix"})`
       );
     }
 
     const optionButtons = Array.from(document.querySelectorAll(".palette-option"));
     optionButtons.forEach((button) => {
-      const isActive = button.dataset.palette === selected;
+      const isDarkToggle = button.dataset.palette === "dark";
+      const isDarkNow = document.body.classList.contains("dark");
+      const isPaletteOption = Boolean(button.dataset.palette) && !isDarkToggle;
+      const isHighlightOption = Boolean(button.dataset.highlight);
+      const isActive =
+        (isPaletteOption && button.dataset.palette === selected) ||
+        (isDarkToggle && isDarkNow) ||
+        (isHighlightOption && button.dataset.highlight === highlightMode);
       button.classList.toggle("is-active", isActive);
       button.setAttribute("aria-checked", isActive ? "true" : "false");
     });
@@ -111,11 +210,6 @@
     );
     document.body.classList.add(`palette-${selected}`);
     localStorage.setItem("palette", selected);
-
-    const themeToggleBtn = document.getElementById("themeToggle");
-    if (themeToggleBtn) {
-      themeToggleBtn.title = `Theme: left click | Palette: ${selected} (right click or Alt+P to change)`;
-    }
 
     updatePaletteToggle(selected);
   };
@@ -158,19 +252,25 @@
       paletteMenu.id = "paletteMenu";
       paletteMenu.className = "palette-menu";
       paletteMenu.setAttribute("role", "menu");
+      const isDarkNow = document.body.classList.contains("dark");
       paletteMenu.innerHTML = paletteOptions
         .map((palette) => {
           const label = paletteLabels[palette] || palette;
           return `<button type="button" class="palette-option" role="menuitemradio" aria-checked="false" data-palette="${palette}"><span class="palette-swatch" aria-hidden="true"></span><span>${label}</span></button>`;
         })
-        .join("");
+        .join("") +
+        `<hr style="margin:6px 0;border:none;border-top:1px solid var(--border);">` +
+        `<button type="button" class="palette-option" role="menuitemradio" aria-checked="false" data-highlight="mix"><span class="palette-swatch" aria-hidden="true"></span><span>Active: Mix Colors</span></button>` +
+        `<button type="button" class="palette-option" role="menuitemradio" aria-checked="false" data-highlight="solid"><span class="palette-swatch" aria-hidden="true"></span><span>Active: Same Color</span></button>` +
+        `<hr style="margin:6px 0;border:none;border-top:1px solid var(--border);">` +
+        `<button type="button" class="palette-option palette-dark-toggle" role="menuitemcheckbox" aria-checked="${isDarkNow}" data-palette="dark"><span class="palette-swatch" aria-hidden="true"></span><span>Dark Mode</span>${isDarkNow ? '<span style="margin-left:auto;font-size:12px;font-weight:700;">✓</span>' : ''}</button>`;
       paletteSwitcher.appendChild(paletteMenu);
     }
 
     if (paletteSwitcher.parentElement !== nav) {
-      const themeToggleBtn = document.getElementById("themeToggle");
-      if (themeToggleBtn) {
-        nav.insertBefore(paletteSwitcher, themeToggleBtn);
+      const anchor = nav.querySelector(".nav-profile-chip") || nav.querySelector("#logoutBtn");
+      if (anchor) {
+        nav.insertBefore(paletteSwitcher, anchor);
       } else {
         nav.appendChild(paletteSwitcher);
       }
@@ -194,9 +294,12 @@
       };
       const focusSelectedPaletteOption = () => {
         const currentPalette = localStorage.getItem("palette") || "default";
+        const currentHighlight = localStorage.getItem("navHighlightMode") || "mix";
         const options = Array.from(paletteMenu.querySelectorAll(".palette-option"));
         if (!options.length) return;
-        const selectedIndex = options.findIndex((option) => option.dataset.palette === currentPalette);
+        const selectedIndex = options.findIndex(
+          (option) => option.dataset.palette === currentPalette || option.dataset.highlight === currentHighlight
+        );
         focusPaletteOption(selectedIndex >= 0 ? selectedIndex : 0);
       };
 
@@ -244,7 +347,17 @@
           event.preventDefault();
           const focusedOption = document.activeElement;
           if (!focusedOption || !focusedOption.classList.contains("palette-option")) return;
-          applyPalette(focusedOption.dataset.palette || "default");
+          const selectedPalette = focusedOption.dataset.palette;
+          const selectedHighlight = focusedOption.dataset.highlight;
+          if (selectedHighlight) {
+            applyNavHighlightMode(selectedHighlight);
+          } else if (selectedPalette === "dark") {
+            const isDark = document.body.classList.toggle("dark");
+            localStorage.setItem("theme", isDark ? "dark" : "light");
+          } else {
+            applyPalette(selectedPalette || "default");
+          }
+          updatePaletteToggle(localStorage.getItem("palette") || "default");
           closePaletteMenu();
           paletteToggleBtn.focus();
         } else if (event.key === "Escape") {
@@ -263,7 +376,37 @@
         const selectedButton = event.target.closest(".palette-option");
         if (!selectedButton || !selectedButton.classList.contains("palette-option")) return;
         const selectedPalette = selectedButton.dataset.palette;
+        const selectedHighlight = selectedButton.dataset.highlight;
+
+        if (selectedHighlight) {
+          applyNavHighlightMode(selectedHighlight);
+          updatePaletteToggle(localStorage.getItem("palette") || "default");
+          paletteSwitcher.classList.remove("open");
+          paletteToggleBtn.setAttribute("aria-expanded", "false");
+          return;
+        }
+
+        if (selectedPalette === "dark") {
+          // Toggle dark mode
+          const isDark = document.body.classList.toggle("dark");
+          localStorage.setItem("theme", isDark ? "dark" : "light");
+          // Update the dark toggle button state in the menu
+          selectedButton.setAttribute("aria-checked", isDark ? "true" : "false");
+          const checkSpan = selectedButton.querySelector("span:last-child");
+          if (checkSpan && checkSpan !== selectedButton.querySelector("span:nth-child(2)")) {
+            checkSpan.textContent = isDark ? "✓" : "";
+          } else if (isDark) {
+            const ck = document.createElement("span");
+            ck.style.cssText = "margin-left:auto;font-size:12px;font-weight:700;";
+            ck.textContent = "✓";
+            selectedButton.appendChild(ck);
+          }
+          // Keep palette menu open for dark toggle
+          updatePaletteToggle(localStorage.getItem("palette") || "default");
+          return;
+        }
         applyPalette(selectedPalette || "default");
+        updatePaletteToggle(localStorage.getItem("palette") || "default");
         paletteSwitcher.classList.remove("open");
         paletteToggleBtn.setAttribute("aria-expanded", "false");
       });
@@ -289,34 +432,7 @@
   ensurePaletteToggle();
 
   applyPalette(localStorage.getItem("palette") || "default");
-
-  const attachPaletteHandlers = () => {
-    const themeToggleBtn = document.getElementById("themeToggle");
-    if (!themeToggleBtn || themeToggleBtn.dataset.paletteBound === "true") return;
-
-    themeToggleBtn.dataset.paletteBound = "true";
-    themeToggleBtn.title =
-      "Theme: click | Palette: Shift+click, right click, or Alt+P";
-
-    // Use capture so Shift+click can switch palette before theme.js click handler runs.
-    themeToggleBtn.addEventListener(
-      "click",
-      (event) => {
-        if (!event.shiftKey) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        cyclePalette();
-      },
-      true
-    );
-
-    themeToggleBtn.addEventListener("contextmenu", (event) => {
-      event.preventDefault();
-      cyclePalette();
-    });
-  };
-
-  attachPaletteHandlers();
+  applyNavHighlightMode(localStorage.getItem("navHighlightMode") || "mix");
 
   document.addEventListener("keydown", (event) => {
     const isAltP = event.altKey && (event.key === "p" || event.key === "P");
@@ -414,9 +530,9 @@
     backdrop.id = "navMenuBackdrop";
     backdrop.className = "nav-menu-backdrop";
 
-    const themeToggle = document.getElementById("themeToggle");
-    if (themeToggle) {
-      nav.insertBefore(toggle, themeToggle);
+    const menuAnchor = document.getElementById("paletteSwitcher") || nav.querySelector(".nav-profile-chip") || nav.querySelector("#logoutBtn");
+    if (menuAnchor) {
+      nav.insertBefore(toggle, menuAnchor);
     } else {
       nav.appendChild(toggle);
     }
@@ -432,7 +548,6 @@
 
     document.body.appendChild(backdrop);
     document.body.appendChild(panel);
-    attachPaletteHandlers();
 
     const closeBtn = panel.querySelector(".nav-menu-close");
     const searchInput = panel.querySelector(".nav-menu-search");
@@ -609,10 +724,13 @@
     navLinks.forEach((link) => {
       const isProfileChip = link.classList.contains("nav-profile-chip");
       const isLogo = link.classList.contains("logo");
+      const isUtilityBell = link.classList.contains("nav-bell");
+      const rawHref = String(link.getAttribute("href") || "").trim();
+      const isHashOnlyLink = rawHref.startsWith("#");
       link.classList.remove("nav-active");
-      if (isProfileChip || isLogo) return;
+      if (isProfileChip || isLogo || isUtilityBell || isHashOnlyLink) return;
 
-      const href = getHrefFileName(link.getAttribute("href"));
+      const href = getHrefFileName(rawHref);
       if (!href) return;
       if (href === target) {
         link.classList.add("nav-active");

@@ -65,6 +65,12 @@ const uploadJobImage = multer({
   }
 });
 
+/* Saved searches — must be before /:id */
+router.get("/searches", auth, jobsController.getSavedSearches);
+router.post("/searches", auth, jobsController.createSavedSearch);
+router.delete("/searches/:id", auth, jobsController.deleteSavedSearch);
+router.get("/salary-insights", optionalAuth, jobsController.getSalaryInsights);
+
 /* GET all jobs */
 router.get("/", optionalAuth, jobsController.getJobs);
 router.get("/:id", optionalAuth, jobsController.getJobById);

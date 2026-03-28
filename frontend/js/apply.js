@@ -10,6 +10,56 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const params = new URLSearchParams(window.location.search);
   jobId = params.get("jobId");
+  const cvInput = document.getElementById("cv");
+  const cvUploadBox = document.getElementById("cvUploadBox");
+  const cvUploadText = document.getElementById("cvUploadText");
+  const cvUploadHint = document.getElementById("cvUploadHint");
+  const cvUploadStatus = document.getElementById("cvUploadStatus");
+
+  const formatFileSize = (bytes) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 KB";
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  };
+
+  const updateCvUi = (file) => {
+    if (!cvUploadBox || !cvUploadText || !cvUploadHint || !cvUploadStatus) return;
+
+    if (!file) {
+      cvUploadBox.classList.remove("has-file");
+      cvUploadText.innerHTML = 'Drag and drop your CV or <span class="file-link">click to browse</span>';
+      cvUploadHint.textContent = "PDF, DOC, or DOCX (Max 5MB)";
+      cvUploadStatus.textContent = "";
+      cvUploadStatus.classList.add("hidden");
+      return;
+    }
+
+    cvUploadBox.classList.add("has-file");
+    cvUploadText.textContent = file.name;
+    cvUploadHint.textContent = `Selected file size: ${formatFileSize(file.size)}`;
+    cvUploadStatus.textContent = "CV/Resume selected and ready to upload.";
+    cvUploadStatus.classList.remove("hidden");
+  };
+
+  if (cvInput && cvUploadBox) {
+    cvInput.addEventListener("change", () => {
+      updateCvUi(cvInput.files?.[0] || null);
+    });
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+      cvUploadBox.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        cvUploadBox.classList.add("drag-over");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      cvUploadBox.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        cvUploadBox.classList.remove("drag-over");
+      });
+    });
+  }
 
   const donationStatus = params.get("donation");
   const donationContext = params.get("context");
@@ -237,6 +287,7 @@ document.getElementById("applyForm").addEventListener("submit", async (e) => {
 
     alert("Application submitted successfully ✅");
     document.getElementById("applyForm").reset();
+    updateCvUi(null);
     openDonationModal();
   } catch (err) {
     console.error(err);

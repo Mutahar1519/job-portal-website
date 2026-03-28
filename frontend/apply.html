@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -26,7 +26,6 @@
       <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
         <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
       </a>
-      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
       <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
@@ -37,6 +36,9 @@
         <h1 class="hero-title">Apply with Confidence</h1>
         <p class="hero-subtitle">Submit your application and get reviewed quickly. Our smart matching system connects you with the right opportunities.</p>
       </div>
+      <a href="jobs.html" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-left"></i> Back to Jobs
+      </a>
     </section>
 
     <section class="apply-layout">
@@ -130,12 +132,13 @@
 
               <div class="form-group">
                 <label class="form-label" for="cv"><i class="fa-solid fa-file-pdf"></i> Upload CV/Resume</label>
-                <div class="file-upload-box">
+                <div class="file-upload-box" id="cvUploadBox">
                   <input type="file" id="cv" class="file-input" accept=".pdf,.doc,.docx" />
                   <div class="file-upload-content">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <p class="file-upload-text">Drag and drop your CV or <span class="file-link">click to browse</span></p>
-                    <p class="file-upload-hint">PDF, DOC, or DOCX (Max 5MB)</p>
+                    <p class="file-upload-text" id="cvUploadText">Drag and drop your CV or <span class="file-link">click to browse</span></p>
+                    <p class="file-upload-hint" id="cvUploadHint">PDF, DOC, or DOCX (Max 5MB)</p>
+                    <p class="file-upload-status hidden" id="cvUploadStatus"></p>
                   </div>
                 </div>
               </div>
@@ -190,7 +193,7 @@
         <a href="dashboard.html">Dashboard</a>
       </div>
     </div>
-    <div class="footer-bottom">© 2026 JobPortal. All rights reserved.</div>
+    <div class="footer-bottom">� 2026 JobPortal. All rights reserved.</div>
   </footer>
 
   <div id="toast"></div>

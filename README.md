@@ -4,6 +4,8 @@ Enterprise Job Portal System developed as part of university coursework.
 
 **Status**: ✅ Ready for demo and deployment (see [docs/DELIVERY_READY_2026-03-27.md](docs/DELIVERY_READY_2026-03-27.md) for details)
 
+Final manual sign-off checklist: [docs/FINAL_SIGNOFF_CHECKLIST_2026-03-28.md](docs/FINAL_SIGNOFF_CHECKLIST_2026-03-28.md)
+
 ## GitHub Repository
 https://github.com/Mutahar1519/job-portal-website
 
@@ -119,8 +121,16 @@ cd backend
 npm run test:smoke
 ```
 
-5. Open app:
-- http://localhost:3000
+7. Start frontend (optional, separate static server on port 3001):
+```bash
+cd frontend
+npm install
+npm start
+```
+
+8. Open app:
+- http://localhost:3000 (backend serves frontend)
+- http://localhost:3001 (standalone frontend server)
 
 ## UML Documentation
 UML diagrams are available in:

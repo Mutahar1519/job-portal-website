@@ -3,8 +3,22 @@ async function loadLatestJobs() {
     const skeleton = document.getElementById("skeleton");
     if (skeleton) skeleton.style.display = "grid";
 
-    const res = await authFetch(`${API}/jobs`);
-    const jobs = await res.json();
+    let jobs = [];
+    const candidates = [`${API}/jobs`, `${window.location.origin}/api/jobs`, "http://localhost:3000/api/jobs"];
+    for (const candidate of candidates) {
+      try {
+        const res = await authFetch(candidate);
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          jobs = data;
+          break;
+        }
+      } catch {
+        // try next candidate
+      }
+    }
+
     const box = document.getElementById("latestJobs");
     const recommended = document.getElementById("recommendedJobs");
     if (!box) return;
@@ -25,7 +39,7 @@ async function loadLatestJobs() {
     if (recommended) {
       const picks = getRecommendedJobs(allJobs);
       recommended.innerHTML = picks.length
-        ? picks.map(renderJobCard).join("")
+        ? picks.map((job) => renderJobCard(job, { includeSaveButton: true, saved: !!job.is_saved })).join("")
         : "<p class=\"empty-state\">No recommendations yet. Search to personalize.</p>";
     }
   } catch (err) {
@@ -194,7 +208,7 @@ const renderJobCard = (job, options = {}) => {
   `;
 };
 
-document.getElementById("latestJobs")?.addEventListener("click", async (event) => {
+const handleHomeJobCardClick = async (event) => {
   const detailsLink = event.target.closest('a[data-job-id]');
   if (detailsLink) {
     sessionStorage.setItem("lastJobId", detailsLink.getAttribute("data-job-id"));
@@ -226,7 +240,10 @@ document.getElementById("latestJobs")?.addEventListener("click", async (event) =
     console.error(err);
     alert("Failed to update saved job");
   }
-});
+};
+
+document.getElementById("latestJobs")?.addEventListener("click", handleHomeJobCardClick);
+document.getElementById("recommendedJobs")?.addEventListener("click", handleHomeJobCardClick);
 
 const homeSearchForm = document.getElementById("homeSearchForm");
 const homeSearchInput = document.getElementById("homeSearchInput");
