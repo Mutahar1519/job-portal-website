@@ -66,6 +66,33 @@ const getFrontendBaseUrl = (req) => {
   return FRONTEND_URL;
 };
 
+const ALLOWED_PAYMENT_METHODS = ["card", "applepay", "gpay", "paypal", "bank_transfer"];
+
+const normalizePaymentMethod = (value) => {
+  const method = String(value || "card").trim().toLowerCase();
+  if (!ALLOWED_PAYMENT_METHODS.includes(method)) return null;
+  return method;
+};
+
+const getStripePaymentMethodTypes = (selectedMethod) => {
+  // In Stripe Checkout, Apple Pay and Google Pay are wallet flows on top of card.
+  if (selectedMethod === "applepay" || selectedMethod === "gpay") {
+    return ["card"];
+  }
+
+  // PayPal availability depends on Stripe account/country capabilities.
+  if (selectedMethod === "paypal") {
+    return ["paypal"];
+  }
+
+  // Generic bank transfer option maps to US bank account in Stripe Checkout.
+  if (selectedMethod === "bank_transfer") {
+    return ["us_bank_account"];
+  }
+
+  return ["card"];
+};
+
 if (!STRIPE_SECRET_KEY) {
   console.warn("⚠️ STRIPE_SECRET_KEY is not set. Using mock payments.");
 }
@@ -75,7 +102,10 @@ const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 router.post("/create-checkout-session", auth, async (req, res) => {
 
   const { mode, jobId, donation_cents, payment_method } = req.body;
+<<<<<<< HEAD
   const paymentMethod = normalizePaymentMethod(payment_method);
+=======
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
   if (!mode || !["create", "upgrade", "reboost"].includes(mode)) {
     return res.status(400).json({ message: "Invalid payment mode" });
@@ -92,6 +122,11 @@ router.post("/create-checkout-session", auth, async (req, res) => {
   const donationCents = Number(donation_cents || 0);
   if (!Number.isFinite(donationCents) || donationCents < 0 || donationCents > MAX_DONATION_CENTS) {
     return res.status(400).json({ message: "Invalid donation amount" });
+  }
+
+  const selectedPaymentMethod = normalizePaymentMethod(payment_method);
+  if (!selectedPaymentMethod) {
+    return res.status(400).json({ message: "Invalid payment method" });
   }
 
   try {
@@ -112,7 +147,16 @@ router.post("/create-checkout-session", auth, async (req, res) => {
     if (USE_MOCK_PAYMENTS) {
       const mockSessionId = `mock_${Date.now()}`;
       const mockUrl = successUrl.replace("{CHECKOUT_SESSION_ID}", mockSessionId);
+<<<<<<< HEAD
       return res.json({ url: mockUrl, mock: true, payment_method: paymentMethod });
+=======
+      return res.json({
+        url: mockUrl,
+        mock: true,
+        payment_method: selectedPaymentMethod,
+        message: `Mock checkout created with ${selectedPaymentMethod}`
+      });
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     }
 
     const lineItems = [
@@ -143,7 +187,12 @@ router.post("/create-checkout-session", auth, async (req, res) => {
       });
     }
 
+<<<<<<< HEAD
     const paymentMethodTypes = mapToStripePaymentMethods(paymentMethod);
+=======
+    const paymentMethodTypes = getStripePaymentMethodTypes(selectedPaymentMethod);
+
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: paymentMethodTypes,
@@ -153,12 +202,74 @@ router.post("/create-checkout-session", auth, async (req, res) => {
       metadata: {
         mode,
         jobId: jobId ? String(jobId) : "",
+<<<<<<< HEAD
         payment_method: paymentMethod
+=======
+        selected_payment_method: selectedPaymentMethod
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
       }
     });
 
-    res.json({ url: session.url });
+    res.json({ url: session.url, payment_method: selectedPaymentMethod });
   } catch (err) {
+    // If Stripe method is not enabled in account, gracefully fall back to card.
+    if (!USE_MOCK_PAYMENTS && String(err && err.message || "").toLowerCase().includes("payment method")) {
+      try {
+        const fallbackLineItems = [
+          {
+            quantity: 1,
+            price_data: {
+              currency: PREMIUM_CURRENCY,
+              unit_amount: PREMIUM_PRICE_CENTS,
+              product_data: {
+                name: "Premium Job Posting",
+                description: "Boost your job visibility"
+              }
+            }
+          }
+        ];
+
+        if (donationCents > 0) {
+          fallbackLineItems.push({
+            quantity: 1,
+            price_data: {
+              currency: PREMIUM_CURRENCY,
+              unit_amount: donationCents,
+              product_data: {
+                name: "Support Tip",
+                description: "Optional donation"
+              }
+            }
+          });
+        }
+
+        const fallbackSession = await stripe.checkout.sessions.create({
+          mode: "payment",
+          payment_method_types: ["card"],
+          line_items: fallbackLineItems,
+          success_url: mode === "upgrade"
+            ? `${FRONTEND_URL}/admin.html?payment=success&mode=upgrade&jobId=${jobId}&session_id={CHECKOUT_SESSION_ID}`
+            : `${FRONTEND_URL}/post-jobs.html?payment=success&mode=create&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: mode === "upgrade"
+            ? `${FRONTEND_URL}/admin.html?payment=cancel`
+            : `${FRONTEND_URL}/post-jobs.html?payment=cancel`,
+          metadata: {
+            mode,
+            jobId: jobId ? String(jobId) : "",
+            selected_payment_method: "card"
+          }
+        });
+
+        return res.json({
+          url: fallbackSession.url,
+          payment_method: "card",
+          warning: `Selected payment method is not enabled in Stripe. Falling back to card.`
+        });
+      } catch (fallbackErr) {
+        console.error(fallbackErr);
+      }
+    }
+
     console.error(err);
     res.status(500).json({ message: "Failed to create checkout session" });
   }
@@ -364,8 +475,14 @@ router.post("/create-donation-session", auth, async (req, res) => {
     return res.status(400).json({ message: "Invalid donation amount" });
   }
 
+<<<<<<< HEAD
   if (!paymentMethod) {
     return res.status(400).json({ message: "Invalid payment method. Allowed: " + ALLOWED_PAYMENT_METHODS.join(", ") });
+=======
+  const selectedPaymentMethod = normalizePaymentMethod(payment_method);
+  if (!selectedPaymentMethod) {
+    return res.status(400).json({ message: "Invalid payment method" });
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
   }
 
   try {
@@ -376,10 +493,23 @@ router.post("/create-donation-session", auth, async (req, res) => {
     if (USE_MOCK_PAYMENTS) {
       const mockSessionId = `mock_${Date.now()}`;
       const mockUrl = successUrl.replace("{CHECKOUT_SESSION_ID}", mockSessionId);
+<<<<<<< HEAD
       return res.json({ url: mockUrl, mock: true, payment_method: paymentMethod });
     }
 
     const paymentMethodTypes = mapToStripePaymentMethods(paymentMethod);
+=======
+      return res.json({
+        url: mockUrl,
+        mock: true,
+        payment_method: selectedPaymentMethod,
+        message: `Mock donation checkout created with ${selectedPaymentMethod}`
+      });
+    }
+
+    const paymentMethodTypes = getStripePaymentMethodTypes(selectedPaymentMethod);
+
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: paymentMethodTypes,
@@ -401,12 +531,53 @@ router.post("/create-donation-session", auth, async (req, res) => {
       metadata: {
         mode: "donation",
         context,
+<<<<<<< HEAD
         payment_method: paymentMethod
+=======
+        selected_payment_method: selectedPaymentMethod
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
       }
     });
 
-    res.json({ url: session.url });
+    res.json({ url: session.url, payment_method: selectedPaymentMethod });
   } catch (err) {
+    if (!USE_MOCK_PAYMENTS && String(err && err.message || "").toLowerCase().includes("payment method")) {
+      try {
+        const fallbackSession = await stripe.checkout.sessions.create({
+          mode: "payment",
+          payment_method_types: ["card"],
+          line_items: [
+            {
+              quantity: 1,
+              price_data: {
+                currency: PREMIUM_CURRENCY,
+                unit_amount: donationCents,
+                product_data: {
+                  name: "Support Tip",
+                  description: "Optional donation"
+                }
+              }
+            }
+          ],
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+          metadata: {
+            mode: "donation",
+            context,
+            selected_payment_method: "card"
+          }
+        });
+
+        return res.json({
+          url: fallbackSession.url,
+          payment_method: "card",
+          warning: `Selected payment method is not enabled in Stripe. Falling back to card.`
+        });
+      } catch (fallbackErr) {
+        console.error(fallbackErr);
+      }
+    }
+
     console.error(err);
     res.status(500).json({ message: "Failed to create donation session" });
   }

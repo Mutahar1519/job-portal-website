@@ -11,8 +11,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     const dashUser = JSON.parse(localStorage.getItem("user") || "{}");
     const dashPostBtn = document.getElementById("dashboardPostJobBtn");
+    const dashCompanyBtn = document.getElementById("dashboardCompanyBtn");
     if (dashPostBtn && (dashUser.role === "employer" || dashUser.is_admin)) {
       dashPostBtn.style.display = "inline-flex";
+    }
+    if (dashCompanyBtn && (dashUser.role === "employer" || dashUser.is_admin)) {
+      dashCompanyBtn.style.display = "inline-flex";
     }
     if (dashUser.role === "employer" || dashUser.is_admin) {
       const eyebrow = document.getElementById("dashboardEyebrow");
@@ -36,6 +40,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const refreshShiftAlerts = document.getElementById("refreshShiftAlerts");
   const createShiftAlertBtn = document.getElementById("createShiftAlertBtn");
 <<<<<<< HEAD
+<<<<<<< HEAD
   const referralForm = document.getElementById("referralForm");
   const referralsList = document.getElementById("referralsList");
   const referralRewardsEarned = document.getElementById("referralRewardsEarned");
@@ -58,6 +63,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const alertFrequencyInput = document.getElementById("alertFrequency");
 =======
 >>>>>>> d748585d6ba176664da923b31c34be130ff010e7
+=======
+  const shiftAlertBuilder = document.getElementById("shiftAlertBuilder");
+  const shiftAlertForm = document.getElementById("shiftAlertForm");
+  const cancelShiftAlertBtn = document.getElementById("cancelShiftAlertBtn");
+  const shiftAlertRules = document.getElementById("shiftAlertRules");
+  let editingShiftAlertId = null;
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
   if (!container) return;
 
@@ -478,6 +490,73 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
+  const isShiftRule = (alert) => {
+    const type = String(alert?.job_type || "").toLowerCase();
+    return type === "shift";
+  };
+
+  const renderShiftRules = (list) => {
+    if (!shiftAlertRules) return;
+
+    const rules = (list || []).filter(isShiftRule);
+    if (!rules.length) {
+      shiftAlertRules.innerHTML = "<p class=\"empty-state\">No shift alert preferences yet.</p>";
+      return;
+    }
+
+    shiftAlertRules.innerHTML = "";
+    rules.forEach((alert) => {
+      const filters = [
+        alert.keyword ? `Keyword: ${esc(alert.keyword)}` : "",
+        alert.location ? `Location: ${esc(alert.location)}` : "",
+        alert.category ? `Category: ${esc(alert.category)}` : ""
+      ].filter(Boolean).join(" | ");
+
+      shiftAlertRules.innerHTML += `
+        <div class="alert-card">
+          <div>
+            <div class="alert-title">${filters || "All shift jobs"}</div>
+            <div class="p-muted">Type: Shift • Frequency: ${esc(alert.frequency || "daily")}</div>
+          </div>
+          <div class="alert-actions">
+            <button class="btn btn-outline" type="button" data-action="edit-shift-rule" data-id="${alert.id}">Edit</button>
+            <button class="btn btn-outline" type="button" data-action="toggle-shift-rule" data-id="${alert.id}">
+              ${alert.is_active ? "Deactivate" : "Activate"}
+            </button>
+            <button class="btn btn-outline" type="button" data-action="delete-shift-rule" data-id="${alert.id}">Delete</button>
+          </div>
+        </div>
+      `;
+    });
+  };
+
+  const resetShiftAlertBuilder = () => {
+    editingShiftAlertId = null;
+    shiftAlertForm?.reset();
+    const submitBtn = shiftAlertForm?.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = "Save Shift Alert";
+  };
+
+  const startEditingShiftRule = (alert) => {
+    if (!shiftAlertBuilder || !alert) return;
+
+    editingShiftAlertId = alert.id;
+    const keywordInput = document.getElementById("shiftAlertKeyword");
+    const locationInput = document.getElementById("shiftAlertLocation");
+    const categoryInput = document.getElementById("shiftAlertCategory");
+    const frequencyInput = document.getElementById("shiftAlertFrequency");
+    if (keywordInput) keywordInput.value = alert.keyword || "";
+    if (locationInput) locationInput.value = alert.location || "";
+    if (categoryInput) categoryInput.value = alert.category || "";
+    if (frequencyInput) frequencyInput.value = alert.frequency || "daily";
+
+    const submitBtn = shiftAlertForm?.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = "Update Shift Alert";
+
+    shiftAlertBuilder.style.display = "block";
+    keywordInput?.focus();
+  };
+
   const loadAlerts = async () => {
     if (!alertsList) return;
     try {
@@ -489,9 +568,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       alerts = data || [];
       renderAlerts(alerts);
+      renderShiftRules(alerts);
     } catch (err) {
       console.error(err);
       alertsList.innerHTML = "<p class=\"empty-state\">Server error.</p>";
+      if (shiftAlertRules) {
+        shiftAlertRules.innerHTML = "<p class=\"empty-state\">Server error.</p>";
+      }
     }
   };
 
@@ -1374,25 +1457,67 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 100);
 =======
   createShiftAlertBtn?.addEventListener("click", async () => {
+    if (!shiftAlertBuilder) return;
+    if (shiftAlertBuilder.style.display === "none") {
+      resetShiftAlertBuilder();
+      shiftAlertBuilder.style.display = "block";
+    } else {
+      shiftAlertBuilder.style.display = "none";
+      resetShiftAlertBuilder();
+    }
+    if (shiftAlertBuilder.style.display === "block") {
+      document.getElementById("shiftAlertKeyword")?.focus();
+    }
+  });
+
+  cancelShiftAlertBtn?.addEventListener("click", () => {
+    if (shiftAlertBuilder) shiftAlertBuilder.style.display = "none";
+    resetShiftAlertBuilder();
+  });
+
+  shiftAlertForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const payload = {
+      keyword: (document.getElementById("shiftAlertKeyword")?.value || "").trim(),
+      location: (document.getElementById("shiftAlertLocation")?.value || "").trim(),
+      category: (document.getElementById("shiftAlertCategory")?.value || "").trim(),
+      job_type: "Shift",
+      frequency: (document.getElementById("shiftAlertFrequency")?.value || "daily").trim()
+    };
+
+    if (!payload.keyword && !payload.location && !payload.category) {
+      alert("Please add at least one filter (keyword, location, or category).");
+      return;
+    }
+
     try {
-      const res = await authFetch(`${API}/job-alerts`, {
-        method: "POST",
-        body: JSON.stringify({
-          keyword: "",
-          location: "",
-          category: "",
-          job_type: "Shift",
-          frequency: "daily"
-        })
+      const isEdit = Number.isFinite(Number(editingShiftAlertId));
+      const targetUrl = isEdit
+        ? `${API}/job-alerts/${editingShiftAlertId}`
+        : `${API}/job-alerts`;
+
+      const method = isEdit ? "PUT" : "POST";
+      const body = isEdit
+        ? { ...payload, is_active: 1 }
+        : payload;
+
+      const res = await authFetch(targetUrl, {
+        method,
+        body: JSON.stringify(body)
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         alert(data.message || "Failed to create shift alert");
         return;
       }
 
-      alert("Shift alert created ✅");
+      if (window.toast) {
+        toast(isEdit ? "Shift alert updated." : "Shift alert preference saved.");
+      }
+      resetShiftAlertBuilder();
+      if (shiftAlertBuilder) shiftAlertBuilder.style.display = "none";
       await loadAlerts();
       await loadShiftAlerts();
     } catch (err) {
@@ -1400,6 +1525,62 @@ document.addEventListener("DOMContentLoaded", async () => {
       alert("Failed to create shift alert");
     }
 >>>>>>> d748585d6ba176664da923b31c34be130ff010e7
+  });
+
+  shiftAlertRules?.addEventListener("click", async (event) => {
+    const action = event.target.getAttribute("data-action");
+    const alertId = event.target.getAttribute("data-id");
+    if (!action || !alertId) return;
+
+    const selected = alerts.find(item => String(item.id) === String(alertId));
+    if (!selected || !isShiftRule(selected)) return;
+
+    if (action === "edit-shift-rule") {
+      startEditingShiftRule(selected);
+      return;
+    }
+
+    if (action === "delete-shift-rule") {
+      try {
+        const res = await authFetch(`${API}/job-alerts/${alertId}`, { method: "DELETE" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.message || "Failed to delete shift alert");
+          return;
+        }
+        await loadAlerts();
+        await loadShiftAlerts();
+      } catch (err) {
+        console.error(err);
+        alert("Failed to delete shift alert");
+      }
+      return;
+    }
+
+    if (action === "toggle-shift-rule") {
+      try {
+        const res = await authFetch(`${API}/job-alerts/${alertId}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            keyword: selected.keyword || "",
+            location: selected.location || "",
+            category: selected.category || "",
+            job_type: "Shift",
+            frequency: selected.frequency || "daily",
+            is_active: selected.is_active ? 0 : 1
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.message || "Failed to update shift alert");
+          return;
+        }
+        await loadAlerts();
+      } catch (err) {
+        console.error(err);
+        alert("Failed to update shift alert");
+      }
+    }
   });
 
   shiftAlertsList?.addEventListener("click", async (event) => {

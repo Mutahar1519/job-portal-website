@@ -1,10 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
-<<<<<<< HEAD
-=======
 const nodemailer = require("nodemailer");
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 const adminAuth = require("../middleware/adminAuth");
 const db = require("../config/mysql");
 const { sendMail } = require("../utils/mailer");
@@ -12,8 +9,7 @@ const { notifyShiftAlerts } = require("../utils/shiftAlerts");
 const { getPlatformSetting, setPlatformSetting, toBooleanSetting } = require("../utils/platformSettings");
 
 const DEFAULT_AUTO_APPROVAL_ENABLED = process.env.AUTO_APPROVE_JOBS !== "false";
-<<<<<<< HEAD
-const ADMIN_APPROVER_EMAIL = String(process.env.ADMIN_APPROVER_EMAIL || "").trim().toLowerCase();
+const ADMIN_APPROVER_EMAIL = String(process.env.ADMIN_APPROVER_EMAIL || "test@sample.com").trim().toLowerCase();
 const ADMIN_GRANT_TTL_MINUTES = 30;
 
 const resolveAdminApproverEmail = (req) => {
@@ -33,9 +29,7 @@ const ensureColumn = (tableName, columnName, ddl, label) => {
         console.warn(`${label} bootstrap check failed:`, checkErr.message);
         return;
       }
-
       if (rows.length) return;
-
       db.query(ddl, (alterErr) => {
         if (alterErr && alterErr.code !== "ER_DUP_FIELDNAME") {
           console.warn(`${label} bootstrap failed:`, alterErr.message);
@@ -88,7 +82,7 @@ ensureColumn(
   "companies.verified_at"
 );
 
-db.query(
+    }
   `CREATE TABLE IF NOT EXISTS company_reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company_id INT NOT NULL,
@@ -105,18 +99,9 @@ db.query(
   (err) => {
     if (err) {
       console.warn("company_reviews bootstrap failed:", err.message);
-=======
-const ADMIN_APPROVER_EMAIL = "test@sample.com";
-const ADMIN_GRANT_TTL_MINUTES = 30;
-
-// Best-effort schema bootstrap for review moderation state.
-db.query(
-  "ALTER TABLE reviews ADD COLUMN is_hidden TINYINT(1) NOT NULL DEFAULT 0",
-  (err) => {
-    if (err && err.code !== "ER_DUP_FIELDNAME") {
-      console.warn("reviews.is_hidden bootstrap failed:", err.message);
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
     }
+  }
+);
   }
 );
 
@@ -138,6 +123,29 @@ const buildReviewWhereClause = (status) => {
   return filters[status] || filters.pending;
 };
 =======
+db.query(
+  `CREATE TABLE IF NOT EXISTS company_reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    company_id INT NOT NULL,
+    employer_user_id INT NULL,
+    job_id INT NULL,
+    reviewer_name VARCHAR(120) NOT NULL,
+    reviewer_role VARCHAR(120) NOT NULL,
+    reviewer_email VARCHAR(255) NULL,
+    rating TINYINT NOT NULL,
+    message VARCHAR(600) NOT NULL,
+    approved TINYINT NOT NULL DEFAULT 0,
+    is_hidden TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_company_reviews_company (company_id)
+  )`,
+  (err) => {
+    if (err) {
+      console.warn("company_reviews bootstrap failed:", err.message);
+    }
+  }
+);
+
 db.query(
   "ALTER TABLE users ADD COLUMN is_blocked TINYINT(1) NOT NULL DEFAULT 0",
   (err) => {
@@ -196,11 +204,11 @@ const getMailer = () => {
 router.get("/settings/auto-approval", adminAuth, async (req, res) => {
   const raw = await getPlatformSetting("auto_approve_jobs", String(DEFAULT_AUTO_APPROVAL_ENABLED));
   const enabled = toBooleanSetting(raw, DEFAULT_AUTO_APPROVAL_ENABLED);
-  const configured = process.env.OPENAI_API_KEY ? true : false;
+  const configured = process.env.HUGGINGFACE_API_KEY ? true : false;
 
   res.json({
     enabled,
-    ai_provider: configured ? "openai" : "heuristic-only"
+    ai_provider: configured ? "huggingface" : "heuristic-only"
   });
 });
 
@@ -219,10 +227,14 @@ router.put("/settings/auto-approval", adminAuth, async (req, res) => {
 router.get("/users", adminAuth, (req, res) => {
   db.query(
 <<<<<<< HEAD
+<<<<<<< HEAD
     "SELECT id, name, role, verified, is_admin, is_blocked, created_at FROM users ORDER BY created_at DESC",
 =======
     "SELECT id, name, email, role, verified, is_admin, is_blocked, created_at FROM users ORDER BY created_at DESC",
 >>>>>>> d748585d6ba176664da923b31c34be130ff010e7
+=======
+    "SELECT id, name, role, verified, is_admin, is_blocked, created_at FROM users ORDER BY created_at DESC",
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     (err, users) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(users);
@@ -690,6 +702,7 @@ router.get("/stats", adminAuth, (req, res) => {
 router.get("/reviews", adminAuth, (req, res) => {
   const status = String(req.query.status || "pending").toLowerCase();
 <<<<<<< HEAD
+<<<<<<< HEAD
   const source = getReviewSource(req.query.source);
   const where = buildReviewWhereClause(status);
 
@@ -723,6 +736,9 @@ router.get("/reviews", adminAuth, (req, res) => {
   db.query(
     `${sql} ORDER BY created_at DESC`,
 =======
+=======
+  const source = String(req.query.source || "portal").toLowerCase();
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
   const filters = {
     pending: "approved = 0",
     approved: "approved = 1 AND is_hidden = 0",
@@ -732,6 +748,7 @@ router.get("/reviews", adminAuth, (req, res) => {
 
   const where = filters[status] || filters.pending;
 
+<<<<<<< HEAD
   db.query(
     `SELECT id, name, role, email, rating, message, approved, is_hidden, created_at
      FROM reviews
@@ -743,9 +760,93 @@ router.get("/reviews", adminAuth, (req, res) => {
       res.json(rows);
     }
   );
+=======
+  const portalSql = `
+    SELECT r.id,
+           'portal' AS source,
+           r.name,
+           r.role,
+           r.email,
+           r.rating,
+           r.message,
+           r.approved,
+           r.is_hidden,
+           r.created_at,
+           NULL AS company_id,
+           NULL AS company_name,
+           NULL AS employer_user_id,
+           NULL AS employer_name,
+           NULL AS job_id,
+           NULL AS job_title
+    FROM reviews r
+    WHERE ${where}
+  `;
+
+  const companySql = `
+    SELECT cr.id,
+           'company' AS source,
+           cr.reviewer_name AS name,
+           cr.reviewer_role AS role,
+           cr.reviewer_email AS email,
+           cr.rating,
+           cr.message,
+           cr.approved,
+           cr.is_hidden,
+           cr.created_at,
+           cr.company_id,
+           c.name AS company_name,
+           cr.employer_user_id,
+           u.name AS employer_name,
+           cr.job_id,
+           j.title AS job_title
+    FROM company_reviews cr
+    LEFT JOIN companies c ON c.id = cr.company_id
+    LEFT JOIN users u ON u.id = cr.employer_user_id
+    LEFT JOIN jobs j ON j.id = cr.job_id
+    WHERE ${where}
+  `;
+
+  let sql = "";
+  if (source === "portal") {
+    sql = `${portalSql} ORDER BY created_at DESC`;
+  } else if (source === "company") {
+    sql = `${companySql} ORDER BY created_at DESC`;
+  } else {
+    sql = `${portalSql} UNION ALL ${companySql} ORDER BY created_at DESC`;
+  }
+
+  db.query(sql, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows || []);
+  });
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 });
 
+const getReviewTarget = (sourceRaw) => {
+  const source = String(sourceRaw || "portal").toLowerCase();
+  if (source === "company") {
+    return {
+      source: "company",
+      table: "company_reviews",
+      approveSql: "UPDATE company_reviews SET approved = 1, is_hidden = 0 WHERE id = ?",
+      hideSql: "UPDATE company_reviews SET approved = 1, is_hidden = 1 WHERE id = ?",
+      unhideSql: "UPDATE company_reviews SET approved = 1, is_hidden = 0 WHERE id = ?",
+      deleteSql: "DELETE FROM company_reviews WHERE id = ?"
+    };
+  }
+
+  return {
+    source: "portal",
+    table: "reviews",
+    approveSql: "UPDATE reviews SET approved = 1, is_hidden = 0 WHERE id = ?",
+    hideSql: "UPDATE reviews SET approved = 1, is_hidden = 1 WHERE id = ?",
+    unhideSql: "UPDATE reviews SET approved = 1, is_hidden = 0 WHERE id = ?",
+    deleteSql: "DELETE FROM reviews WHERE id = ?"
+  };
+};
+
 router.put("/reviews/:id/approve", adminAuth, (req, res) => {
+<<<<<<< HEAD
   const table = getReviewSource(req.query.source) === "company" ? "company_reviews" : "reviews";
   db.query(
 <<<<<<< HEAD
@@ -753,43 +854,54 @@ router.put("/reviews/:id/approve", adminAuth, (req, res) => {
 =======
     "UPDATE reviews SET approved = 1, is_hidden = 0 WHERE id = ?",
 >>>>>>> d748585d6ba176664da923b31c34be130ff010e7
+=======
+  const target = getReviewTarget((req.query && req.query.source) || (req.body && req.body.source));
+  db.query(
+    target.approveSql,
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     [req.params.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       if (result.affectedRows === 0) return res.status(404).json({ message: "Review not found" });
-      res.json({ message: "Review approved" });
+      res.json({ message: `${target.source} review approved` });
     }
   );
 });
 
 router.put("/reviews/:id/hide", adminAuth, (req, res) => {
 <<<<<<< HEAD
+<<<<<<< HEAD
   const table = getReviewSource(req.query.source) === "company" ? "company_reviews" : "reviews";
 =======
+=======
+  const target = getReviewTarget((req.query && req.query.source) || (req.body && req.body.source));
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
   db.query(
-    "UPDATE reviews SET approved = 1, is_hidden = 1 WHERE id = ?",
+    target.hideSql,
     [req.params.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       if (result.affectedRows === 0) return res.status(404).json({ message: "Review not found" });
-      res.json({ message: "Review hidden" });
+      res.json({ message: `${target.source} review hidden` });
     }
   );
 });
 
 router.put("/reviews/:id/unhide", adminAuth, (req, res) => {
+  const target = getReviewTarget((req.query && req.query.source) || (req.body && req.body.source));
   db.query(
-    "UPDATE reviews SET approved = 1, is_hidden = 0 WHERE id = ?",
+    target.unhideSql,
     [req.params.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       if (result.affectedRows === 0) return res.status(404).json({ message: "Review not found" });
-      res.json({ message: "Review visible again" });
+      res.json({ message: `${target.source} review visible again` });
     }
   );
 });
 
 router.delete("/reviews/:id", adminAuth, (req, res) => {
+<<<<<<< HEAD
 >>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   db.query(
     `UPDATE ${table} SET approved = 1, is_hidden = 1 WHERE id = ?`,
@@ -819,11 +931,16 @@ router.delete("/reviews/:id", adminAuth, (req, res) => {
   const table = getReviewSource(req.query.source) === "company" ? "company_reviews" : "reviews";
   db.query(
     `DELETE FROM ${table} WHERE id = ?`,
+=======
+  const target = getReviewTarget((req.query && req.query.source) || (req.body && req.body.source));
+  db.query(
+    target.deleteSql,
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     [req.params.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       if (result.affectedRows === 0) return res.status(404).json({ message: "Review not found" });
-      res.json({ message: "Review deleted" });
+      res.json({ message: `${target.source} review deleted` });
     }
   );
 });

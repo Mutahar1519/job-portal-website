@@ -265,7 +265,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const donationModal = document.getElementById("donationModal");
+<<<<<<< HEAD
   const postPaymentModal = document.getElementById("postPaymentModal");
+=======
+  const postPaymentMethodSelect = document.getElementById("postPaymentMethod");
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
   let pendingPremiumJob = null;
   let donationContextMode = "post";
   let selectedPaymentMethod = "card";
@@ -332,6 +336,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const getSelectedPaymentMethod = () => {
+    const method = (postPaymentMethodSelect?.value || "card").trim();
+    return method || "card";
+  };
+
   const openDonationModal = (context) => {
     donationContextMode = context;
     donationModal?.classList.remove("hidden");
@@ -363,7 +372,15 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await authFetch(`${API}/payments/create-donation-session`, {
         method: "POST",
+<<<<<<< HEAD
         body: JSON.stringify({ context: "post", amount_cents: amountCents, payment_method: selectedPaymentMethod })
+=======
+        body: JSON.stringify({
+          context: "post",
+          amount_cents: amountCents,
+          payment_method: getSelectedPaymentMethod()
+        })
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
       });
       const data = await readResponsePayload(res);
       if (res.status === 401) {
@@ -386,12 +403,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const startPremiumCheckout = async (donationCents) => {
     stashPendingPremiumJob(pendingPremiumJob);
 
+<<<<<<< HEAD
     try {
       const meRes = await authFetch(`${API}/users/me`);
       if (meRes.status === 401) {
         handleAuthFailure();
         return;
       }
+=======
+    const res = await authFetch(`${API}/payments/create-checkout-session`, {
+      method: "POST",
+      body: JSON.stringify({
+        mode: "create",
+        donation_cents: donationCents,
+        payment_method: getSelectedPaymentMethod()
+      })
+    });
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
       const res = await authFetch(`${API}/payments/create-checkout-session`, {
         method: "POST",

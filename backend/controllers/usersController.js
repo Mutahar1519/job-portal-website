@@ -400,11 +400,15 @@ exports.loginUser = (req, res) => {
 
     /* 🔐 CREATE TOKEN */
 <<<<<<< HEAD
+<<<<<<< HEAD
     const JWT_SECRET = process.env.JWT_SECRET || "secret123";
 =======
     // Use consistent JWT secret
     const JWT_SECRET = "secret123";
 >>>>>>> d748585d6ba176664da923b31c34be130ff010e7
+=======
+    const JWT_SECRET = process.env.JWT_SECRET || "secret123";
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     const token = jwt.sign(
       { id: user.id, is_admin: !!user.is_admin, role: user.role || "job_seeker" },
       JWT_SECRET,
@@ -462,6 +466,15 @@ exports.updateMe = (req, res) => {
       res.json({ message: "Profile updated" });
     }
   );
+};
+
+/* DELETE CURRENT USER */
+exports.deleteMe = (req, res) => {
+  db.query("DELETE FROM users WHERE id = ?", [req.user.id], (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!result.affectedRows) return res.status(404).json({ message: "User not found" });
+    res.json({ message: "Account deleted successfully" });
+  });
 };
 
 /* GET JOB SEEKER PROFILE */

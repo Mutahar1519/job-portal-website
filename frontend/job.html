@@ -85,12 +85,62 @@
           <p class="p-muted">Your profile and resume are shared securely.</p>
           <a id="jobDetailApply" class="btn btn-primary" href="#"><i class="fa-solid fa-rocket"></i> Apply Now</a>
           <button id="jobDetailSave" class="btn btn-outline" type="button">Save job</button>
+          <button id="jobDetailReport" class="btn btn-ghost" type="button" style="color:var(--danger,#dc2626);margin-top:4px;font-size:0.85rem;">
+            <i class="fa-solid fa-flag"></i> Report this listing
+          </button>
+          <div id="reportPanel" class="report-panel" style="display:none;margin-top:12px;">
+            <p class="p-muted" style="margin-bottom:8px;font-size:0.85rem;">Why are you reporting this job?</p>
+            <select id="reportReason" class="form-input" style="margin-bottom:8px;">
+              <option value="">Select a reason…</option>
+              <option value="fake">Fake or scam listing</option>
+              <option value="misleading">Misleading information</option>
+              <option value="spam">Spam</option>
+              <option value="inappropriate">Inappropriate content</option>
+              <option value="other">Other</option>
+            </select>
+            <textarea id="reportDetails" class="form-input" rows="2" placeholder="Optional details…" style="margin-bottom:8px;"></textarea>
+            <div style="display:flex;gap:8px;">
+              <button id="reportSubmit" class="btn btn-primary" type="button" style="font-size:0.85rem;">Submit report</button>
+              <button id="reportCancel" class="btn btn-ghost" type="button" style="font-size:0.85rem;">Cancel</button>
+            </div>
+          </div>
         </div>
 
         <div class="glass-card">
           <p class="eyebrow">Recommended</p>
           <h3>Similar jobs</h3>
           <div id="jobDetailSimilar" class="mini-list"></div>
+        </div>
+
+        <div class="glass-card">
+          <p class="eyebrow">Feedback</p>
+          <h3>Review this hiring company</h3>
+          <div id="jobCompanyReviews" class="reviews-grid" style="margin-bottom:12px;"></div>
+          <form id="jobCompanyReviewForm" class="review-form" style="margin-top:0;">
+            <div class="form-group">
+              <label class="form-label" for="jobReviewName">Your name</label>
+              <input id="jobReviewName" class="form-input" type="text" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="jobReviewRole">Your role</label>
+              <input id="jobReviewRole" class="form-input" type="text" placeholder="Candidate, Developer" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="jobReviewRating">Rating</label>
+              <select id="jobReviewRating" class="form-input" required>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Great</option>
+                <option value="3">3 - Good</option>
+                <option value="2">2 - Fair</option>
+                <option value="1">1 - Poor</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label" for="jobReviewMessage">Review</label>
+              <textarea id="jobReviewMessage" class="form-input" rows="3" required></textarea>
+            </div>
+            <button class="btn btn-primary" type="submit">Submit review</button>
+          </form>
         </div>
       </aside>
     </section>

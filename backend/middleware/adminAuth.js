@@ -1,13 +1,8 @@
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 
-<<<<<<< HEAD
-// Shared JWT secret - reads from environment variable
+// Shared JWT secret - reads from environment variable, fallback to 'secret123' for compatibility
 const JWT_SECRET = process.env.JWT_SECRET || "secret123";
-=======
-// Shared JWT secret - MUST match all JWT generation and verification
-const JWT_SECRET = "secret123";
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 
 module.exports = (req, res, next) => {
   const authHeader = req.headers.authorization;

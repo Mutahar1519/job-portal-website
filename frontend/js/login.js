@@ -1,3 +1,77 @@
+// ── OAuth callback handling ──────────────────────────────────────
+// When Google/LinkedIn redirects back here, the URL has ?token=JWT&oauth=provider
+// or ?error=reason when something went wrong.
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const oauthToken = params.get("token");
+  const oauthError = params.get("error");
+  const oauthNote  = document.getElementById("oauthNote");
+
+  if (oauthError) {
+    const messages = {
+      oauth_not_configured: "OAuth login is not enabled yet. Please use email/password.",
+      oauth_denied:         "Sign-in was cancelled.",
+      oauth_failed:         "OAuth sign-in failed. Please try again or use email/password."
+    };
+    if (oauthNote) {
+      oauthNote.textContent = messages[oauthError] || "OAuth sign-in failed.";
+      oauthNote.style.display = "block";
+      oauthNote.style.color = "var(--danger, #dc2626)";
+    }
+    // Clean URL so refresh doesn't re-trigger
+    window.history.replaceState({}, document.title, window.location.pathname);
+    return;
+  }
+
+  if (oauthToken) {
+    localStorage.setItem("token", oauthToken);
+    window.history.replaceState({}, document.title, window.location.pathname);
+    try {
+      const res = await fetch(`${API}/users/me`, {
+        headers: { Authorization: `Bearer ${oauthToken}` }
+      });
+      if (res.ok) {
+        const user = await res.json();
+        localStorage.setItem("user", JSON.stringify(user));
+        if (user.is_admin || user.role === "admin") return (window.location.href = "admin.html");
+        if (user.role === "employer") return (window.location.href = "employer.html");
+        return (window.location.href = "dashboard.html");
+      }
+    } catch { /* fall through */ }
+    window.location.href = "dashboard.html";
+    return;
+  }
+
+  // Disable OAuth buttons if provider not configured, and check provider availability
+  try {
+    const provRes = await fetch(`${API}/auth/providers`);
+    if (provRes.ok) {
+      const providers = await provRes.json();
+      const googleBtn   = document.getElementById("googleOAuthBtn");
+      const linkedinBtn = document.getElementById("linkedinOAuthBtn");
+      if (googleBtn && !providers.google) {
+        googleBtn.removeAttribute("href");
+        googleBtn.style.opacity = "0.45";
+        googleBtn.title = "Google OAuth not configured";
+        googleBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          if (oauthNote) { oauthNote.textContent = "Google login is not enabled yet."; oauthNote.style.display = "block"; }
+        });
+      }
+      if (linkedinBtn && !providers.linkedin) {
+        linkedinBtn.removeAttribute("href");
+        linkedinBtn.style.opacity = "0.45";
+        linkedinBtn.title = "LinkedIn OAuth not configured";
+        linkedinBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          if (oauthNote) { oauthNote.textContent = "LinkedIn login is not enabled yet."; oauthNote.style.display = "block"; }
+        });
+      }
+    }
+  } catch { /* provider check optional */ }
+})();
+
+// ── Redirect if already logged in ───────────────────────────────
 const existingToken = localStorage.getItem("token");
 const existingUserRaw = localStorage.getItem("user");
 

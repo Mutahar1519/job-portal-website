@@ -4,6 +4,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const modeLabel = document.getElementById("companyMode");
   const shareLabel = document.getElementById("companyShare");
   const editor = document.getElementById("companyEditor");
+  const companyReviewsSection = document.getElementById("companyReviewsSection");
+  const companyReviewsGrid = document.getElementById("companyReviewsGrid");
+  const companyReviewForm = document.getElementById("companyReviewForm");
 
   // If viewing as a public company profile (has ?companyId= param), allow anyone.
   // Otherwise only employers/admins can edit.
@@ -43,6 +46,91 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   let currentCompany = null;
+
+  const esc = (value) => String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+  const renderCompanyReviews = (reviews = []) => {
+    if (!companyReviewsGrid) return;
+
+    if (!reviews.length) {
+      companyReviewsGrid.innerHTML = '<p class="p-muted">No public reviews yet.</p>';
+      return;
+    }
+
+    companyReviewsGrid.innerHTML = reviews.map((review) => {
+      const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
+      return `
+        <article class="review-card">
+          <div class="review-header">
+            <div>
+              <h3>${esc(review.name)}</h3>
+              <p class="meta">${esc(review.role)}</p>
+            </div>
+            <span class="review-stars">${stars}</span>
+          </div>
+          <p class="review-message">${esc(review.message)}</p>
+        </article>
+      `;
+    }).join("");
+  };
+
+  const loadCompanyReviews = async (companyId) => {
+    if (!companyId || !companyReviewsGrid) return;
+    try {
+      const res = await fetch(`${API}/reviews/company/${companyId}?limit=10`);
+      const data = await res.json().catch(() => []);
+      renderCompanyReviews(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      renderCompanyReviews([]);
+    }
+  };
+
+  const bindCompanyReviewForm = (companyId) => {
+    if (!companyReviewForm || !companyId) return;
+
+    companyReviewForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const name = (document.getElementById("companyReviewName")?.value || "").trim();
+      const role = (document.getElementById("companyReviewRole")?.value || "").trim();
+      const rating = Number(document.getElementById("companyReviewRating")?.value || 0);
+      const message = (document.getElementById("companyReviewMessage")?.value || "").trim();
+
+      if (!name || !role || !rating || !message) {
+        alert("Please complete all review fields.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/reviews/company/${companyId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, role, rating, message })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.message || "Failed to submit company review.");
+          return;
+        }
+
+        companyReviewForm.reset();
+        if (window.toast) {
+          toast("Thanks! Your company review is pending approval.");
+        } else {
+          alert("Thanks! Your company review is pending approval.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Network error while submitting review.");
+      }
+    });
+  };
 
   const renderPreview = (data) => {
     if (!preview) return;
@@ -134,6 +222,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (editor) editor.style.display = "none";
     if (modeLabel) modeLabel.textContent = "Public company profile";
     if (shareLabel) shareLabel.textContent = "";
+    if (companyReviewsSection) companyReviewsSection.style.display = "block";
 
     try {
       const res = await fetch(`${API}/companies/${publicCompanyId}`);
@@ -144,6 +233,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
       renderPreview(data);
+      await loadCompanyReviews(Number(publicCompanyId));
+      bindCompanyReviewForm(Number(publicCompanyId));
     } catch (err) {
       console.error(err);
       renderPreview(null);
@@ -158,6 +249,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     alert("Login required");
     window.location.href = "login.html";
     return;
+  }
+
+  if (companyReviewsSection) {
+    companyReviewsSection.style.display = "none";
   }
 
   const loadMyCompany = async () => {

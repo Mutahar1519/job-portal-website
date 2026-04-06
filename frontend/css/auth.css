@@ -948,3 +948,66 @@ body .navbar button {
     row-gap: 8px;
   }
 }
+
+/* ── OAuth buttons ────────────────────────────────────────────── */
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 14px;
+  color: var(--muted, #94a3b8);
+  font-size: 0.85rem;
+}
+.oauth-divider::before,
+.oauth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border, #e2e8f0);
+}
+
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+.oauth-btn:hover {
+  opacity: 0.88;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.oauth-btn-google {
+  background: #fff;
+  color: #3c4043;
+  border: 1.5px solid #dadce0;
+}
+
+.oauth-btn-linkedin {
+  background: #0a66c2;
+  color: #fff;
+  border: none;
+}
+
+/* Dark-mode adjustments */
+body.dark .oauth-btn-google {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+body.dark .oauth-divider::before,
+body.dark .oauth-divider::after {
+  background: #334155;
+}

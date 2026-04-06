@@ -1,3 +1,42 @@
+<<<<<<< HEAD
+const HF_API_URL = "https://router.huggingface.co/";
+const HF_MODEL = process.env.HUGGINGFACE_MODEL || "microsoft/DialoGPT-medium";
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "openchat/openchat-3.5-0106";
+const callOpenRouter = async (message) => {
+  if (!OPENROUTER_API_KEY) return null;
+  // System prompt to guide users to generate a support ticket for human support
+  const systemPrompt = "You are an assistant for a job portal website. If a user asks for human support, tell them: 'To contact human support, please generate a support ticket in the portal and wait for a reply.'";
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${OPENROUTER_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message }
+      ]
+    })
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenRouter error ${response.status}: ${errText}`);
+  }
+  const data = await response.json();
+  const reply = data.choices?.[0]?.message?.content;
+  return reply ? reply.trim() : null;
+};
+const LIVE_SUPPORT_QUEUE_LIMIT = 100;
+const liveSupportRequests = [];
+const db = require("../config/mysql");
+const {
+  canSendNotification,
+  sendSupportReplyEmail
+} = require("./notificationsController");
+
 const HF_API_URL = "https://router.huggingface.co/";
 const HF_MODEL = process.env.HUGGINGFACE_MODEL || "microsoft/DialoGPT-medium";
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -57,48 +96,6 @@ const maskEmail = (value) => {
 
   const local = email.slice(0, at);
   const domain = email.slice(at + 1);
-  if (!domain) return `${local[0]}***`;
-
-  return `${local[0]}***@${domain}`;
-};
-
-const toSafeMessagePreview = (value, maxLen = 120) => {
-  const raw = String(value || "").replace(/\s+/g, " ").trim();
-  if (!raw) return "";
-
-  const redactedEmail = raw.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]");
-  const redactedPhone = redactedEmail.replace(/\+?\d[\d\s().-]{7,}\d/g, "[phone]");
-  return redactedPhone.length > maxLen ? `${redactedPhone.slice(0, maxLen - 1)}…` : redactedPhone;
-};
-
-const isMissingLastReplyColumnError = (err) => {
-  const message = String(err?.message || "");
-  return err?.code === "ER_BAD_FIELD_ERROR" && /last_replied_admin_id/i.test(message);
-};
-
-const runSupportQuery = async (primarySql, fallbackSql, params = []) => {
-  try {
-    return await query(primarySql, params);
-  } catch (err) {
-    if (fallbackSql && isMissingLastReplyColumnError(err)) {
-      return query(fallbackSql, params);
-    }
-    throw err;
-  }
-};
-
-const runSupportUpdate = async (primarySql, fallbackSql, primaryParams = [], fallbackParams = primaryParams) => {
-  try {
-    return await query(primarySql, primaryParams);
-  } catch (err) {
-    if (fallbackSql && isMissingLastReplyColumnError(err)) {
-      return query(fallbackSql, fallbackParams);
-    }
-    throw err;
-  }
-};
-
-const supportTicketSelectPrimary = `t.ticket_id, t.user_id, t.user_email, t.status, t.created_at, t.updated_at,
            t.unread_user_count, t.unread_admin_count, t.assigned_admin_id, t.last_replied_admin_id,
            assigned.name AS assigned_admin_name,
            replied.name AS last_replied_admin_name`;
@@ -219,6 +216,11 @@ const emitRealtime = (event, payload) => {
 
   realtimeIo.to("support-admin").emit(event, payload);
 };
+=======
+const HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models";
+const HUGGINGFACE_MODEL = process.env.HUGGINGFACE_MODEL || "microsoft/DialoGPT-medium";
+const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY;
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
 const buildFallbackReply = (message) => {
   const msg = (message || "").toLowerCase();
@@ -263,12 +265,34 @@ const buildFallbackReply = (message) => {
   return reply;
 };
 
+<<<<<<< HEAD
 
 const callHuggingFace = async (message) => {
   const apiKey = process.env.HUGGINGFACE_API_KEY;
   if (!apiKey) return null;
 
   const response = await fetch(HF_API_URL, {
+=======
+const callHuggingFace = async (message) => {
+  const apiKey = HUGGINGFACE_API_KEY;
+  if (!apiKey) return null;
+
+  // For DialoGPT, we format as conversation
+  const conversation = `System: You are the JobPortal AI assistant. Provide concise help about jobs, applications, payments, and account/profile guidance. Do not claim access to personal data or payment systems. If asked for user info, explain that users should open their Profile while signed in. For payment issues, give short troubleshooting steps and suggest contacting support@jobportal.com if unresolved. Keep replies under 3 sentences.\nUser: ${message}\nAssistant:`;
+
+  const payload = {
+    inputs: conversation,
+    parameters: {
+      max_length: 200,
+      temperature: 0.7,
+      do_sample: true,
+      return_full_text: false,
+      pad_token_id: 50256  // EOS token for GPT models
+    }
+  };
+
+  const response = await fetch(`${HUGGINGFACE_API_URL}/${HUGGINGFACE_MODEL}`, {
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -282,6 +306,7 @@ const callHuggingFace = async (message) => {
 
   if (!response.ok) {
     const errText = await response.text();
+<<<<<<< HEAD
     throw new Error(`HuggingFace error ${response.status}: ${errText}`);
   }
 
@@ -290,6 +315,27 @@ const callHuggingFace = async (message) => {
   if (!generated) return null;
   const trimmed = generated.startsWith(message) ? generated.slice(message.length).trim() : generated.trim();
   return trimmed || null;
+=======
+    throw new Error(`Hugging Face error ${response.status}: ${errText}`);
+  }
+
+  const data = await response.json();
+
+  // Handle different response formats
+  let content = null;
+  if (Array.isArray(data) && data.length > 0) {
+    content = data[0].generated_text;
+  } else if (data.generated_text) {
+    content = data.generated_text;
+  }
+
+  // Clean up the response - remove the input part if present
+  if (content && content.includes("Assistant:")) {
+    content = content.split("Assistant:")[1].trim();
+  }
+
+  return content ? content.trim() : null;
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 };
 
 exports.chatBot = async (req, res) => {
@@ -299,6 +345,7 @@ exports.chatBot = async (req, res) => {
     return res.json({ reply: "Please ask a question." });
   }
 
+<<<<<<< HEAD
   // Try OpenRouter first if configured
   if (OPENROUTER_API_KEY) {
     try {
@@ -309,6 +356,12 @@ exports.chatBot = async (req, res) => {
       }
     } catch (err) {
       console.error("[DEBUG] OpenRouter chat error:", err.message);
+=======
+  try {
+    const aiReply = await callHuggingFace(message);
+    if (aiReply) {
+      return res.json({ reply: aiReply });
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     }
   }
 

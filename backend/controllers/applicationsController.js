@@ -1,10 +1,12 @@
+db.query(
 const db = require("../config/mysql");
 const {
   canSendNotification,
   sendApplicationUpdateEmail
 } = require("./notificationsController");
+const { sendMail } = require("../utils/mailer");
 
-db.query(
+
   `CREATE TABLE IF NOT EXISTS employer_application_notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     employer_user_id INT NOT NULL,
@@ -23,11 +25,11 @@ db.query(
     }
   }
 );
-
 const isMissingColumnError = (err) => {
   return !!err && (err.code === "ER_BAD_FIELD_ERROR" || /Unknown column/i.test(err.message || ""));
 };
 
+<<<<<<< HEAD
 const escapeIcsText = (value) => {
   return String(value || "")
     .replace(/\\/g, "\\\\")
@@ -105,6 +107,85 @@ const buildInterviewIcs = (interview) => {
   ].join("\r\n");
 };
 
+=======
+/* Email employer + applicant after a successful application */
+const sendApplicationEmails = async ({ userId, jobId, fullName, applicantEmail, coverLetter }) => {
+  // Lookup job title and employer email in one query
+  const rows = await new Promise((resolve, reject) => {
+    db.query(
+      `SELECT j.title AS job_title, u.email AS employer_email, u.name AS employer_name
+       FROM jobs j
+       JOIN users u ON j.posted_by = u.id
+       WHERE j.id = ?`,
+      [jobId],
+      (err, result) => (err ? reject(err) : resolve(result))
+    );
+  });
+
+  if (!rows.length) return;
+  const { job_title, employer_email, employer_name } = rows[0];
+  const candidate = fullName || "A candidate";
+  const preview = coverLetter ? coverLetter.slice(0, 200) + (coverLetter.length > 200 ? "..." : "") : "";
+
+  const employerSubject = `New application for "${job_title}"`;
+  const employerText = [
+    `Hi ${employer_name || "there"},`,
+    ``,
+    `${candidate} has applied for your "${job_title}" position.`,
+    ``,
+    preview ? `Cover letter excerpt:\n"${preview}"` : "",
+    ``,
+    `Log in to your employer dashboard to review and move the application through your pipeline.`,
+    ``,
+    `— JobPortal`
+  ].join("\n");
+
+  await sendMail({ to: employer_email, subject: employerSubject, text: employerText });
+
+  if (applicantEmail) {
+    const seekerSubject = `Your application to "${job_title}" was received`;
+    const seekerText = [
+      `Hi ${candidate},`,
+      ``,
+      `Your application for "${job_title}" has been submitted successfully.`,
+      `The employer will review it and reach out if you're a good fit.`,
+      ``,
+      `You can track your application status any time from your dashboard.`,
+      ``,
+      `— JobPortal`
+    ].join("\n");
+    await sendMail({ to: applicantEmail, subject: seekerSubject, text: seekerText });
+  }
+};
+
+/* CHECK IF USER HAS APPLIED FOR A JOB */
+exports.checkApplicationStatus = (req, res) => {
+  const userId = req.user.id;
+  const jobId = req.params.id;
+
+  if (!jobId || isNaN(jobId)) {
+    return res.status(400).json({ message: "Invalid job" });
+  }
+
+  db.query(
+    "SELECT id, status FROM applications WHERE user_id = ? AND job_id = ? LIMIT 1",
+    [userId, jobId],
+    (err, results) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Database error" });
+      }
+
+      if (results.length > 0) {
+        res.json({ hasApplied: true, status: results[0].status });
+      } else {
+        res.json({ hasApplied: false });
+      }
+    }
+  );
+};
+
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 /* APPLY FOR A JOB */
 exports.applyJob = (req, res) => {
   const userId = req.user.id;
@@ -251,6 +332,11 @@ exports.applyJob = (req, res) => {
         );
 
         res.status(201).json({ message: "Application submitted successfully" });
+
+        // Fire-and-forget: email employer and applicant (does not affect response)
+        sendApplicationEmails({ userId, jobId, fullName, applicantEmail: email, coverLetter }).catch(err => {
+          console.error("[EMAIL] Failed to send application emails:", err.message);
+        });
       }
     );
   };
@@ -260,8 +346,11 @@ exports.applyJob = (req, res) => {
     if (!roleRows.length) return res.status(404).json({ message: "User not found" });
 
     const role = String(roleRows[0].role || "").toLowerCase();
-    if (role !== "job_seeker" || Number(roleRows[0].is_admin) === 1) {
-      return res.status(403).json({ message: "Only job seekers can apply for jobs" });
+    const isAdmin = Number(roleRows[0].is_admin) === 1;
+
+    // Allow admins to apply for jobs too, while defaulting to role=job_seeker for regular users
+    if (!isAdmin && role !== "job_seeker") {
+      return res.status(403).json({ message: "Only job seekers and admins can apply for jobs" });
     }
 
     // Check if job exists

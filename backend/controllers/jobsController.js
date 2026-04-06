@@ -988,6 +988,7 @@ exports.applyJob = (req, res) => {
   });
 };
 
+<<<<<<< HEAD
 /* === REPORT JOB === */
 exports.reportJob = (req, res) => {
   const jobId = parseInt(req.params.id);
@@ -1016,10 +1017,59 @@ exports.reportJob = (req, res) => {
       (err) => {
         if (err) return res.status(500).json({ message: "Failed to submit report", error: err.message });
         res.json({ message: "Report submitted. Thank you." });
+=======
+/* ─── Report a job listing ──────────────────────────────────────── */
+const VALID_REPORT_REASONS = ["spam", "fake", "misleading", "inappropriate", "other"];
+
+exports.reportJob = (req, res) => {
+  const jobId = Number(req.params.id);
+  if (!jobId || isNaN(jobId)) {
+    return res.status(400).json({ message: "Invalid job" });
+  }
+
+  const reason = (req.body.reason || "").trim().toLowerCase();
+  const details = (req.body.details || "").trim().slice(0, 1000);
+
+  if (!VALID_REPORT_REASONS.includes(reason)) {
+    return res.status(400).json({ message: `Reason must be one of: ${VALID_REPORT_REASONS.join(", ")}` });
+  }
+
+  const userId = req.user ? req.user.id : null;
+
+  // Ensure job_reports table exists (idempotent)
+  const createTableSql = `
+    CREATE TABLE IF NOT EXISTS job_reports (
+      id         INT AUTO_INCREMENT PRIMARY KEY,
+      job_id     INT NOT NULL,
+      user_id    INT,
+      reason     VARCHAR(50) NOT NULL,
+      details    TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_job_reports_job (job_id)
+    )
+  `;
+
+  db.query(createTableSql, (createErr) => {
+    if (createErr) {
+      console.error("job_reports table create error:", createErr.message);
+      return res.status(500).json({ message: "Database error" });
+    }
+
+    db.query(
+      "INSERT INTO job_reports (job_id, user_id, reason, details) VALUES (?, ?, ?, ?)",
+      [jobId, userId, reason, details || null],
+      (insertErr) => {
+        if (insertErr) {
+          console.error("job_reports insert error:", insertErr.message);
+          return res.status(500).json({ message: "Failed to submit report" });
+        }
+        res.json({ message: "Thank you — your report has been submitted and we'll review this listing." });
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
       }
     );
   });
 };
+<<<<<<< HEAD
 
 // ─── Saved Searches ───────────────────────────────────────────────────────────
 
@@ -1070,3 +1120,5 @@ exports.deleteSavedSearch = (req, res) => {
     }
   );
 };
+=======
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0

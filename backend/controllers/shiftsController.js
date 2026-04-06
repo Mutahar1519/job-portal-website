@@ -2,6 +2,13 @@ const db = require("../config/mysql");
 
 const SHIFT_FEE_PERCENT = Number(process.env.SHIFT_FEE_PERCENT || 10);
 const SHIFT_CURRENCY = process.env.SHIFT_CURRENCY || "usd";
+const ALLOWED_PAYMENT_METHODS = ["card", "applepay", "gpay", "paypal", "bank_transfer"];
+
+const normalizePaymentMethod = (value) => {
+  const method = String(value || "card").trim().toLowerCase();
+  if (!ALLOWED_PAYMENT_METHODS.includes(method)) return null;
+  return method;
+};
 
 const computeFee = (payCents) => {
   const fee = Math.round(payCents * (SHIFT_FEE_PERCENT / 100));
@@ -25,10 +32,10 @@ exports.acceptShiftApplication = (req, res) => {
   const applicationId = Number(req.params.applicationId);
   if (!applicationId) return res.status(400).json({ message: "Invalid application" });
 
-  const ALLOWED_PAYMENT_METHODS = ["card", "applepay", "gpay", "paypal", "bank_transfer"];
-  const paymentMethod = (req.body && req.body.payment_method) || "card";
-  if (!ALLOWED_PAYMENT_METHODS.includes(paymentMethod)) {
+  const selectedPaymentMethod = normalizePaymentMethod(req.body && req.body.payment_method);
+  if (!selectedPaymentMethod) {
     return res.status(400).json({ message: "Invalid payment method. Allowed: " + ALLOWED_PAYMENT_METHODS.join(", ") });
+  }
   }
 
   const sql = `
@@ -60,38 +67,78 @@ exports.acceptShiftApplication = (req, res) => {
 
     const createEscrowSql = `
       INSERT INTO shift_escrows
+        (job_id, application_id, client_id, worker_id, pay_cents, fee_cents, total_cents, currency, payment_method, release_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))
+    `;
+
+    const createEscrowSqlLegacy = `
+      INSERT INTO shift_escrows
         (job_id, application_id, client_id, worker_id, pay_cents, fee_cents, total_cents, currency, release_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))
     `;
 
+    const createEscrowParams = [
+      record.job_id,
+      record.application_id,
+      record.posted_by,
+      record.worker_id,
+      payCents,
+      feeCents,
+      totalCents,
+      record.shift_currency || SHIFT_CURRENCY,
+      selectedPaymentMethod
+    ];
+
+    const createEscrowParamsLegacy = [
+      record.job_id,
+      record.application_id,
+      record.posted_by,
+      record.worker_id,
+      payCents,
+      feeCents,
+      totalCents,
+      record.shift_currency || SHIFT_CURRENCY
+    ];
+
+    const finalizeAcceptedShift = () => {
+      db.query(
+        "UPDATE jobs SET shift_status = 'booked' WHERE id = ?",
+        [record.job_id],
+        (updateErr) => {
+          if (updateErr) return res.status(500).json({ message: "Failed to update shift" });
+          res.json({
+            message: "Worker accepted. Escrow created with auto-release in 24h.",
+            payment_method: selectedPaymentMethod
+          });
+        }
+      );
+    };
+
     db.query(
       createEscrowSql,
-      [
-        record.job_id,
-        record.application_id,
-        record.posted_by,
-        record.worker_id,
-        payCents,
-        feeCents,
-        totalCents,
-        record.shift_currency || SHIFT_CURRENCY
-      ],
+      createEscrowParams,
       (err) => {
         if (err) {
+          if (err.code === "ER_BAD_FIELD_ERROR" || /Unknown column/i.test(err.message || "")) {
+            return db.query(createEscrowSqlLegacy, createEscrowParamsLegacy, (legacyErr) => {
+              if (legacyErr) {
+                if (legacyErr.code === "ER_DUP_ENTRY") {
+                  return res.status(409).json({ message: "Shift already accepted" });
+                }
+                return res.status(500).json({ message: "Failed to create escrow" });
+              }
+
+              return finalizeAcceptedShift();
+            });
+          }
+
           if (err.code === "ER_DUP_ENTRY") {
             return res.status(409).json({ message: "Shift already accepted" });
           }
           return res.status(500).json({ message: "Failed to create escrow" });
         }
 
-        db.query(
-          "UPDATE jobs SET shift_status = 'booked' WHERE id = ?",
-          [record.job_id],
-          (err) => {
-            if (err) return res.status(500).json({ message: "Failed to update shift" });
-            res.json({ message: "Worker accepted. Escrow created with auto-release in 24h." });
-          }
-        );
+        finalizeAcceptedShift();
       }
     );
   });

@@ -25,6 +25,7 @@ function safeParseJson(value, label) {
   }
 }
 
+<<<<<<< HEAD
 /* 🔐 authFetch: defined in config.js as a var — available globally.
    Do not redefine here. If config.js is not loaded, define a basic fallback. */
 if (typeof authFetch === "undefined") {
@@ -66,6 +67,36 @@ if (typeof authFetch === "undefined") {
     return res;
   });
 >>>>>>> d748585d6ba176664da923b31c34be130ff010e7
+=======
+/* 🔐 authFetch fallback: only define if config.js did not provide one */
+if (!window.authFetch) {
+  window.authFetch = function fallbackAuthFetch(url, options = {}) {
+    const token = localStorage.getItem("token");
+    const isFormData = options.body instanceof FormData;
+    const method = String(options.method || "GET").toUpperCase();
+    const shouldSetJsonContentType = !isFormData && options.body != null && method !== "GET" && method !== "HEAD";
+    const baseHeaders = {
+      ...(shouldSetJsonContentType ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {})
+    };
+
+    if (token && token.trim()) {
+      baseHeaders.Authorization = `Bearer ${token.trim()}`;
+    }
+
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...baseHeaders
+      }
+    }).then(res => {
+      if (!res.ok && res.status === 401) {
+        console.error(`[authFetch] 401 Unauthorized for ${url}. Token may be expired or invalid.`);
+      }
+      return res;
+    });
+  };
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 }
 
 /* 🚪 Logout */
@@ -86,10 +117,15 @@ function getUser() {
   return user;
 }
 
-// Remember last job ID from any apply link click
+// Remember last job ID from job-related links (apply/details)
 document.addEventListener("click", (event) => {
-  const link = event.target.closest("a.apply-btn");
+  const link = event.target.closest("a[href]");
   if (!link) return;
+
+  const href = link.getAttribute("href") || "";
+  if (!/jobId=\d+/i.test(href) && !link.classList.contains("apply-btn")) {
+    return;
+  }
 
   const dataId = link.getAttribute("data-job-id");
 
@@ -98,10 +134,15 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  const href = link.getAttribute("href") || "";
   const match = href.match(/[?&]jobId=(\d+)/);
   if (match) {
     sessionStorage.setItem("lastJobId", match[1]);
+    return;
+  }
+
+  const fallbackMatch = href.match(/[?&]id=(\d+)/);
+  if (fallbackMatch) {
+    sessionStorage.setItem("lastJobId", fallbackMatch[1]);
   }
 });
 

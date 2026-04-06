@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
           <p class="job-desc">${job.description || ""}</p>
           <div class="job-card-actions">
-            <a href="job.html?jobId=${job.id}" class="btn btn-ghost">Details</a>
+            <a href="job.html?jobId=${job.id}&id=${job.id}" class="btn btn-ghost" data-job-id="${job.id}">Details</a>
             <a href="apply.html?jobId=${job.id}" class="apply-btn" data-job-id="${job.id}">Apply</a>
           </div>
         </div>

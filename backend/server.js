@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 const http = require("http");
+=======
+require("dotenv").config();
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
@@ -103,9 +107,89 @@ if (origSaveEvaluation) {
 
 // Patch job creation and deletion if needed (not shown here)
 
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const PORT = Number(process.env.PORT || 3000);
+const NODE_ENV = process.env.NODE_ENV || "development";
+const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000);
+const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX || 300);
+const CORS_ORIGINS = String(process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const isLocalDevOrigin = (origin) => {
+  try {
+    const parsed = new URL(origin);
+    return ["localhost", "127.0.0.1", "0.0.0.0", "::1"].includes(parsed.hostname);
+  } catch (err) {
+    return false;
+  }
+};
+
+if (NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
+app.disable("x-powered-by");
+
+// Basic security headers without extra dependencies.
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  if (NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  next();
+});
+
+// Simple in-memory IP rate limiter.
+const requestBuckets = new Map();
+app.use((req, res, next) => {
+  const ip = req.ip || req.socket.remoteAddress || "unknown";
+  const now = Date.now();
+  const bucket = requestBuckets.get(ip);
+
+  if (!bucket || now - bucket.start > RATE_LIMIT_WINDOW_MS) {
+    requestBuckets.set(ip, { count: 1, start: now });
+    return next();
+  }
+
+  bucket.count += 1;
+  if (bucket.count > RATE_LIMIT_MAX) {
+    return res.status(429).json({ message: "Too many requests, please try again later." });
+  }
+
+  return next();
+});
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow server-to-server and same-origin calls with no Origin header.
+      if (!origin) return callback(null, true);
+
+      // Allow file:// pages in development (browser sends Origin: null).
+      if (origin === "null" && NODE_ENV !== "production") return callback(null, true);
+
+      // In local development, allow frontends served from any localhost port.
+      if (NODE_ENV !== "production" && isLocalDevOrigin(origin)) return callback(null, true);
+
+      if (!CORS_ORIGINS.length) {
+        if (NODE_ENV !== "production") return callback(null, true);
+        return callback(new Error("CORS blocked"));
+      }
+
+      return CORS_ORIGINS.includes(origin)
+        ? callback(null, true)
+        : callback(new Error("CORS blocked"));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    credentials: true
+  })
+);
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 const query = (sql, params = []) =>
   new Promise((resolve, reject) => {
@@ -174,9 +258,12 @@ const messagesRoutes = require("./routes/messages");
 const employerRoutes = require("./routes/employer");
 const shiftsRoutes = require("./routes/shifts");
 const authRoutes = require("./routes/auth");
+<<<<<<< HEAD
 const notificationsRoutes = require("./routes/notifications");
 const recommendationsRoutes = require("./routes/recommendations");
 const referralsRoutes = require("./routes/referrals");
+=======
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
 app.use("/api/jobs", jobsRoutes);
 app.use("/api/users", usersRoutes);
@@ -193,9 +280,12 @@ app.use("/api/messages", messagesRoutes);
 app.use("/api/employer", employerRoutes);
 app.use("/api/shifts", shiftsRoutes);
 app.use("/api/auth", authRoutes);
+<<<<<<< HEAD
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/recommendations", recommendationsRoutes);
 app.use("/api/referrals", referralsRoutes);
+=======
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
 runSchemaChecks();
 
@@ -243,6 +333,7 @@ app.use((err, req, res, next) => {
   res.status(500).sendFile(path.join(__dirname, "../frontend/500.html"));
 });
 
+<<<<<<< HEAD
 const PORT = Number(process.env.PORT) || 3000;
 
 const server = httpServer.listen(PORT, () => {
@@ -256,4 +347,8 @@ server.on("error", (err) => {
     console.error("❌ Server failed to start:", err);
   }
   process.exit(1);
+=======
+app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 });

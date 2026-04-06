@@ -240,6 +240,7 @@ CREATE TABLE IF NOT EXISTS shift_escrows (
   fee_cents INT NOT NULL,
   total_cents INT NOT NULL,
   currency VARCHAR(10) NOT NULL DEFAULT 'usd',
+  payment_method VARCHAR(40) NOT NULL DEFAULT 'card',
   status VARCHAR(30) NOT NULL DEFAULT 'awaiting_confirmation',
   client_confirmed TINYINT(1) NOT NULL DEFAULT 0,
   worker_confirmed TINYINT(1) NOT NULL DEFAULT 0,

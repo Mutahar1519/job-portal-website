@@ -1,8 +1,34 @@
+const fetchLatestJobsWithFallback = async () => {
+  const candidates = Array.from(new Set([
+    `${API}/jobs`,
+    `${window.location.origin}/api/jobs`,
+    "http://localhost:3000/api/jobs"
+  ]));
+
+  let lastError = null;
+
+  for (const url of candidates) {
+    try {
+      const res = await authFetch(url);
+      const data = await res.json().catch(() => []);
+      if (!res.ok) {
+        throw new Error((data && data.message) ? data.message : `Failed to fetch jobs (${res.status})`);
+      }
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("Unable to load jobs from any API origin");
+};
+
 async function loadLatestJobs() {
   try {
     const skeleton = document.getElementById("skeleton");
     if (skeleton) skeleton.style.display = "grid";
 
+<<<<<<< HEAD
     let jobs = [];
     const candidates = [`${API}/jobs`, `${window.location.origin}/api/jobs`, "http://localhost:3000/api/jobs"];
     for (const candidate of candidates) {
@@ -19,6 +45,9 @@ async function loadLatestJobs() {
       }
     }
 
+=======
+    const jobs = await fetchLatestJobsWithFallback();
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     const box = document.getElementById("latestJobs");
     const recommended = document.getElementById("recommendedJobs");
     if (!box) return;
@@ -223,7 +252,11 @@ const renderJobCard = (job, options = {}) => {
           <p class="job-desc job-card-description">${jobDescription}</p>
 
       <div class="job-card-actions">
+<<<<<<< HEAD
         <a href="${buildJobDetailHref(job.id)}" class="btn btn-ghost job-action-btn" data-job-id="${job.id}">Details</a>
+=======
+        <a href="job.html?jobId=${job.id}&id=${job.id}" class="btn btn-ghost job-action-btn" data-job-id="${job.id}">Details</a>
+>>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
         <a href="apply.html?jobId=${job.id}" class="apply-btn job-action-btn" data-job-id="${job.id}"><i class="fa-solid fa-rocket"></i> Apply Now</a>
         ${includeSaveButton ? `<button class="btn btn-outline save-btn" type="button" data-save-id="${job.id}" data-saved="${saved ? 1 : 0}">${saved ? "Saved" : "Save"}</button>` : ""}
       </div>
