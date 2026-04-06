@@ -305,6 +305,7 @@ exports.getJobs = (req, res) => {
   });
 };
 
+<<<<<<< HEAD
 exports.getPortalStats = (req, res) => {
   const countJobsSql = "SELECT COUNT(*) AS total_jobs FROM jobs WHERE is_approved = 1";
   const countActiveJobsSql = "SELECT COUNT(*) AS active_jobs FROM jobs WHERE is_approved = 1 AND (application_deadline IS NULL OR application_deadline >= NOW())";
@@ -618,6 +619,12 @@ exports.getJobById = (req, res) => {
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ message: "Invalid job id" });
 
+=======
+exports.getJobById = (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ message: "Invalid job id" });
+
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   const params = [id];
   let sql = `
     SELECT j.*, c.name AS company_name, c.logo_url AS company_logo,
@@ -671,12 +678,15 @@ exports.addJob = (req, res) => {
   const imageUrl = req.file
     ? "/uploads/jobs/" + req.file.filename
     : (isValidExternalUrl ? bodyImageUrl : null);
+<<<<<<< HEAD
 
   const salaryMin = req.body.salary_min !== undefined && req.body.salary_min !== "" ? Math.max(0, Number(req.body.salary_min)) : null;
   const salaryMax = req.body.salary_max !== undefined && req.body.salary_max !== "" ? Math.max(0, Number(req.body.salary_max)) : null;
   const experienceLevel = (req.body.experience_level || "").trim().slice(0, 50);
   const isRemote = req.body.is_remote ? 1 : 0;
   const benefits = (req.body.benefits || "").trim().slice(0, 2000);
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 
   if (!title || !location || !jobType || !category || !description) {
     return res.status(400).json({ message: "All fields are required" });
@@ -714,6 +724,7 @@ exports.addJob = (req, res) => {
     return res.status(401).json({ message: "Login required" });
   }
 
+<<<<<<< HEAD
   const duplicateSql = `
     SELECT id, application_deadline
     FROM jobs
@@ -749,6 +760,12 @@ exports.addJob = (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
         if (!users.length) return res.status(404).json({ message: "User not found" });
         if (!users[0].verified) return res.status(403).json({ message: "Your employer account is pending admin verification. Once an admin approves your account you will be able to post jobs. Contact support@jobportal.com if you need help." });
+=======
+  db.query("SELECT verified FROM users WHERE id = ?", [userId], (err, users) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!users.length) return res.status(404).json({ message: "User not found" });
+    if (!users[0].verified) return res.status(403).json({ message: "Your employer account is pending admin verification. Once an admin approves your account you will be able to post jobs. Contact support@jobportal.com if you need help." });
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 
     const insertJob = async (companyId) => {
       const autoApprovalRaw = await getPlatformSetting("auto_approve_jobs", String(AUTO_APPROVAL_ENABLED));
@@ -772,9 +789,14 @@ exports.addJob = (req, res) => {
         `INSERT INTO jobs
           (title, location, job_type, category, description, is_premium, posted_by, company_id, is_approved,
            is_shift, shift_start, shift_end, shift_pay_cents, shift_fee_cents, shift_total_cents, shift_currency, shift_paid, shift_status,
+<<<<<<< HEAD
            application_deadline, moderation_status, moderation_score, moderation_reason, auto_approved_at, image_url,
            salary_min, salary_max, experience_level, is_remote, benefits)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+=======
+           application_deadline, moderation_status, moderation_score, moderation_reason, auto_approved_at, image_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
         ,[
           title,
           location,
@@ -799,6 +821,7 @@ exports.addJob = (req, res) => {
           moderation.score,
           moderation.reasonText,
           moderation.autoApproved ? new Date() : null,
+<<<<<<< HEAD
           imageUrl,
           Number.isFinite(salaryMin) ? salaryMin : null,
           Number.isFinite(salaryMax) ? salaryMax : null,
@@ -840,6 +863,14 @@ exports.addJob = (req, res) => {
               });
             };
             if (err.code === "ER_BAD_FIELD_ERROR" && (err.message || "").includes("image_url")) {
+=======
+          imageUrl
+        ],
+        (err, result) => {
+          if (err) {
+            // Fallback: if image_url column doesn't exist yet, retry without it
+            if (err.code === "ER_BAD_FIELD_ERROR") {
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
               return db.query(
                 `INSERT INTO jobs
                   (title, location, job_type, category, description, is_premium, posted_by, company_id, is_approved,

@@ -83,9 +83,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   try {
+<<<<<<< HEAD
     const job = await fetchJob(jobId);
     if (!job) {
       setMissingState();
+=======
+    const res = await authFetch(`${API}/jobs/${jobId}`);
+    const job = await res.json();
+    if (!res.ok || !job) {
+      if (titleEl) titleEl.textContent = "Job not found";
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       return;
     }
 

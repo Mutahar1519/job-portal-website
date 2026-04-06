@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ﻿# Environment variables (keep real credentials local only)
 backend/.env
 backend/.env.*
@@ -34,3 +35,8 @@ coverage/
 # Temp
 .tmp/
 temp/
+=======
+backend/.env
+backend/.env.*
+!backend/.env.example
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7

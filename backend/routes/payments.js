@@ -275,14 +275,24 @@ router.post("/confirm", auth, async (req, res) => {
               is_premium, is_approved, posted_by, company_id,
               is_shift, shift_start, shift_end, shift_pay_cents,
               shift_fee_cents, shift_total_cents, shift_currency,
+<<<<<<< HEAD
               shift_paid, shift_status, application_deadline, repost_of_job_id,
+=======
+              shift_paid, shift_status, application_deadline,
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
               moderation_status, moderation_score, moderation_reason, auto_approved_at)
            VALUES (?, ?, ?, ?, ?, 1, 1, ?, NULL,
                    0, NULL, NULL, NULL,
                    NULL, NULL, 'usd',
+<<<<<<< HEAD
                    0, 'open', ?, ?,
                    NULL, NULL, NULL, NULL)` ,
           [title, location, job_type, category, description, userId, applicationDeadline, repostOfJobId],
+=======
+                   0, 'open', NULL,
+                   NULL, NULL, NULL, NULL)`,
+          [title, location, job_type, category, description, userId],
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
           (err, result) => {
             if (err) {
               if (err.code === "ER_BAD_FIELD_ERROR") {

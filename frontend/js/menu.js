@@ -113,6 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </ul>
       `
     },
+<<<<<<< HEAD
     "trustCenter": {
       title: "Trust Center & Security",
       icon: "fa-shield-halved",
@@ -128,6 +129,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <p style="margin-top: 14px;"><strong>Need help?</strong> Contact support@jobportal.com with your account email and issue details.</p>
       `
     },
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
     "dataPreferences": {
       title: "Data Preferences",
       icon: "fa-database",
@@ -207,9 +210,13 @@ document.addEventListener("DOMContentLoaded", () => {
     "Payment & escrow": "paymentEscrow",
     "Shift rates": "shiftRates",
     "Verification": "verification",
+<<<<<<< HEAD
     "Moderation": "moderation",
     "Review guidelines": "trustCenter",
     "Trust Center": "trustCenter"
+=======
+    "Moderation": "moderation"
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   };
 
   // Privacy cards get direct click action (not info popup - they ARE the action)
@@ -261,6 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+<<<<<<< HEAD
   const rawUser = localStorage.getItem("user");
   let user = null;
   try {
@@ -286,6 +294,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   // Style the info buttons
   const style = document.createElement("style");
   style.textContent = `

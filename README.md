@@ -2,10 +2,13 @@
 
 Enterprise Job Portal System developed as part of university coursework.
 
+<<<<<<< HEAD
 **Status**: ✅ Ready for demo and deployment (see [docs/DELIVERY_READY_2026-03-27.md](docs/DELIVERY_READY_2026-03-27.md) for details)
 
 Final manual sign-off checklist: [docs/FINAL_SIGNOFF_CHECKLIST_2026-03-28.md](docs/FINAL_SIGNOFF_CHECKLIST_2026-03-28.md)
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 ## GitHub Repository
 https://github.com/Mutahar1519/job-portal-website
 

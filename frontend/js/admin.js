@@ -52,6 +52,7 @@
   let adminUsersCache = [];
   let editJobId = null;
   let reviewStatusFilter = "pending";
+<<<<<<< HEAD
   let reviewSourceFilter = "portal";
   let grantHistoryFilter = "all";
   let supportFilter = "open";
@@ -171,6 +172,9 @@
       loadSupportTicketMessages({ force: true });
     }, SUPPORT_REFRESH_DEBOUNCE_MS);
   }
+=======
+  let grantHistoryFilter = "all";
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 
   const adminJobForm = document.getElementById("adminJobForm");
   const adminJobTitle = document.getElementById("adminJobTitle");
@@ -373,7 +377,10 @@
         // Render shift jobs in the shifts section
         renderShiftJobs(shiftJobs);
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
         regularJobs.forEach(job => {
           const shiftBadge = "";
           const shiftPaid = "";
@@ -422,6 +429,7 @@
             </article>
           `;
         });
+<<<<<<< HEAD
 
 // Admin: View job action history (audit trail)
 function viewJobHistory(jobId) {
@@ -473,6 +481,8 @@ function renderJobHistoryListHtml(history) {
 }
 
         applyPendingAdminJobFeedback();
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       })
       .catch(err => {
         console.error("Error loading jobs:", err);
@@ -487,7 +497,11 @@ function renderJobHistoryListHtml(history) {
     adminAuthFetch(`${API}/applications/admin`)
       .then(res => res.json())
       .then(apps => {
+<<<<<<< HEAD
         renderApplications(apps, "Applications", { containerId: "applications" });
+=======
+        renderApplications(apps, "Applications");
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       })
       .catch(err => {
         console.error("Error loading applications:", err);
@@ -498,6 +512,7 @@ function renderJobHistoryListHtml(history) {
       });
   }
 
+<<<<<<< HEAD
   function renderApplicationsListHtml(apps) {
     if (!apps.length) {
       return "<p>No applications found</p>";
@@ -543,6 +558,8 @@ function renderJobHistoryListHtml(history) {
     jobAppsModal.classList.add("hidden");
   }
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   function loadUsers() {
     adminAuthFetch(`${API}/admin/users`)
       .then(res => res.json())
@@ -632,7 +649,10 @@ function renderJobHistoryListHtml(history) {
         return;
       }
       loadUsers();
+<<<<<<< HEAD
       loadCompanies();
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
     });
   }
 
@@ -660,17 +680,28 @@ function renderJobHistoryListHtml(history) {
         alert(data.message || "Failed to request admin grant");
         return;
       }
+<<<<<<< HEAD
       const approver = data?.approver_email ? `Approver: ${data.approver_email}` : "Approval requested.";
       alert(data.message || approver);
+=======
+      alert(data.message || "Approval requested. Ask test@sample.com for code.");
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       loadGrantHistory();
     });
   }
 
   function promoteUserToAdmin(userId) {
+<<<<<<< HEAD
     const approvalEmail = prompt("Enter approver email (leave blank to auto-match by approval code):", "");
     if (approvalEmail === null) return;
 
     const approvalCode = prompt("Enter approval code:");
+=======
+    const approvalEmail = prompt("Enter approver email (must be test@sample.com):", "test@sample.com");
+    if (!approvalEmail) return;
+
+    const approvalCode = prompt("Enter approval code received from test@sample.com:");
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
     if (!approvalCode) return;
 
     adminAuthFetch(`${API}/admin/users/${userId}/make-admin`, {
@@ -744,7 +775,11 @@ function renderJobHistoryListHtml(history) {
   function loadReviewQueue(status = reviewStatusFilter) {
     reviewStatusFilter = status;
 
+<<<<<<< HEAD
     adminAuthFetch(`${API}/admin/reviews?status=${encodeURIComponent(reviewStatusFilter)}&source=${encodeURIComponent(reviewSourceFilter)}`)
+=======
+    adminAuthFetch(`${API}/admin/reviews?status=${encodeURIComponent(reviewStatusFilter)}`)
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       .then(res => res.json())
       .then(reviews => {
         const container = document.getElementById("reviewQueue");
@@ -759,8 +794,12 @@ function renderJobHistoryListHtml(history) {
             approved: "published",
             hidden: "hidden"
           };
+<<<<<<< HEAD
           const sourceLabel = reviewSourceFilter === "all" ? "reviews" : `${reviewSourceFilter} reviews`;
           container.innerHTML = `<p>No ${labels[reviewStatusFilter] || "matching"} ${sourceLabel}</p>`;
+=======
+          container.innerHTML = `<p>No ${labels[reviewStatusFilter] || "matching"} reviews</p>`;
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
           return;
         }
 
@@ -769,16 +808,23 @@ function renderJobHistoryListHtml(history) {
           const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
           const created = review.created_at ? new Date(review.created_at).toLocaleString() : "";
           const emailRow = review.email ? `<p class="meta">${esc(review.email)}</p>` : "";
+<<<<<<< HEAD
           const source = review.source || "portal";
           const sourceLabel = source === "company" ? "Company review" : "Portal review";
           const sourceBadge = `<span class="tag-pill ${source === "company" ? "bg-cyan-100 text-cyan-700" : "bg-indigo-100 text-indigo-700"}">${sourceLabel}</span>`;
 
           let actionButtons = `
             <button class="btn btn-outline" onclick="deleteReview(${review.id}, '${source}')">Delete</button>
+=======
+
+          let actionButtons = `
+            <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
           `;
 
           if (reviewStatusFilter === "pending") {
             actionButtons = `
+<<<<<<< HEAD
               <button class="btn btn-primary" onclick="approveReview(${review.id}, '${source}')">Approve</button>
               <button class="btn btn-outline" onclick="deleteReview(${review.id}, '${source}')">Delete</button>
             `;
@@ -791,6 +837,20 @@ function renderJobHistoryListHtml(history) {
             actionButtons = `
               <button class="btn btn-primary" onclick="unhideReview(${review.id}, '${source}')">Unhide</button>
               <button class="btn btn-outline" onclick="deleteReview(${review.id}, '${source}')">Delete</button>
+=======
+              <button class="btn btn-primary" onclick="approveReview(${review.id})">Approve</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+            `;
+          } else if (reviewStatusFilter === "approved") {
+            actionButtons = `
+              <button class="btn btn-outline" onclick="hideReview(${review.id})">Hide</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+            `;
+          } else if (reviewStatusFilter === "hidden") {
+            actionButtons = `
+              <button class="btn btn-primary" onclick="unhideReview(${review.id})">Unhide</button>
+              <button class="btn btn-outline" onclick="deleteReview(${review.id})">Delete</button>
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
             `;
           }
 
@@ -801,10 +861,13 @@ function renderJobHistoryListHtml(history) {
                   <h4>${esc(review.name)}</h4>
                   <p class="meta">${esc(review.role)}</p>
                   ${emailRow}
+<<<<<<< HEAD
                 </div>
                 <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
                   ${sourceBadge}
                   <span class="review-stars">${stars}</span>
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
                 </div>
               </div>
               <p class="review-message">${esc(review.message)}</p>
@@ -829,6 +892,7 @@ function renderJobHistoryListHtml(history) {
     loadReviewQueue(status);
   }
 
+<<<<<<< HEAD
   function updateReviewSourceButtons() {
     const states = {
       portal: document.getElementById("reviewSourcePortal"),
@@ -849,6 +913,8 @@ function renderJobHistoryListHtml(history) {
     loadReviewQueue(reviewStatusFilter);
   }
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   function renderShiftJobs(shiftJobs) {
     const container = document.getElementById("shiftEscrows");
     if (!container) return;
@@ -885,15 +951,23 @@ function renderJobHistoryListHtml(history) {
             </div>
             <div class="admin-record-badges">
               <span class="tag-pill bg-cyan-100 text-cyan-700">Shift</span>
+<<<<<<< HEAD
               ${renderJobMonetizationBadges(job)}
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
               ${wageLabel ? `<span class="tag-pill bg-green-100 text-green-700">${wageLabel}</span>` : ""}
               <span class="tag-pill bg-yellow-100 text-yellow-700">${status}</span>
             </div>
           </div>
+<<<<<<< HEAD
           ${renderJobMonetizationMeta(job)}
           <div class="admin-record-actions">
             <button class="btn btn-outline" onclick="approveJob('${job.id}')">Approve</button>
             <button class="btn btn-outline" onclick="reboostJob('${job.id}')">Re-Boost</button>
+=======
+          <div class="admin-record-actions">
+            <button class="btn btn-outline" onclick="approveJob('${job.id}')">Approve</button>
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
             <button class="btn btn-outline" onclick="viewJobApplications('${job.id}')">Applications</button>
             <button class="btn btn-outline" onclick="deleteJob('${job.id}')">Delete</button>
             <button class="btn btn-outline" onclick="resendShiftAlerts(${job.id}, '${job.shift_paid ? "paid" : "posted"}')">Resend Alerts</button>
@@ -955,6 +1029,7 @@ function renderJobHistoryListHtml(history) {
   function viewJobApplications(jobId) {
     activeApplicationsJobId = String(jobId);
     adminAuthFetch(`${API}/admin/jobs/${jobId}/applications`)
+<<<<<<< HEAD
       .then(async (res) => {
         const data = await res.json().catch(() => ([]));
         if (!res.ok) {
@@ -979,6 +1054,15 @@ function renderJobHistoryListHtml(history) {
           jobAppsModalList.innerHTML = `<p class="empty-state" style="color:#ef4444;">${esc(err.message || "Failed to load applications")}</p>`;
         }
         openJobApplicationsModal();
+=======
+      .then(res => res.json())
+      .then(apps => {
+        renderApplications(apps, `Applications for Job #${jobId}`);
+        const appsContainer = document.getElementById("applications");
+        if (appsContainer) {
+          appsContainer.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       });
   }
 
@@ -987,8 +1071,49 @@ function renderJobHistoryListHtml(history) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
+<<<<<<< HEAD
     const safeApps = Array.isArray(apps) ? apps : [];
     container.innerHTML = `<h4 style="margin-bottom:10px;">${title}</h4>${renderApplicationsListHtml(safeApps)}`;
+=======
+    if (!apps.length) {
+      container.innerHTML = "<p>No applications found</p>";
+      return;
+    }
+
+    container.innerHTML = `<h4 style="margin-bottom:10px;">${title}</h4>`;
+    apps.forEach(app => {
+      const created = app.created_at
+        ? new Date(app.created_at).toLocaleDateString()
+        : "";
+
+      const cvLink = app.cv_path
+        ? `<a href="${app.cv_path}" target="_blank" class="apply-btn">CV</a>`
+        : "";
+
+      const jobTitle = app.job_title ? app.job_title : "";
+      const applicantName = app.full_name || app.user_name || "";
+      const applicantEmail = app.email || app.user_email || "";
+
+      container.innerHTML += `
+        <article class="job-card admin-record">
+          ${jobTitle ? `<h4>${esc(jobTitle)}</h4>` : ""}
+          <p>${esc(applicantName)} ${applicantEmail ? "\u2022 " + esc(applicantEmail) : ""}</p>
+          <p>Status: <strong>${esc(app.status)}</strong></p>
+          <p>Applied: ${created}</p>
+          ${cvLink}
+          <div class="admin-record-actions" style="margin-top:10px;">
+            <select id="status-${app.id}" class="form-input">
+              <option value="pending" ${app.status === "pending" ? "selected" : ""}>Pending</option>
+              <option value="reviewed" ${app.status === "reviewed" ? "selected" : ""}>Reviewed</option>
+              <option value="accepted" ${app.status === "accepted" ? "selected" : ""}>Accepted</option>
+              <option value="rejected" ${app.status === "rejected" ? "selected" : ""}>Rejected</option>
+            </select>
+            <button class="btn btn-outline" onclick="updateApplicationStatus(${app.id})">Update</button>
+          </div>
+        </article>
+      `;
+    });
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   }
 
   function approveJob(id) {
@@ -1018,6 +1143,7 @@ function renderJobHistoryListHtml(history) {
       .catch((err) => alert("Purge request failed: " + err.message));
   }
 
+<<<<<<< HEAD
   function startAdminPayment(mode, id) {
     openAdminPaymentModal().then((paymentMethod) => {
       if (!paymentMethod) return;
@@ -1033,6 +1159,19 @@ function renderJobHistoryListHtml(history) {
         }
         window.location.href = data.url;
       });
+=======
+  function makePremium(id) {
+    adminAuthFetch(`${API}/payments/create-checkout-session`, {
+      method: "POST",
+      body: JSON.stringify({ mode: "upgrade", jobId: id })
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        alert(data.message || "Failed to start payment");
+        return;
+      }
+      window.location.href = data.url;
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
     });
   }
 
@@ -1159,6 +1298,7 @@ function renderJobHistoryListHtml(history) {
     adminAuthFetch(`${API}/admin/reviews/${id}/approve?source=${encodeURIComponent(source)}`, {
       method: "PUT"
     }).then(() => loadReviewQueue(reviewStatusFilter));
+<<<<<<< HEAD
   }
 
   function hideReview(id, source = "portal") {
@@ -1177,6 +1317,26 @@ function renderJobHistoryListHtml(history) {
     if (!confirm("Delete this review permanently?")) return;
 
     adminAuthFetch(`${API}/admin/reviews/${id}?source=${encodeURIComponent(source)}`, {
+=======
+  }
+
+  function hideReview(id) {
+    adminAuthFetch(`${API}/admin/reviews/${id}/hide`, {
+      method: "PUT"
+    }).then(() => loadReviewQueue(reviewStatusFilter));
+  }
+
+  function unhideReview(id) {
+    adminAuthFetch(`${API}/admin/reviews/${id}/unhide`, {
+      method: "PUT"
+    }).then(() => loadReviewQueue(reviewStatusFilter));
+  }
+
+  function deleteReview(id) {
+    if (!confirm("Delete this review permanently?")) return;
+
+    adminAuthFetch(`${API}/admin/reviews/${id}`, {
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       method: "DELETE"
     }).then(() => loadReviewQueue(reviewStatusFilter));
   }
@@ -1418,6 +1578,7 @@ function renderJobHistoryListHtml(history) {
         container.innerHTML = "";
         list.forEach(company => {
           const created = company.created_at ? new Date(company.created_at).toLocaleDateString() : "";
+<<<<<<< HEAD
           const companyVerificationStatus = String(company.verification_status || "pending").toLowerCase();
           const companyVerified = companyVerificationStatus === "approved";
           const hasIdProof = Boolean(String(company.id_document_url || "").trim());
@@ -1495,6 +1656,11 @@ function renderJobHistoryListHtml(history) {
               </div>
             </div>
           `;
+=======
+          const logoHtml = company.logo_url
+            ? `<img src="${esc(company.logo_url)}" alt="${esc(company.name)}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;margin-right:12px;">`
+            : "";
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 
           container.innerHTML += `
             <article class="job-card admin-record">
@@ -1505,6 +1671,7 @@ function renderJobHistoryListHtml(history) {
                     <h4>${esc(company.name || "Unnamed company")}</h4>
                     <p class="p-muted">${esc(company.industry || "No industry")} \u2022 ${esc(company.location || "No location")}</p>
                     ${company.website ? `<p class="p-muted"><a href="${esc(company.website)}" target="_blank" rel="noopener noreferrer">${esc(company.website)}</a></p>` : ""}
+<<<<<<< HEAD
                     ${company.owner_name || company.owner_email ? `<p class="p-muted">Owner: ${esc(company.owner_name || "Unknown")} (${esc(company.owner_email || "no-email")})</p>` : ""}
                     ${company.company_phone ? `<p class="p-muted">Company phone: ${esc(company.company_phone)}</p>` : ""}
                     ${company.company_address ? `<p class="p-muted">Address: ${esc(company.company_address)}</p>` : ""}
@@ -1516,10 +1683,14 @@ function renderJobHistoryListHtml(history) {
                     ${evidenceChecklist}
                     ${evidencePreviews}
                     ${evidenceLinks}
+=======
+                    ${created ? `<p class="p-muted">Registered: ${created}</p>` : ""}
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
                   </div>
                 </div>
                 <div class="admin-record-badges">
                   ${company.size ? `<span class="tag-pill bg-slate-100 text-slate-700">${company.size}</span>` : ""}
+<<<<<<< HEAD
                   <span class="tag-pill ${companyVerified ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}">
                     ${companyVerified ? "Company verified" : "Company pending"}
                   </span>
@@ -1531,6 +1702,11 @@ function renderJobHistoryListHtml(history) {
               <div class="admin-record-actions">
                 <button class="btn btn-outline" onclick="toggleCompanyVerify(${company.id}, ${companyVerified ? 0 : 1})" ${verifyDisabled ? `disabled title='Missing: ${missingItems.join(", ")}'` : ""}>${companyVerified ? "Mark company pending" : "Verify company"}</button>
                 ${company.owner_user_id ? `<button class="btn btn-outline" onclick="toggleUserVerify(${company.owner_user_id}, ${Number(company.owner_verified) === 1 ? 0 : 1})">${Number(company.owner_verified) === 1 ? "Mark unverified" : "Verify employer"}</button>` : ""}
+=======
+                </div>
+              </div>
+              <div class="admin-record-actions">
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
                 <button class="btn btn-outline" onclick="deleteCompany(${company.id})">Delete</button>
               </div>
             </article>
@@ -1561,6 +1737,7 @@ function renderJobHistoryListHtml(history) {
     });
   }
 
+<<<<<<< HEAD
   function toggleCompanyVerify(companyId, verified) {
     const actionLabel = verified ? "verify" : "mark pending";
     const notes = prompt(`Optional note for this company ${actionLabel} action:`, "") || "";
@@ -1927,6 +2104,8 @@ function renderJobHistoryListHtml(history) {
     showTarget("all");
   }
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   window.loadJobs = loadJobs;
   window.approveJob = approveJob;
   window.deleteJob = deleteJob;
@@ -1941,7 +2120,10 @@ function renderJobHistoryListHtml(history) {
   window.unhideReview = unhideReview;
   window.deleteReview = deleteReview;
   window.setReviewFilter = setReviewFilter;
+<<<<<<< HEAD
   window.setReviewSourceFilter = setReviewSourceFilter;
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   window.disputeShift = disputeShift;
   window.refundShift = refundShift;
   window.releaseShift = releaseShift;
@@ -1953,12 +2135,16 @@ function renderJobHistoryListHtml(history) {
   window.promoteUserToAdmin = promoteUserToAdmin;
   window.setGrantHistoryFilter = setGrantHistoryFilter;
   window.loadCompanies = loadCompanies;
+<<<<<<< HEAD
   window.toggleCompanyVerify = toggleCompanyVerify;
   window.deleteCompany = deleteCompany;
   window.setSupportFilter = setSupportFilter;
   window.setSupportMineFilter = setSupportMineFilter;
   window.closeSupportTicket = closeSupportTicket;
   window.assignSupportTicketToMe = assignSupportTicketToMe;
+=======
+  window.deleteCompany = deleteCompany;
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 
   saveAutoApproveBtn?.addEventListener("click", saveModerationSettings);
   supportReplyForm?.addEventListener("submit", (event) => {
@@ -1998,8 +2184,11 @@ function renderJobHistoryListHtml(history) {
   loadUsers();
   loadGrantHistory();
   loadCompanies();
+<<<<<<< HEAD
   loadSupportTickets();
   connectSupportRealtime();
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   loadStats();
   loadModerationSettings();
   setupAdminTabs();

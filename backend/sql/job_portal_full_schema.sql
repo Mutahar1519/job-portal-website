@@ -72,9 +72,12 @@ CREATE TABLE IF NOT EXISTS jobs (
   shift_paid TINYINT(1) DEFAULT 0,
   shift_status VARCHAR(50) DEFAULT 'open',
   application_deadline DATETIME NULL,
+<<<<<<< HEAD
   repost_of_job_id INT NULL,
   reboost_count INT NOT NULL DEFAULT 0,
   last_reboosted_at DATETIME NULL,
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   moderation_status VARCHAR(40) NULL,
   moderation_score INT NULL,
   moderation_reason VARCHAR(500) NULL,
@@ -86,11 +89,17 @@ CREATE TABLE IF NOT EXISTS jobs (
   INDEX idx_jobs_type (job_type),
   INDEX idx_jobs_category (category),
   INDEX idx_jobs_is_approved (is_approved),
+<<<<<<< HEAD
   INDEX idx_jobs_repost_of_job_id (repost_of_job_id),
   FULLTEXT INDEX ftx_jobs_title_description (title, description),
   CONSTRAINT fk_jobs_posted_by FOREIGN KEY (posted_by) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_jobs_company FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL,
   CONSTRAINT fk_jobs_repost_parent FOREIGN KEY (repost_of_job_id) REFERENCES jobs(id) ON DELETE SET NULL
+=======
+  FULLTEXT INDEX ftx_jobs_title_description (title, description),
+  CONSTRAINT fk_jobs_posted_by FOREIGN KEY (posted_by) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_jobs_company FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 );
 
 -- APPLICATIONS TABLE
@@ -278,7 +287,10 @@ CREATE TABLE IF NOT EXISTS employer_profiles (
   registration_number VARCHAR(100) NULL,
   linkedin_url VARCHAR(255) NULL,
   tax_id VARCHAR(100) NULL,
+<<<<<<< HEAD
   proof_of_address_url VARCHAR(500) NULL,
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_employer_user (user_id),

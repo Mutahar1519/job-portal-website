@@ -43,6 +43,29 @@ if (typeof authFetch === "undefined") {
       }
     });
   };
+<<<<<<< HEAD
+=======
+
+  if (!isFormData) {
+    baseHeaders["Content-Type"] = "application/json";
+  }
+
+  if (token) {
+    baseHeaders.Authorization = `Bearer ${token}`;
+  }
+
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...baseHeaders
+    }
+  }).then(res => {
+    if (!res.ok && res.status === 401) {
+      console.error(`[authFetch] 401 Unauthorized for ${url}. Token may be expired or invalid.`);
+    }
+    return res;
+  });
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 }
 
 /* 🚪 Logout */

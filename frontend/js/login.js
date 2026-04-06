@@ -1,6 +1,7 @@
 const existingToken = localStorage.getItem("token");
 const existingUserRaw = localStorage.getItem("user");
 
+<<<<<<< HEAD
 async function completeOAuthLogin() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token");
@@ -39,6 +40,8 @@ async function completeOAuthLogin() {
 
 completeOAuthLogin();
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 if (existingToken && existingUserRaw) {
   try {
     const existingUser = JSON.parse(existingUserRaw);

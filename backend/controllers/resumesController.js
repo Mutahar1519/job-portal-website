@@ -25,12 +25,18 @@ exports.uploadResume = async (req, res) => {
   let parseMessage = "Text extraction currently supports PDF, DOCX, and DOC files. Your resume was uploaded successfully.";
 
   try {
+<<<<<<< HEAD
     if (isPdf) {
       parseStatus = "parsing_attempted";
+=======
+    const isPdf = req.file.mimetype === "application/pdf" || (req.file.originalname || "").toLowerCase().endsWith(".pdf");
+    if (isPdf) {
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       const buffer = fs.readFileSync(req.file.path);
       const parsed = await pdfParse(buffer);
       extractedText = (parsed.text || "").trim();
       parsedAt = extractedText ? new Date() : null;
+<<<<<<< HEAD
       if (extractedText) {
         parseStatus = "parsed";
         parseMessage = "Resume uploaded and parsed successfully.";
@@ -63,6 +69,8 @@ exports.uploadResume = async (req, res) => {
         parseStatus = "empty_text";
         parseMessage = "Resume uploaded, but no readable text was found in this DOC file.";
       }
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
     }
   } catch (err) {
     console.error("Resume parse failed:", err.message);

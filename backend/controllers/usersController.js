@@ -399,7 +399,12 @@ exports.loginUser = (req, res) => {
     }
 
     /* 🔐 CREATE TOKEN */
+<<<<<<< HEAD
     const JWT_SECRET = process.env.JWT_SECRET || "secret123";
+=======
+    // Use consistent JWT secret
+    const JWT_SECRET = "secret123";
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
     const token = jwt.sign(
       { id: user.id, is_admin: !!user.is_admin, role: user.role || "job_seeker" },
       JWT_SECRET,

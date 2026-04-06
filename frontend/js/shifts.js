@@ -142,6 +142,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               ${esc(alert.keyword || "Any shift type")}${alert.location ? ` • ${esc(alert.location)}` : ""}
             </p>
           </div>
+<<<<<<< HEAD
           <div style="display:flex;gap:6px;align-items:center;">
             <button class="btn-icon" onclick="editAlert(${alert.id})" style="background: none; border: none; color: var(--primary, #2563eb); cursor: pointer;" title="Edit alert">
               <i class="fa-solid fa-pencil"></i>
@@ -150,6 +151,11 @@ document.addEventListener("DOMContentLoaded", async () => {
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
+=======
+          <button class="btn-icon" onclick="removeAlert(${alert.id})" style="background: none; border: none; color: #ef4444; cursor: pointer;">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
         </div>
       `).join("") + (userAlerts.length > 3 ? `<p class="p-muted" style="margin-top: 8px; font-size: 12px;">+${userAlerts.length - 3} more alerts</p>` : "");
   };
@@ -190,6 +196,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   // Modal handlers
+<<<<<<< HEAD
   let _editingAlertId = null;
 
   const _resetAlertModal = () => {
@@ -206,19 +213,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (saveBtn) saveBtn.textContent = "Create Alert";
   };
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   const openCreateAlertModal = () => {
     if (!token) {
       alert("Please login first to create alerts");
       window.location.href = "login.html";
       return;
     }
+<<<<<<< HEAD
     _resetAlertModal();
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
     createAlertModal.classList.remove("hidden");
   };
 
   const closeCreateAlertModal = () => {
     createAlertModal.classList.add("hidden");
+<<<<<<< HEAD
     _resetAlertModal();
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   };
 
   const saveAlert = async () => {
@@ -235,6 +250,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+<<<<<<< HEAD
     const isEditing = !!_editingAlertId;
 
     try {
@@ -243,6 +259,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         : `${API}/job-alerts`;
       const res = await authFetch(url, {
         method: isEditing ? "PUT" : "POST",
+=======
+    try {
+      const res = await authFetch(`${API}/job-alerts`, {
+        method: "POST",
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
         body: JSON.stringify({
           title,
           keyword: shiftTypeKeyword,
@@ -251,24 +272,40 @@ document.addEventListener("DOMContentLoaded", async () => {
           min_pay_cents: Math.round(payMin * 100),
           preferred_days: days,
           notifications_enabled: notifications,
+<<<<<<< HEAD
           is_shift_alert: true,
           frequency: "daily",
           is_active: 1
+=======
+          is_shift_alert: true
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
         })
       });
 
       const data = await res.json();
       if (!res.ok) {
+<<<<<<< HEAD
         alert(data.message || data.error || (isEditing ? "Failed to update alert" : "Failed to create alert"));
         return;
       }
 
       alert(isEditing ? "Alert updated!" : "Alert created! You'll get notified when matching shifts are posted.");
+=======
+        alert(data.message || "Failed to create alert");
+        return;
+      }
+
+      alert("Alert created! You'll get notified when matching shifts are posted.");
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       closeCreateAlertModal();
       await loadUserAlerts();
     } catch (err) {
       console.error(err);
+<<<<<<< HEAD
       alert(isEditing ? "Failed to update alert" : "Failed to create alert");
+=======
+      alert("Failed to create alert");
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
     }
   };
 
@@ -289,18 +326,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         method: "DELETE"
       });
 
+<<<<<<< HEAD
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         alert(data.message || data.error || "Failed to remove alert");
         return;
       }
       await loadUserAlerts();
+=======
+      if (res.ok) {
+        await loadUserAlerts();
+      } else {
+        alert("Failed to remove alert");
+      }
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
     } catch (err) {
       console.error(err);
       alert("Failed to remove alert");
     }
   };
 
+<<<<<<< HEAD
   // Make editAlert globally accessible
   window.editAlert = (alertId) => {
     const alert_item = userAlerts.find(a => a.id === alertId);
@@ -334,6 +380,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     createAlertModal.classList.remove("hidden");
   };
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   // Initial load
   await loadShiftJobs();
   await loadUserAlerts();

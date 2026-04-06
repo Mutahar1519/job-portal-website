@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const shiftAlertCount = document.getElementById("shiftAlertCount");
   const refreshShiftAlerts = document.getElementById("refreshShiftAlerts");
   const createShiftAlertBtn = document.getElementById("createShiftAlertBtn");
+<<<<<<< HEAD
   const referralForm = document.getElementById("referralForm");
   const referralsList = document.getElementById("referralsList");
   const referralRewardsEarned = document.getElementById("referralRewardsEarned");
@@ -55,6 +56,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const alertCategoryCustomInput = document.getElementById("alertCategoryCustom");
   const alertTypeInput = document.getElementById("alertType");
   const alertFrequencyInput = document.getElementById("alertFrequency");
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 
   if (!container) return;
 
@@ -64,6 +67,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   let interviewCountdownTicker = null;
   const INTERVIEW_REMINDER_KEY = "dashboardInterviewReminders.v1";
   const INTERVIEW_REMINDER_SETTINGS_KEY = "dashboardInterviewReminderSettings.v1";
+
+  const jobAlertsList = document.getElementById("jobAlerts");
+  const jobAlertCount = document.getElementById("jobAlertCount");
+  const refreshJobAlerts = document.getElementById("refreshJobAlerts");
 
   const jobAlertsList = document.getElementById("jobAlerts");
   const jobAlertCount = document.getElementById("jobAlertCount");
@@ -597,7 +604,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!jobAlertsList) return;
     try {
       const res = await authFetch(`${API}/job-alerts/job-notifications`);
+<<<<<<< HEAD
       const data = await readResponsePayload(res);
+=======
+      const data = await res.json();
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       if (!res.ok) {
         jobAlertsList.innerHTML = "<p class=\"empty-state\">Failed to load job alerts.</p>";
         return;
@@ -609,6 +620,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
+<<<<<<< HEAD
   const formatCentsToUsd = (cents) => {
     const value = Number(cents || 0) / 100;
     return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -1111,6 +1123,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   try {
     const res = await authFetch(`${API}/applications/my`);
     const apps = await readResponsePayload(res);
@@ -1145,6 +1159,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   refreshJobAlerts?.addEventListener("click", loadJobAlerts);
 
+<<<<<<< HEAD
   const initialReminderSettings = readReminderSettings();
   applyReminderSettingsToUi(initialReminderSettings);
 
@@ -1190,6 +1205,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   savedContainer?.addEventListener("click", async (event) => {
     const button = event.target.closest(".save-btn");
     if (!button) return;
@@ -1336,6 +1353,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   refreshShiftAlerts?.addEventListener("click", loadShiftAlerts);
 
+<<<<<<< HEAD
   createShiftAlertBtn?.addEventListener("click", () => {
     const panel = document.getElementById("alerts-panel");
     panel?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1354,6 +1372,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         alertLocationInput.focus();
       }
     }, 100);
+=======
+  createShiftAlertBtn?.addEventListener("click", async () => {
+    try {
+      const res = await authFetch(`${API}/job-alerts`, {
+        method: "POST",
+        body: JSON.stringify({
+          keyword: "",
+          location: "",
+          category: "",
+          job_type: "Shift",
+          frequency: "daily"
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to create shift alert");
+        return;
+      }
+
+      alert("Shift alert created ✅");
+      await loadAlerts();
+      await loadShiftAlerts();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create shift alert");
+    }
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   });
 
   shiftAlertsList?.addEventListener("click", async (event) => {

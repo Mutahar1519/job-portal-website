@@ -23,7 +23,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const isAdmin = !!currentUser.is_admin || currentUser.role === "admin";
   if (!isEmployer && !isAdmin) {
     alert("Only employers or admins can post jobs");
+<<<<<<< HEAD
     window.location.href = "login.html";
+=======
+    window.location.href = "dashboard.html";
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
     return;
   }
 

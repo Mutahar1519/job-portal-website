@@ -5,6 +5,7 @@ const fs = require("fs");
 const multer = require("multer");
 const db = require("../config/mysql");
 
+<<<<<<< HEAD
 // Bootstrap: add photo_url to users table if missing.
 db.query(
   `SELECT 1 AS ok
@@ -24,6 +25,15 @@ db.query(
         console.warn("users.photo_url bootstrap:", alterErr.message);
       }
     });
+=======
+// Bootstrap: add photo_url to users table if missing
+db.query(
+  "ALTER TABLE users ADD COLUMN photo_url VARCHAR(255) NULL",
+  (err) => {
+    if (err && err.code !== "ER_DUP_FIELDNAME") {
+      console.warn("users.photo_url bootstrap:", err.message);
+    }
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   }
 );
 
@@ -56,11 +66,14 @@ if (!fs.existsSync(photoDir)) {
   fs.mkdirSync(photoDir, { recursive: true });
 }
 
+<<<<<<< HEAD
 const verificationDir = path.join(__dirname, "..", "uploads", "verifications");
 if (!fs.existsSync(verificationDir)) {
   fs.mkdirSync(verificationDir, { recursive: true });
 }
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 const photoStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, photoDir),
   filename: (req, file, cb) => {
@@ -78,6 +91,7 @@ const uploadPhoto = multer({
   }
 });
 
+<<<<<<< HEAD
 const verificationStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, verificationDir),
   filename: (req, file, cb) => {
@@ -105,6 +119,9 @@ router.post(
   ]),
   registerUser
 );
+=======
+router.post("/register", registerUser);
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 router.post("/login", loginUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
@@ -123,6 +140,13 @@ router.get("/:userId/public-profile", auth, getPublicProfile);
 router.get("/:userId/skills", auth, getUserSkills);
 router.post("/:userId/skills/:skillId/endorse", auth, endorseUserSkill);
 router.delete("/:userId/skills/:skillId/endorse", auth, removeSkillEndorsement);
+
+// Profile photo upload
+router.post("/photo", auth, uploadPhoto.single("photo"), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No image file provided" });
+  const photoUrl = `/uploads/photos/${req.file.filename}`;
+  res.json({ photo_url: photoUrl });
+});
 
 // Profile photo upload
 router.post("/photo", auth, uploadPhoto.single("photo"), (req, res) => {

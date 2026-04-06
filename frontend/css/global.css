@@ -5855,7 +5855,11 @@ body.admin-page {
 
 .apply-layout {
   display: grid;
+<<<<<<< HEAD
   grid-template-columns: minmax(340px, 1fr) minmax(0, 1.1fr);
+=======
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   gap: 32px;
   align-items: start;
 }
@@ -5866,7 +5870,11 @@ body.admin-page {
 }
 
 .job-summary-card {
+<<<<<<< HEAD
   padding: 30px;
+=======
+  padding: 24px;
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   display: grid;
   gap: 16px;
   background: var(--surface);
@@ -5891,10 +5899,16 @@ body.admin-page {
 }
 
 .job-summary-description {
+<<<<<<< HEAD
   padding: 16px 18px;
   background: var(--surface-2);
   border-radius: 10px;
   overflow-wrap: anywhere;
+=======
+  padding: 12px;
+  background: var(--surface-2);
+  border-radius: 10px;
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 }
 
 .p-muted-bold {
@@ -5905,7 +5919,11 @@ body.admin-page {
 }
 
 .apply-trust {
+<<<<<<< HEAD
   padding: 30px;
+=======
+  padding: 24px;
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.04));
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
@@ -6169,6 +6187,7 @@ textarea.form-input {
   font-size: 12px;
 }
 
+<<<<<<< HEAD
 .file-upload-status {
   margin: 0;
   color: #15803d;
@@ -6189,6 +6208,8 @@ textarea.form-input {
   color: #15803d;
 }
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 .form-actions {
   display: flex;
   gap: 12px;
@@ -7554,6 +7575,7 @@ body.dark .settings-card-header p {
   color: #cbd5e1;
 }
 
+<<<<<<< HEAD
 .interview-panels {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -7837,6 +7859,8 @@ body.dark .app-card.is-overdue {
   border-color: rgba(248, 113, 113, 0.35);
 }
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 /* Admin page */
 body.dark.admin-page .admin-header-card,
 body.dark.admin-page .admin-panel,
@@ -8626,6 +8650,7 @@ body.dark .jobs-page .jobs-results-bar {
   background: #1f2937 !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
+<<<<<<< HEAD
 
 body.dark .jobs-page .jobs-salary-insights {
   background: linear-gradient(170deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.92)) !important;
@@ -8647,6 +8672,8 @@ body.dark .jobs-page .salary-kpi-value,
 body.dark .jobs-page .salary-list-block li {
   color: #e2e8f0 !important;
 }
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 body.dark .jobs-page #jobsResultCount {
   color: #a5b4fc !important;
 }
@@ -8697,6 +8724,7 @@ body.dark .job-detail-page #jobDetailApply:hover {
   background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
 }
 
+<<<<<<< HEAD
 /* Scroll-reactive navbar transparency (all pages, both themes) */
 body.navbar-scroll-transparent .navbar {
   background: rgba(255, 255, 255, 0.44) !important;
@@ -8714,6 +8742,8 @@ body.dark.navbar-scroll-transparent .navbar {
   -webkit-backdrop-filter: blur(20px) saturate(125%);
 }
 
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 /* ── Dashboard ── */
 body.dark .dashboard-page .dashboard-tabs {
   background: #111827 !important;
@@ -8967,12 +8997,20 @@ body.dark .home-page .hero-side-card .eyebrow { color: #f9fafb !important; }
 body.dark .home-page .hero-benefits-list li   { color: #d1d5db !important; }
 body.dark .home-page .hero-benefits-list i    { color: #34d399 !important; }
 body.dark .home-page .hero-live-pill {
+<<<<<<< HEAD
   background: rgba(15, 23, 42, 0.92) !important;
   border-color: rgba(148, 163, 184, 0.45) !important;
   color: #ffffff !important;
 }
 body.dark .home-page .hero-live-pill i { color: #fde047 !important; }
 body.dark .home-page .hero-live-pill #heroActiveCount { color: #facc15 !important; font-weight: 800; }
+=======
+  background: rgba(99, 102, 241, 0.14) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  color: #c7d2fe !important;
+}
+body.dark .home-page .hero-live-pill i { color: #fde047 !important; }
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 body.dark .home-page .home-search-bar {
   background: #111827 !important;
   border-color: rgba(255, 255, 255, 0.10) !important;
@@ -8981,6 +9019,7 @@ body.dark .home-page .home-search-bar input {
   color: #f9fafb !important;
   background: transparent !important;
 }
+<<<<<<< HEAD
 
 /* Home hero count label should be black in light mode */
 body:not(.dark) .home-page .hero-live-pill,
@@ -8988,6 +9027,8 @@ body:not(.dark) .home-page .hero-live-pill #heroActiveCount,
 body:not(.dark) .home-page .hero-live-pill i {
   color: #000000 !important;
 }
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 body.dark .home-page .hero-title    { color: #f9fafb !important; }
 body.dark .home-page .hero-subtitle { color: #9ca3af !important; }
 
@@ -9312,6 +9353,7 @@ body.dark #toast {
   box-shadow: 0 6px 24px rgba(5, 150, 105, 0.4);
 }
 
+<<<<<<< HEAD
 
 /* ============================================================
    SHIFT PAYMENT MODAL - Payment Method Cards
@@ -9386,3 +9428,5 @@ body.dark .payment-method-option.is-selected { background:#1d3461;border-color:#
 .work-type-btn.active { background:var(--brand,#2563eb);border-color:var(--brand,#2563eb);color:#fff; }
 body.dark .work-type-btn { color:#e2e8f0;border-color:#334155; }
 body.dark .work-type-btn.active { background:#3b82f6;border-color:#3b82f6;color:#fff; }
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7

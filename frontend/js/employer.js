@@ -351,6 +351,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       column.innerHTML += `
         <article class="pipeline-card">
           <div class="pipeline-card__header">
+<<<<<<< HEAD
             <div style="display:flex;align-items:center;gap:8px;">
               <input type="checkbox" class="bulk-app-checkbox" data-app-id="${app.id}" ${checked} />
               <h4>${esc(app.full_name || app.user_name || "Candidate")}</h4>
@@ -361,6 +362,15 @@ document.addEventListener("DOMContentLoaded", async () => {
               ${(function() { if (!app.is_shift) return ""; const status = (app.escrow_status || app.shift_status || "open").toLowerCase(); const label = status.replace(/_/g, " "); return `<span class="status-pill status-${status}">${label}</span>`; })()}
               ${tags}
               ${shortlisted}
+=======
+            <div>
+              <h4>${esc(candidate)}</h4>
+              <p class="meta">${esc(email)}</p>
+            </div>
+            <div class="status-stack">
+              <span class="status-pill status-${stage}">${esc(stage)}</span>
+              ${shiftBadge()}
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
             </div>
           </div>
           <p class="p-muted">Applied: ${app.created_at ? new Date(app.created_at).toLocaleDateString() : ""}</p>

@@ -130,12 +130,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (url.startsWith("data:") || url.startsWith("http")) return url;
     // Relative path from backend (e.g. /uploads/photos/...) — prefix with API origin
     return `${apiOrigin}${url}`;
+<<<<<<< HEAD
   };
 
   const resolveResumeUrl = (url) => {
     if (!url) return "";
     if (url.startsWith("http://") || url.startsWith("https://")) return url;
     return `${apiOrigin}${url}`;
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   };
 
   const renderAvatar = (profile, displayName) => {
@@ -778,6 +781,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   }
+<<<<<<< HEAD
 
   if (skillsForm) {
     skillsForm.addEventListener("submit", async (event) => {
@@ -847,5 +851,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   }
+=======
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 });
 

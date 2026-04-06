@@ -42,6 +42,29 @@ const upload = multer({
     const isAllowedExt = [".pdf", ".doc", ".docx"].includes(ext);
     const isAllowed = allowed.has(file.mimetype) || isAllowedExt;
     cb(isAllowed ? null : new Error("Only PDF, DOC, or DOCX files are allowed"), isAllowed);
+<<<<<<< HEAD
+=======
+  }
+});
+
+const jobImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, jobImageDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const name = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    cb(null, name);
+  }
+});
+
+const uploadJobImage = multer({
+  storage: jobImageStorage,
+  limits: { fileSize: 3 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const isImage = /^image\/(jpeg|png|webp)$/.test(file.mimetype);
+    cb(isImage ? null : new Error("Only JPEG, PNG, or WebP images are allowed"), isImage);
+>>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   }
 });
 
