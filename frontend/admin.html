@@ -64,6 +64,28 @@
       </article>
     </section>
 
+    <section class="glass-card admin-panel" style="margin-bottom:14px;">
+      <div class="admin-panel-head" style="margin-bottom:10px;">
+        <div>
+          <p class="eyebrow">Sections</p>
+          <h3>Admin tabs</h3>
+        </div>
+      </div>
+      <div id="adminSectionTabs" class="admin-record-actions" style="display:flex;flex-wrap:wrap;gap:8px;">
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-jobs-section">Jobs</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-applications-section">Applications</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-users-section">Users</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-companies-section">Companies</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-grants-section">Admin Grants</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-reviews-section">Reviews</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-shifts-section">Shifts</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-moderation-section">AI Moderation</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-support-section">Support</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-analytics-section">Analytics</button>
+        <button type="button" class="btn btn-primary" data-admin-tab="all">Show all</button>
+      </div>
+    </section>
+
     <div class="admin-layout">
       <div class="admin-content">
     <section id="admin-jobs-section" class="glass-card admin-panel">
@@ -135,6 +157,24 @@
       </form>
 
       <div id="jobs" class="admin-list"></div>
+
+      <!-- Job History Modal -->
+      <div id="jobHistoryModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="jobHistoryModalTitle">
+        <div class="modal-inner glass-card" style="max-width:720px;width:100%;padding:22px;">
+          <div class="admin-record-head" style="margin-bottom:12px;">
+            <h3 id="jobHistoryModalTitle" style="margin:0;">Job Action History</h3>
+            <button id="jobHistoryModalClose" class="btn btn-outline" type="button">Close</button>
+          </div>
+          <div id="jobHistoryModalList" class="admin-list"></div>
+        </div>
+      </div>
+      <script>
+        // Modal close handler for job history
+        document.addEventListener("DOMContentLoaded", function() {
+          const closeBtn = document.getElementById("jobHistoryModalClose");
+          if (closeBtn) closeBtn.onclick = closeJobHistoryModal;
+        });
+      </script>
     </section>
 
     <section id="admin-applications-section" class="glass-card admin-panel">

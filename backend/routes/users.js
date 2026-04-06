@@ -56,6 +56,11 @@ if (!fs.existsSync(photoDir)) {
   fs.mkdirSync(photoDir, { recursive: true });
 }
 
+const verificationDir = path.join(__dirname, "..", "uploads", "verifications");
+if (!fs.existsSync(verificationDir)) {
+  fs.mkdirSync(verificationDir, { recursive: true });
+}
+
 const photoStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, photoDir),
   filename: (req, file, cb) => {
@@ -73,7 +78,33 @@ const uploadPhoto = multer({
   }
 });
 
-router.post("/register", registerUser);
+const verificationStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, verificationDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || ".bin";
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  }
+});
+
+const uploadVerificationDocs = multer({
+  storage: verificationStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const isImage = /^image\/(jpeg|png|webp)$/.test(file.mimetype);
+    const isPdf = file.mimetype === "application/pdf";
+    cb(isImage || isPdf ? null : new Error("Only PDF, JPEG, PNG, or WEBP files allowed"), isImage || isPdf);
+  }
+});
+
+router.post(
+  "/register",
+  uploadVerificationDocs.fields([
+    { name: "id_document_file", maxCount: 1 },
+    { name: "business_certificate_file", maxCount: 1 },
+    { name: "authorization_letter_file", maxCount: 1 }
+  ]),
+  registerUser
+);
 router.post("/login", loginUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);

@@ -70,6 +70,7 @@ router.get("/searches", auth, jobsController.getSavedSearches);
 router.post("/searches", auth, jobsController.createSavedSearch);
 router.delete("/searches/:id", auth, jobsController.deleteSavedSearch);
 router.get("/salary-insights", optionalAuth, jobsController.getSalaryInsights);
+router.get("/portal-stats", optionalAuth, jobsController.getPortalStats);
 
 /* GET all jobs */
 router.get("/", optionalAuth, jobsController.getJobs);

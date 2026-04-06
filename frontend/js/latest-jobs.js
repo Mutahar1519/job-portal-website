@@ -33,8 +33,31 @@ async function loadLatestJobs() {
     const countText = `${allJobs.length}+`;
     const activeCount = document.getElementById("heroActiveCount");
     const postedCount = document.getElementById("jobsPostedCount");
+    const companiesCount = document.getElementById("companiesCount");
+    const placementsCount = document.getElementById("placementsCount");
+    const successRateCount = document.getElementById("successRateCount");
     if (activeCount) activeCount.textContent = countText;
     if (postedCount) postedCount.textContent = countText;
+
+    try {
+      const statsRes = await authFetch(`${API}/jobs/portal-stats`);
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        const totalJobs = Number(stats?.total_jobs || 0);
+        const totalCompanies = Number(stats?.total_companies || 0);
+        const placements = Number(stats?.total_placements || 0);
+        const successRate = Number(stats?.success_rate || 0);
+
+        if (postedCount) postedCount.textContent = `${totalJobs.toLocaleString()}+`;
+        if (companiesCount) companiesCount.textContent = `${totalCompanies.toLocaleString()}+`;
+        if (placementsCount) placementsCount.textContent = `${placements.toLocaleString()}+`;
+        if (successRateCount) successRateCount.textContent = `${Math.max(0, Math.min(100, successRate))}%`;
+      }
+    } catch (_err) {
+      if (companiesCount) companiesCount.textContent = "0+";
+      if (placementsCount) placementsCount.textContent = "0+";
+      if (successRateCount) successRateCount.textContent = "0%";
+    }
 
     if (recommended) {
       const picks = getRecommendedJobs(allJobs);

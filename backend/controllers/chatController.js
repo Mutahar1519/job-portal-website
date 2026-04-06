@@ -1,7 +1,33 @@
-const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1";
-const HF_API_URL = "https://api-inference.huggingface.co/models/";
+const HF_API_URL = "https://router.huggingface.co/";
 const HF_MODEL = process.env.HUGGINGFACE_MODEL || "microsoft/DialoGPT-medium";
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "openchat/openchat-3.5-0106";
+const callOpenRouter = async (message) => {
+  if (!OPENROUTER_API_KEY) return null;
+  // System prompt to guide users to generate a support ticket for human support
+  const systemPrompt = "You are an assistant for a job portal website. If a user asks for human support, tell them: 'To contact human support, please generate a support ticket in the portal and wait for a reply.'";
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${OPENROUTER_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message }
+      ]
+    })
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenRouter error ${response.status}: ${errText}`);
+  }
+  const data = await response.json();
+  const reply = data.choices?.[0]?.message?.content;
+  return reply ? reply.trim() : null;
+};
 const LIVE_SUPPORT_QUEUE_LIMIT = 100;
 const liveSupportRequests = [];
 const db = require("../config/mysql");
@@ -196,12 +222,26 @@ const emitRealtime = (event, payload) => {
 
 const buildFallbackReply = (message) => {
   const msg = (message || "").toLowerCase();
+  // Custom support ticket override for human support requests
+  if (
+    msg.includes("human support") ||
+    msg.includes("real person") ||
+    msg.includes("talk to human") ||
+    msg.includes("talk to a human") ||
+    msg.includes("live agent") ||
+    msg.includes("customer service representative") ||
+    msg.includes("speak to agent") ||
+    msg.includes("speak to a person")
+  ) {
+    return "To contact human support, please generate a support ticket in the portal and wait for a reply from our team.";
+  }
+
   let reply = "I can help with jobs, applications, payments, and profile questions. Try asking about apply, post job, payment status, or support.";
 
   if (msg.includes("apply")) {
     reply = "To apply for a job, open a listing and click Apply. You can upload your CV (PDF).";
   } else if (msg.includes("post job") || msg.includes("post a job")) {
-    reply = "Verified employers can post jobs. Open Post Job from the dashboard and submit the form.";
+    reply = "Only admin-verified employers with an admin-verified company can post jobs. Once both are approved, use Post Job from the dashboard.";
   } else if (msg.includes("premium")) {
     reply = "Premium jobs appear at the top and get more visibility for a limited time.";
   } else if (msg.includes("payment") && (msg.includes("stuck") || msg.includes("failed") || msg.includes("pending"))) {
@@ -223,54 +263,21 @@ const buildFallbackReply = (message) => {
   return reply;
 };
 
-const callOpenAI = async (message) => {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
-
-  const payload = {
-    model: OPENAI_MODEL,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are the JobPortal AI assistant. Provide concise help about jobs, applications, payments, and account/profile guidance. Do not claim access to personal data or payment systems. If asked for user info, explain that users should open their Profile while signed in. For payment issues, give short troubleshooting steps and suggest contacting support@jobportal.com if unresolved. Keep replies under 3 sentences."
-      },
-      { role: "user", content: message }
-    ],
-    temperature: 0.2,
-    max_tokens: 200
-  };
-
-  const response = await fetch(OPENAI_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`OpenAI error ${response.status}: ${errText}`);
-  }
-
-  const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
-  return content ? content.trim() : null;
-};
 
 const callHuggingFace = async (message) => {
   const apiKey = process.env.HUGGINGFACE_API_KEY;
   if (!apiKey) return null;
 
-  const response = await fetch(`${HF_API_URL}${HF_MODEL}`, {
+  const response = await fetch(HF_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`
     },
-    body: JSON.stringify({ inputs: message })
+    body: JSON.stringify({
+      inputs: message,
+      model: HF_MODEL
+    })
   });
 
   if (!response.ok) {
@@ -292,24 +299,33 @@ exports.chatBot = async (req, res) => {
     return res.json({ reply: "Please ask a question." });
   }
 
-  try {
-    const aiReply = await callOpenAI(message);
-    if (aiReply) {
-      return res.json({ reply: aiReply });
+  // Try OpenRouter first if configured
+  if (OPENROUTER_API_KEY) {
+    try {
+      const orReply = await callOpenRouter(message);
+      console.log("[DEBUG] OpenRouter raw reply:", orReply);
+      if (orReply) {
+        return res.json({ reply: orReply });
+      }
+    } catch (err) {
+      console.error("[DEBUG] OpenRouter chat error:", err.message);
     }
-  } catch (err) {
-    console.error("OpenAI chat error:", err.message);
   }
 
-  try {
-    const hfReply = await callHuggingFace(message);
-    if (hfReply) {
-      return res.json({ reply: hfReply });
+  // Fallback to HuggingFace if configured
+  if (process.env.HUGGINGFACE_API_KEY) {
+    try {
+      const hfReply = await callHuggingFace(message);
+      console.log("[DEBUG] HuggingFace raw reply:", hfReply);
+      if (hfReply) {
+        return res.json({ reply: hfReply });
+      }
+    } catch (err) {
+      console.error("[DEBUG] HuggingFace chat error:", err.message);
     }
-  } catch (err) {
-    console.error("HuggingFace chat error:", err.message);
   }
 
+  // Fallback to rule-based reply
   const reply = buildFallbackReply(message);
   return res.json({ reply });
 };

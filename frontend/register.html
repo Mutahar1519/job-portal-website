@@ -85,7 +85,7 @@
 
           <div class="form-group">
             <label for="phone" class="form-label">Phone number</label>
-            <input type="tel" id="phone" name="phone" class="form-input" required>
+            <input type="tel" id="phone" name="phone" class="form-input" inputmode="numeric" pattern="[0-9]+" maxlength="15" required>
           </div>
 
           <div class="form-group">
@@ -101,11 +101,22 @@
           <div id="jobSeekerFields" class="job-seeker-fields">
             <div class="form-group">
               <label for="country" class="form-label">Country</label>
-              <input type="text" id="country" name="country" class="form-input" required>
+              <select id="country" name="country" class="form-input" required>
+                <option value="">Select country</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="United States">United States</option>
+                <option value="Canada">Canada</option>
+                <option value="Australia">Australia</option>
+                <option value="India">India</option>
+                <option value="Pakistan">Pakistan</option>
+                <option value="United Arab Emirates">United Arab Emirates</option>
+              </select>
             </div>
             <div class="form-group">
               <label for="city" class="form-label">City</label>
-              <input type="text" id="city" name="city" class="form-input" required>
+              <select id="city" name="city" class="form-input" required>
+                <option value="">Select city</option>
+              </select>
             </div>
           </div>
 
@@ -116,7 +127,7 @@
             </div>
             <div class="form-group">
               <label for="companyPhone" class="form-label">Company phone</label>
-              <input type="tel" id="companyPhone" name="companyPhone" class="form-input">
+              <input type="tel" id="companyPhone" name="companyPhone" class="form-input" inputmode="numeric" pattern="[0-9]+" maxlength="15">
             </div>
             <div class="form-group">
               <label for="companyWebsite" class="form-label">Company website (optional)</label>
@@ -129,6 +140,34 @@
             <div class="form-group">
               <label for="companyAddress" class="form-label">Company address / house number</label>
               <input type="text" id="companyAddress" name="companyAddress" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="idDocumentUrl" class="form-label">UK Passport or Driving Licence (photo card) <span title="Upload a clear scan or photo of a valid UK passport or photocard driving licence."><i class="fa fa-info-circle"></i></span></label>
+              <input type="url" id="idDocumentUrl" name="idDocumentUrl" class="form-input" placeholder="https://...">
+              <input type="file" id="idDocumentFile" name="id_document_file" class="form-input" accept=".pdf,image/*" style="margin-top:8px;">
+            </div>
+            <div class="form-group">
+              <label for="businessCertificateUrl" class="form-label">Certificate of Incorporation (Companies House) or HMRC Registration Letter <span title="Limited companies: Certificate of Incorporation from Companies House. Sole traders: HMRC registration letter."><i class="fa fa-info-circle"></i></span></label>
+              <input type="url" id="businessCertificateUrl" name="businessCertificateUrl" class="form-input" placeholder="https://...">
+              <input type="file" id="businessCertificateFile" name="business_certificate_file" class="form-input" accept=".pdf,image/*" style="margin-top:8px;">
+            </div>
+            <div class="form-group">
+              <label for="taxRegistrationNumber" class="form-label">VAT Number or UTR (Unique Taxpayer Reference) <span title="If VAT registered, provide VAT number. Otherwise, provide your UTR from HMRC."><i class="fa fa-info-circle"></i></span></label>
+              <input type="text" id="taxRegistrationNumber" name="taxRegistrationNumber" class="form-input" maxlength="120">
+            </div>
+            <div class="form-group">
+              <label for="proofOfAddressUrl" class="form-label">Proof of Address (utility bill, bank statement, or government letter, optional)</label>
+              <input type="url" id="proofOfAddressUrl" name="proofOfAddressUrl" class="form-input" placeholder="https://...">
+              <input type="file" id="proofOfAddressFile" name="proof_of_address_file" class="form-input" accept=".pdf,image/*" style="margin-top:8px;">
+            </div>
+            <div class="form-group">
+              <label for="authorizationLetterUrl" class="form-label">Authorization letter (if not a director/owner, optional)</label>
+              <input type="url" id="authorizationLetterUrl" name="authorizationLetterUrl" class="form-input" placeholder="https://...">
+              <input type="file" id="authorizationLetterFile" name="authorization_letter_file" class="form-input" accept=".pdf,image/*" style="margin-top:8px;">
+            </div>
+            <div class="form-group">
+              <label for="linkedinProfileUrl" class="form-label">LinkedIn profile URL (optional)</label>
+              <input type="url" id="linkedinProfileUrl" name="linkedinProfileUrl" class="form-input" placeholder="https://...">
             </div>
           </div>
 

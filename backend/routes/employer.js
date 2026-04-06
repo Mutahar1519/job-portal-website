@@ -17,5 +17,17 @@ router.post("/applications/:id/background-check", auth, employerOnly, employerCo
 router.get("/applications/:id/background-checks", auth, employerOnly, employerController.getApplicationBackgroundChecks);
 router.put("/background-checks/:id/status", auth, employerOnly, employerController.updateBackgroundCheckStatus);
 router.get("/stats", auth, employerOnly, employerController.getEmployerStats);
+router.get("/application-notifications", auth, employerOnly, employerController.getApplicationNotifications);
+router.put("/application-notifications/read-all", auth, employerOnly, employerController.markAllApplicationNotificationsRead);
+router.put("/application-notifications/:id/read", auth, employerOnly, employerController.markApplicationNotificationRead);
+
+// Application tags
+router.post("/applications/:id/tags", auth, employerOnly, employerController.addApplicationTag);
+router.delete("/applications/:id/tags", auth, employerOnly, employerController.removeApplicationTag);
+router.get("/applications/:id/tags", auth, employerOnly, employerController.getApplicationTags);
+
+// Application shortlist
+router.put("/applications/:id/shortlist", auth, employerOnly, employerController.setApplicationShortlist);
+router.get("/applications/:id/shortlist", auth, employerOnly, employerController.getApplicationShortlist);
 
 module.exports = router;

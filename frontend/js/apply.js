@@ -1,5 +1,6 @@
 let jobId = null;
 let canSubmitApplication = true;
+let updateCvUi = () => {};
 
 document.addEventListener("DOMContentLoaded", () => {
   // Must be logged in to apply
@@ -11,6 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   jobId = params.get("jobId");
   const cvInput = document.getElementById("cv");
+  const phoneInput = document.getElementById("phone");
+  const countryInput = document.getElementById("country");
   const cvUploadBox = document.getElementById("cvUploadBox");
   const cvUploadText = document.getElementById("cvUploadText");
   const cvUploadHint = document.getElementById("cvUploadHint");
@@ -22,7 +25,37 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   };
 
-  const updateCvUi = (file) => {
+  const pickCountryFromLocale = () => {
+    const locale = String(navigator.language || "").toLowerCase();
+    const timezone = String(Intl.DateTimeFormat().resolvedOptions().timeZone || "").toLowerCase();
+
+    if (timezone.includes("europe/london") || locale.endsWith("-gb")) return "United Kingdom";
+    if (timezone.includes("america/") || locale.endsWith("-us")) return "United States";
+    if (timezone.includes("toronto") || timezone.includes("vancouver") || locale.endsWith("-ca")) return "Canada";
+    if (timezone.includes("australia/") || locale.endsWith("-au")) return "Australia";
+    if (timezone.includes("asia/karachi") || locale.endsWith("-pk")) return "Pakistan";
+    if (timezone.includes("asia/dubai") || locale.endsWith("-ae")) return "United Arab Emirates";
+    if (timezone.includes("asia/kolkata") || locale.endsWith("-in")) return "India";
+    return "";
+  };
+
+  if (countryInput && !countryInput.value) {
+    const autoCountry = pickCountryFromLocale();
+    if (autoCountry) {
+      countryInput.value = autoCountry;
+    }
+  }
+
+  if (phoneInput) {
+    phoneInput.addEventListener("input", () => {
+      const clean = String(phoneInput.value || "").replace(/\D+/g, "");
+      if (clean !== phoneInput.value) {
+        phoneInput.value = clean;
+      }
+    });
+  }
+
+  updateCvUi = (file) => {
     if (!cvUploadBox || !cvUploadText || !cvUploadHint || !cvUploadStatus) return;
 
     if (!file) {
@@ -254,6 +287,11 @@ document.getElementById("applyForm").addEventListener("submit", async (e) => {
   const fullName = document.getElementById("name").value.trim();
   const email = document.getElementById("email").value.trim();
   const phone = document.getElementById("phone").value.trim();
+    if (!/^\d+$/.test(phone)) {
+      alert("Phone number must contain only digits");
+      return;
+    }
+
   const country = document.getElementById("country").value.trim();
   const cvFile = document.getElementById("cv").files[0];
   

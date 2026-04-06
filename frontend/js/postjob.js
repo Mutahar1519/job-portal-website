@@ -351,6 +351,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const paymentMethod = await openPaymentModal();
+    if (!paymentMethod) {
+      return;
+    }
+
     try {
       const res = await authFetch(`${API}/payments/create-donation-session`, {
         method: "POST",
@@ -591,8 +596,6 @@ document.addEventListener("DOMContentLoaded", () => {
       form.reset();
       localStorage.removeItem(DRAFT_KEY);
       if (shiftFields) shiftFields.style.display = "none";
-      const paymentMethod = await openPaymentModal();
-      if (!paymentMethod) return;
       openDonationModal("post");
     } catch (err) {
       console.error("Job submission error:", err);

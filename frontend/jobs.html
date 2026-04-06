@@ -97,6 +97,14 @@
       </select>
     </div>
     <div class="form-field">
+      <label for="shiftFilter">Shift listing</label>
+      <select id="shiftFilter">
+        <option value="">Any</option>
+        <option value="shift">Shift only</option>
+        <option value="non_shift">Non-shift only</option>
+      </select>
+    </div>
+    <div class="form-field">
       <label for="experienceFilter">Experience</label>
       <select id="experienceFilter">
         <option value="">Any</option>
@@ -148,13 +156,13 @@
   <p id="jobsResultHint" class="p-muted">Refine filters to get more relevant matches.</p>
 </section>
 
-<section id="salaryInsights" class="jobs-salary-insights" aria-live="polite">
+<section id="salaryInsights" class="jobs-salary-insights hidden" aria-live="polite">
   <div class="salary-insights-head">
     <div>
       <p class="eyebrow">Salary insights</p>
       <h3 class="jobs-results-title">Market snapshot for your current filters</h3>
     </div>
-    <span id="salaryInsightsMeta" class="p-muted">Loading salary intelligence...</span>
+    <span id="salaryInsightsMeta" class="p-muted">Apply one or more filters to view salary insights.</span>
   </div>
 
   <div class="salary-insights-grid">

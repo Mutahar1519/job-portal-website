@@ -1,3 +1,15 @@
+-- JOB ACTION LOGS TABLE (for audit trail)
+CREATE TABLE IF NOT EXISTS job_action_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  job_id INT NOT NULL,
+  user_id INT NOT NULL,
+  user_role ENUM('admin','employer') NOT NULL,
+  action VARCHAR(40) NOT NULL,
+  details TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 -- Job Portal canonical schema (MySQL 8+)
 -- Aligned with specification: Job Seeker, Employer, Administrator
 -- Safe to run on a fresh database.
@@ -266,6 +278,7 @@ CREATE TABLE IF NOT EXISTS employer_profiles (
   registration_number VARCHAR(100) NULL,
   linkedin_url VARCHAR(255) NULL,
   tax_id VARCHAR(100) NULL,
+  proof_of_address_url VARCHAR(500) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_employer_user (user_id),

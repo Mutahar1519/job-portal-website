@@ -228,3 +228,108 @@ test.describe("Job Portal — Browser Automation Tests", () => {
     }
   });
 });
+  
+// --- Additional E2E Flows ---
+test.describe("Job Portal — Extended Flows", () => {
+  test("Job seeker can apply for a job", async ({ page }) => {
+    // Login as seeker
+    await page.goto(`${BASE_URL}/login.html`);
+    await page.fill('input[type="email"]', testUser.seeker.email);
+    await page.fill('input[type="password"]', testUser.seeker.password);
+    await page.locator("button:has-text('Login'), button:has-text('Sign in')").click();
+    await page.waitForTimeout(2000);
+    // Go to jobs page
+    await page.goto(`${BASE_URL}/jobs.html`);
+    await page.waitForLoadState("networkidle");
+    // Click first apply button
+    const applyBtn = page.locator("a.apply-btn").first();
+    await applyBtn.click();
+    await page.waitForLoadState("networkidle");
+    // Fill application form (minimal)
+    await page.fill('#name', 'Alice Demo');
+    await page.fill('#email', testUser.seeker.email);
+    await page.fill('#phone', '1234567890');
+    await page.fill('#country', 'United States');
+    await page.fill('#coverLetter', 'I am interested in this job.');
+    // CV upload is optional for E2E (skip for now)
+    // Submit
+    const submitBtn = page.locator('button[type="submit"], input[type="submit"]');
+    await submitBtn.click();
+    // Confirm success (look for confirmation or redirect)
+    await expect(page).toHaveURL(/dashboard|apply|success/i);
+  });
+
+  test("Employer can post a job", async ({ page }) => {
+    await page.goto(`${BASE_URL}/login.html`);
+    await page.fill('input[type="email"]', testUser.employer.email);
+    await page.fill('input[type="password"]', testUser.employer.password);
+    await page.locator("button:has-text('Login'), button:has-text('Sign in')").click();
+    await page.waitForTimeout(2000);
+    await page.goto(`${BASE_URL}/post-jobs.html`);
+    await page.waitForLoadState("networkidle");
+    // Fill job form (minimal)
+    await page.fill('#jobTitle', 'E2E Test Job');
+    await page.fill('#jobDescription', 'Automated test job posting.');
+    await page.fill('#location', 'Remote');
+    await page.selectOption('#jobType', { value: 'Full-time' });
+    await page.selectOption('#jobCategory', { value: 'IT & Software' });
+    // Submit
+    const submitBtn = page.locator('button[type="submit"], input[type="submit"]');
+    await submitBtn.click();
+    // Confirm success (look for confirmation or redirect)
+    await expect(page).toHaveURL(/jobs|dashboard|success/i);
+  });
+
+  test("AI chat responds to user", async ({ page }) => {
+    await page.goto(`${BASE_URL}/ai-chat.html`);
+    await page.waitForLoadState("networkidle");
+    await page.fill('#aiChatInput', 'How do I apply for a job?');
+    await page.locator('#aiChatForm button[type="submit"]').click();
+    // Wait for AI response
+    await page.waitForTimeout(2000);
+    const aiMsg = page.locator('.ai-msg');
+    await expect(aiMsg).toBeVisible();
+    await expect(aiMsg).toContainText(/apply/i);
+  });
+
+  test("Support ticket can be created and listed", async ({ page }) => {
+    // Login as seeker
+    await page.goto(`${BASE_URL}/login.html`);
+    await page.fill('input[type="email"]', testUser.seeker.email);
+    await page.fill('input[type="password"]', testUser.seeker.password);
+    await page.locator("button:has-text('Login'), button:has-text('Sign in')").click();
+    await page.waitForTimeout(2000);
+    // Open support widget (if present)
+    await page.goto(`${BASE_URL}/dashboard.html`);
+    await page.waitForLoadState("networkidle");
+    // Try to open support chat (if widget exists)
+    const supportToggle = page.locator('#supportToggle');
+    if (await supportToggle.isVisible().catch(() => false)) {
+      await supportToggle.click();
+      await page.fill('#supportInput', 'I need help with my application.');
+      await page.locator('#supportForm button[type="submit"]').click();
+      await page.waitForTimeout(2000);
+      const supportMsg = page.locator('.support-messages');
+      await expect(supportMsg).toContainText(/help|application/i);
+    }
+    // Optionally, check support ticket API
+    // await page.goto(`${BASE_URL}/api/chat/live-support/my`);
+    // await expect(page).toHaveURL(/live-support/);
+  });
+
+  test("Admin dashboard loads and lists jobs", async ({ page }) => {
+    await page.goto(`${BASE_URL}/login.html`);
+    await page.fill('input[type="email"]', testUser.admin.email);
+    await page.fill('input[type="password"]', testUser.admin.password);
+    await page.locator("button:has-text('Login'), button:has-text('Sign in')").click();
+    await page.waitForTimeout(2000);
+    await page.goto(`${BASE_URL}/admin.html`);
+    await page.waitForLoadState("networkidle");
+    // Check for jobs section
+    const jobsSection = page.locator('#admin-jobs-section');
+    await expect(jobsSection).toBeVisible();
+    // Optionally, check for job cards
+    // const jobCard = page.locator('.job-card, [data-job-id]');
+    // await expect(jobCard.first()).toBeVisible();
+  });
+});

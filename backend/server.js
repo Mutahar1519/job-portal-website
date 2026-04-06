@@ -38,6 +38,7 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
   if (socket.user?.id) {
     socket.join(`support-user:${socket.user.id}`);
+    socket.join(`employer-user:${socket.user.id}`); // For employer real-time updates
   }
 
   if (socket.user?.is_admin) {
@@ -58,6 +59,49 @@ io.on("connection", (socket) => {
     }
   });
 });
+
+// Utility to emit employer events
+function emitEmployerUpdate(userId, event, payload) {
+  if (userId && io) {
+    io.to(`employer-user:${userId}`).emit(event, payload);
+  }
+}
+
+// Patch employerController to emit real-time events on application and stats changes
+const employerController = require("./controllers/employerController");
+const origUpdatePipelineStage = employerController.updatePipelineStage;
+employerController.updatePipelineStage = function(req, res) {
+  const userId = req.user?.id;
+  origUpdatePipelineStage.call(this, req, {
+    ...res,
+    json: function(data) {
+      if (userId) {
+        emitEmployerUpdate(userId, "employer:application-updated", { applicationId: req.params.id });
+        emitEmployerUpdate(userId, "employer:stats-updated", {});
+      }
+      return res.json(data);
+    }
+  });
+};
+
+const origSaveEvaluation = employerController.saveEvaluation;
+if (origSaveEvaluation) {
+  employerController.saveEvaluation = function(req, res) {
+    const userId = req.user?.id;
+    origSaveEvaluation.call(this, req, {
+      ...res,
+      json: function(data) {
+        if (userId) {
+          emitEmployerUpdate(userId, "employer:application-updated", { applicationId: req.params.id });
+          emitEmployerUpdate(userId, "employer:stats-updated", {});
+        }
+        return res.json(data);
+      }
+    });
+  };
+}
+
+// Patch job creation and deletion if needed (not shown here)
 
 app.use(cors());
 app.use(express.json());

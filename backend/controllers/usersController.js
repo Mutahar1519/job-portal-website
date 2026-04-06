@@ -1,3 +1,19 @@
+// GET USER BY ID (for unit test compatibility)
+exports.getUserById = (req, res) => {
+  const userId = Number(req.params.id);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: "Invalid user id" });
+  }
+  db.query(
+    "SELECT id, name, email FROM users WHERE id = ?",
+    [userId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!rows.length) return res.status(404).json({ message: "User not found" });
+      res.status(200).json(rows[0]);
+    }
+  );
+};
 const db = require("../config/mysql");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -35,6 +51,69 @@ const normalizeRole = (value) => {
   if (["job_seeker", "employer", "admin"].includes(role)) return role;
   return null;
 };
+
+const isDigitsOnly = (value) => /^\d+$/.test(String(value || ""));
+
+const ALLOWED_COUNTRY_CITIES = {
+  "United Kingdom": ["London", "Manchester", "Birmingham", "Leeds", "Glasgow"],
+  "United States": ["New York", "Los Angeles", "Chicago", "Houston", "San Francisco"],
+  Canada: ["Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa"],
+  Australia: ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide"],
+  India: ["Mumbai", "Delhi", "Bengaluru", "Hyderabad", "Pune"],
+  Pakistan: ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad"],
+  "United Arab Emirates": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Al Ain"]
+};
+
+const isAllowedCountryCity = (country, city) => {
+  const allowedCities = ALLOWED_COUNTRY_CITIES[country];
+  if (!allowedCities) return false;
+  return allowedCities.includes(city);
+};
+
+const ensureEmployerEvidenceColumns = () => {
+  const columns = [
+    {
+      name: "id_document_url",
+      ddl: "ALTER TABLE employer_profiles ADD COLUMN id_document_url VARCHAR(500) NULL"
+    },
+    {
+      name: "business_certificate_url",
+      ddl: "ALTER TABLE employer_profiles ADD COLUMN business_certificate_url VARCHAR(500) NULL"
+    },
+    {
+      name: "tax_registration_number",
+      ddl: "ALTER TABLE employer_profiles ADD COLUMN tax_registration_number VARCHAR(120) NULL"
+    },
+    {
+      name: "authorization_letter_url",
+      ddl: "ALTER TABLE employer_profiles ADD COLUMN authorization_letter_url VARCHAR(500) NULL"
+    },
+    {
+      name: "linkedin_profile_url",
+      ddl: "ALTER TABLE employer_profiles ADD COLUMN linkedin_profile_url VARCHAR(500) NULL"
+    },
+    {
+      name: "proof_of_address_url",
+      ddl: "ALTER TABLE employer_profiles ADD COLUMN proof_of_address_url VARCHAR(500) NULL"
+    }
+  ];
+
+  columns.forEach((col) => {
+    db.query(
+      `SELECT 1 AS ok
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employer_profiles' AND COLUMN_NAME = ?
+       LIMIT 1`,
+      [col.name],
+      (checkErr, rows) => {
+        if (checkErr || rows?.length) return;
+        db.query(col.ddl, () => {});
+      }
+    );
+  });
+};
+
+ensureEmployerEvidenceColumns();
 
 const createEmailVerification = (user, cb) => {
   const token = crypto.randomBytes(32).toString("hex");
@@ -87,6 +166,27 @@ exports.registerUser = async (req, res) => {
   const companyLocation = (req.body.company_location || req.body.companyLocation || "").trim();
   const companyPhone = (req.body.company_phone || req.body.companyPhone || "").trim();
   const companyAddress = (req.body.company_address || req.body.companyAddress || "").trim();
+  const idDocumentUrl = (req.body.id_document_url || req.body.idDocumentUrl || "").trim();
+  const businessCertificateUrl = (req.body.business_certificate_url || req.body.businessCertificateUrl || "").trim();
+  const taxRegistrationNumber = (req.body.tax_registration_number || req.body.taxRegistrationNumber || "").trim();
+  const authorizationLetterUrl = (req.body.authorization_letter_url || req.body.authorizationLetterUrl || "").trim();
+  const linkedinProfileUrl = (req.body.linkedin_profile_url || req.body.linkedinProfileUrl || "").trim();
+  const uploadedIdDoc = req.files?.id_document_file?.[0]
+    ? `/uploads/verifications/${req.files.id_document_file[0].filename}`
+    : "";
+  const uploadedBusinessCert = req.files?.business_certificate_file?.[0]
+    ? `/uploads/verifications/${req.files.business_certificate_file[0].filename}`
+    : "";
+  const uploadedProofOfAddress = req.files?.proof_of_address_file?.[0]
+    ? `/uploads/verifications/${req.files.proof_of_address_file[0].filename}`
+    : "";
+  const uploadedAuthorizationLetter = req.files?.authorization_letter_file?.[0]
+    ? `/uploads/verifications/${req.files.authorization_letter_file[0].filename}`
+    : "";
+  const idDocumentProof = idDocumentUrl || uploadedIdDoc;
+  const businessCertificateProof = businessCertificateUrl || uploadedBusinessCert;
+  const proofOfAddressProof = (req.body.proof_of_address_url || req.body.proofOfAddressUrl || "").trim() || uploadedProofOfAddress;
+  const authorizationLetterProof = authorizationLetterUrl || uploadedAuthorizationLetter;
 
   if (!name || !email || !password) {
     return res.status(400).json({ message: "All fields required" });
@@ -108,12 +208,45 @@ exports.registerUser = async (req, res) => {
     return res.status(400).json({ message: "Phone is required" });
   }
 
+  if (!isDigitsOnly(phone)) {
+    return res.status(400).json({ message: "Phone must contain only digits" });
+  }
+
+  if (companyPhone && !isDigitsOnly(companyPhone)) {
+    return res.status(400).json({ message: "Company phone must contain only digits" });
+  }
+
   if (role === "job_seeker" && (!country || !city)) {
     return res.status(400).json({ message: "Country and city are required" });
   }
 
+  if (role === "job_seeker" && !isAllowedCountryCity(country, city)) {
+    return res.status(400).json({ message: "Please select country and city from the provided dropdown options" });
+  }
+
   if (role === "employer" && (!companyName || !companyLocation)) {
     return res.status(400).json({ message: "Company name and location are required" });
+  }
+
+  const isValidHttpUrl = (value) => {
+    if (!value) return true;
+    return /^https?:\/\/.{4,}/i.test(value);
+  };
+
+  if (role === "employer" && !idDocumentProof) {
+    return res.status(400).json({ message: "Government ID document URL is required for employer verification" });
+  }
+
+  if (role === "employer" && !businessCertificateProof) {
+    return res.status(400).json({ message: "Business certificate URL is required for employer verification" });
+  }
+
+  if (role === "employer" && !taxRegistrationNumber) {
+    return res.status(400).json({ message: "Tax registration number is required for employer verification" });
+  }
+
+  if (!isValidHttpUrl(companyWebsite) || !isValidHttpUrl(idDocumentUrl) || !isValidHttpUrl(businessCertificateUrl) || !isValidHttpUrl(authorizationLetterUrl) || !isValidHttpUrl(linkedinProfileUrl)) {
+    return res.status(400).json({ message: "Website and verification document links must be valid http(s) URLs" });
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -149,18 +282,50 @@ exports.registerUser = async (req, res) => {
           }
 
           db.query(
-            `INSERT INTO employer_profiles (user_id, company_name, company_phone, company_address, company_location, website)
-             VALUES (?, ?, ?, ?, ?, ?)`
+            `INSERT INTO employer_profiles
+             (user_id, company_name, company_phone, company_address, company_location, website,
+              id_document_url, business_certificate_url, tax_registration_number, authorization_letter_url, linkedin_profile_url, proof_of_address_url)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
             ,[
               userId,
               companyName,
               companyPhone || null,
               companyAddress || null,
               companyLocation || null,
-              companyWebsite || null
+              companyWebsite || null,
+              idDocumentProof || null,
+              businessCertificateProof || null,
+              taxRegistrationNumber || null,
+              authorizationLetterProof || null,
+              linkedinProfileUrl || null,
+              proofOfAddressProof || null
             ],
             (profileErr) => {
               if (profileErr) {
+                if (profileErr.code === "ER_BAD_FIELD_ERROR") {
+                  return db.query(
+                    `INSERT INTO employer_profiles (user_id, company_name, company_phone, company_address, company_location, website)
+                     VALUES (?, ?, ?, ?, ?, ?)`,
+                    [
+                      userId,
+                      companyName,
+                      companyPhone || null,
+                      companyAddress || null,
+                      companyLocation || null,
+                      companyWebsite || null
+                    ],
+                    (legacyErr) => {
+                      if (legacyErr) return res.status(500).json({ error: legacyErr.message });
+                      const user = { id: userId, email, name };
+                      createEmailVerification(user, (verifyErr) => {
+                        if (verifyErr) {
+                          return res.status(500).json({ error: verifyErr.message });
+                        }
+                        return res.status(201).json({ message: "Employer registered. Please verify your email." });
+                      });
+                    }
+                  );
+                }
                 return res.status(500).json({ error: profileErr.message });
               }
 
@@ -187,13 +352,16 @@ exports.registerUser = async (req, res) => {
           return res.status(500).json({ error: profileErr.message });
         }
 
-        const user = { id: userId, email, name };
-        createEmailVerification(user, (verifyErr) => {
-          if (verifyErr) {
-            return res.status(500).json({ error: verifyErr.message });
+        db.query(
+          "UPDATE users SET verified = 1 WHERE id = ?",
+          [userId],
+          (verifyUpdateErr) => {
+            if (verifyUpdateErr) {
+              return res.status(500).json({ error: verifyUpdateErr.message });
+            }
+            res.status(201).json({ message: "Registration successful." });
           }
-          res.status(201).json({ message: "Registration successful. Please verify your email." });
-        });
+        );
       }
     );
   });

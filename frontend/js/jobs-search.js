@@ -99,6 +99,30 @@ const loadSalaryInsights = async (params) => {
   }
 };
 
+const hasActiveInsightsFilters = (state) => {
+  return Boolean(
+    state.q ||
+    state.category ||
+    state.location ||
+    state.jobType ||
+    state.experience ||
+    state.salaryMin ||
+    state.salaryMax ||
+    state.workType ||
+    state.shiftMode
+  );
+};
+
+const setSalaryInsightsVisibility = (visible) => {
+  const section = document.getElementById("salaryInsights");
+  const meta = document.getElementById("salaryInsightsMeta");
+  if (!section) return;
+  section.classList.toggle("hidden", !visible);
+  if (!visible && meta) {
+    meta.textContent = "Apply one or more filters to view salary insights.";
+  }
+};
+
 const getTagList = (job) => {
   const tags = [];
   const location = (job.location || "").toLowerCase();
@@ -252,6 +276,7 @@ async function loadJobs() {
   const experience = document.getElementById("experienceFilter")?.value || "";
   const salaryMin = document.getElementById("salaryMinFilter")?.value || "";
   const salaryMax = document.getElementById("salaryMaxFilter")?.value || "";
+  const shiftMode = document.getElementById("shiftFilter")?.value || "";
   const activeWorkTypeBtn = document.querySelector("#workTypeFilters .work-type-btn.active");
   const workType = activeWorkTypeBtn ? activeWorkTypeBtn.dataset.workType || "" : "";
   const skeleton = document.getElementById("jobsSkeleton");
@@ -275,9 +300,17 @@ async function loadJobs() {
     if (salaryMin) params.set("salary_min", salaryMin);
     if (salaryMax) params.set("salary_max", salaryMax);
     if (workType === "Remote") params.set("is_remote", "1");
+    if (shiftMode === "shift") params.set("is_shift", "1");
+    if (shiftMode === "non_shift") params.set("is_shift", "0");
+
+    const activeFilterState = { q, category, location, jobType, experience, salaryMin, salaryMax, workType, shiftMode };
+    const hasActiveFilter = hasActiveInsightsFilters(activeFilterState);
+    setSalaryInsightsVisibility(hasActiveFilter);
 
     const paramStr = params.toString();
-    loadSalaryInsights(params);
+    if (hasActiveFilter) {
+      loadSalaryInsights(params);
+    }
     const res = await authFetch(`${API}/jobs${paramStr ? "?" + paramStr : ""}`);
     const jobs = await res.json();
     syncCategoryFilterOptionsFromJobs(jobs || []);
@@ -296,14 +329,13 @@ async function loadJobs() {
     });
 
     if (!filtered.length) {
-      const hasActiveFilter = Boolean(q || category || location || jobType || experience || salaryMin || salaryMax || workType);
       if (hasActiveFilter && Array.isArray(jobs) && jobs.length) {
         if (resultsCount) resultsCount.textContent = String(jobs.length);
         if (resultsHint) resultsHint.textContent = "No exact matches for current filters. Showing all roles instead.";
         jobs.forEach(job => {
           container.innerHTML += renderJobCard(job, { includeSaveButton: true, saved: !!job.is_saved });
         });
-        saveSearchState({ q, category, categoryCustom, location, jobType, experience, salaryMin, salaryMax, workType });
+        saveSearchState({ q, category, categoryCustom, location, jobType, experience, salaryMin, salaryMax, workType, shiftMode });
         renderRecentSearches();
         return;
       }
@@ -332,7 +364,7 @@ async function loadJobs() {
       container.innerHTML += renderJobCard(job, { includeSaveButton: true, saved: !!job.is_saved });
     });
 
-    saveSearchState({ q, category, categoryCustom, location, jobType, experience, salaryMin, salaryMax, workType });
+    saveSearchState({ q, category, categoryCustom, location, jobType, experience, salaryMin, salaryMax, workType, shiftMode });
     renderRecentSearches();
   } catch (err) {
     console.error("Error loading jobs:", err);
@@ -443,6 +475,7 @@ const applySavedSearch = (filtersJson) => {
     if (f.q !== undefined) document.getElementById("searchInput").value = f.q || "";
     if (f.location !== undefined) { const el = document.getElementById("locationFilter"); if (el) el.value = f.location || ""; }
     if (f.jobType !== undefined) { const el = document.getElementById("typeFilter"); if (el) el.value = f.jobType || ""; }
+    if (f.shiftMode !== undefined) { const el = document.getElementById("shiftFilter"); if (el) el.value = f.shiftMode || ""; }
     if (f.experience !== undefined) { const el = document.getElementById("experienceFilter"); if (el) el.value = f.experience || ""; }
     if (f.salaryMin !== undefined) { const el = document.getElementById("salaryMinFilter"); if (el) el.value = f.salaryMin || ""; }
     if (f.salaryMax !== undefined) { const el = document.getElementById("salaryMaxFilter"); if (el) el.value = f.salaryMax || ""; }
@@ -456,6 +489,7 @@ const saveCurrentSearch = async () => {
   const q = document.getElementById("searchInput")?.value || "";
   const location = document.getElementById("locationFilter")?.value || "";
   const jobType = document.getElementById("typeFilter")?.value || "";
+  const shiftMode = document.getElementById("shiftFilter")?.value || "";
   const experience = document.getElementById("experienceFilter")?.value || "";
   const salaryMin = document.getElementById("salaryMinFilter")?.value || "";
   const salaryMax = document.getElementById("salaryMaxFilter")?.value || "";
@@ -464,7 +498,7 @@ const saveCurrentSearch = async () => {
   try {
     const res = await authFetch(`${API}/jobs/searches`, {
       method: "POST",
-      body: JSON.stringify({ name: name.trim(), filters: { q, location, jobType, experience, salaryMin, salaryMax } })
+      body: JSON.stringify({ name: name.trim(), filters: { q, location, jobType, shiftMode, experience, salaryMin, salaryMax } })
     });
     if (res.ok) {
       alert("Search saved!");
@@ -484,6 +518,8 @@ const renderRecentSearches = () => {
   if (state.category) chips.push(state.category);
   if (state.location) chips.push(state.location);
   if (state.workType) chips.push(`Work type: ${state.workType}`);
+  if (state.shiftMode === "shift") chips.push("Shift only");
+  if (state.shiftMode === "non_shift") chips.push("Non-shift only");
 
   if (!chips.length) {
     container.innerHTML = "";
@@ -552,6 +588,7 @@ clearButton?.addEventListener("click", () => {
   syncCategoryFilterCustomInput();
   document.getElementById("locationFilter").value = "";
   document.getElementById("typeFilter").value = "";
+  document.getElementById("shiftFilter").value = "";
   document.getElementById("experienceFilter").value = "";
   const salaryMinEl = document.getElementById("salaryMinFilter");
   const salaryMaxEl = document.getElementById("salaryMaxFilter");
@@ -600,6 +637,7 @@ const seedSearchState = () => {
   }
   document.getElementById("locationFilter").value = state.location || "";
   document.getElementById("typeFilter").value = state.jobType || "";
+  document.getElementById("shiftFilter").value = state.shiftMode || "";
   document.getElementById("experienceFilter").value = state.experience || "";
   const salaryMinEl = document.getElementById("salaryMinFilter");
   const salaryMaxEl = document.getElementById("salaryMaxFilter");
@@ -615,10 +653,12 @@ const seedSearchState = () => {
 seedSearchState();
 const categorySelect = document.getElementById("categoryFilter");
 const categoryCustomInput = document.getElementById("categoryFilterCustom");
+const shiftFilter = document.getElementById("shiftFilter");
 categorySelect?.addEventListener("change", () => {
   syncCategoryFilterCustomInput();
   loadJobs();
 });
+shiftFilter?.addEventListener("change", loadJobs);
 categoryCustomInput?.addEventListener("input", loadJobs);
 syncCategoryFilterCustomInput();
 loadJobs();

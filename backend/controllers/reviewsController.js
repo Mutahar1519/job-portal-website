@@ -1,5 +1,41 @@
 const db = require("../config/mysql");
 
+const ensureCompanyReviewColumn = (columnName, ddl) => {
+  db.query(
+    `SELECT 1 AS ok
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'company_reviews' AND COLUMN_NAME = ?
+     LIMIT 1`,
+    [columnName],
+    (checkErr, rows) => {
+      if (checkErr || rows?.length) return;
+      db.query(ddl, (alterErr) => {
+        if (alterErr && alterErr.code !== "ER_DUP_FIELDNAME") {
+          console.warn("company_reviews column bootstrap failed:", alterErr.message);
+        }
+      });
+    }
+  );
+};
+
+const ensureCompanyReviewIndex = (indexName, ddl) => {
+  db.query(
+    `SELECT 1 AS ok
+     FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'company_reviews' AND INDEX_NAME = ?
+     LIMIT 1`,
+    [indexName],
+    (checkErr, rows) => {
+      if (checkErr || rows?.length) return;
+      db.query(ddl, (alterErr) => {
+        if (alterErr && alterErr.code !== "ER_DUP_KEYNAME") {
+          console.warn("company_reviews index bootstrap failed:", alterErr.message);
+        }
+      });
+    }
+  );
+};
+
 const ensureCompanyReviewsSchema = () => {
   db.query(
     `CREATE TABLE IF NOT EXISTS company_reviews (
@@ -19,28 +55,34 @@ const ensureCompanyReviewsSchema = () => {
     (err) => {
       if (err) {
         console.warn("company_reviews bootstrap failed:", err.message);
+        return;
       }
+      ensureCompanyReviewColumn("user_id", "ALTER TABLE company_reviews ADD COLUMN user_id INT NULL");
+      ensureCompanyReviewColumn("reviewer_name", "ALTER TABLE company_reviews ADD COLUMN reviewer_name VARCHAR(120) NULL");
+      ensureCompanyReviewColumn("reviewer_role", "ALTER TABLE company_reviews ADD COLUMN reviewer_role VARCHAR(120) NULL");
+      ensureCompanyReviewColumn("approved", "ALTER TABLE company_reviews ADD COLUMN approved TINYINT(1) DEFAULT 0");
+      ensureCompanyReviewColumn("is_hidden", "ALTER TABLE company_reviews ADD COLUMN is_hidden TINYINT(1) DEFAULT 0");
+      ensureCompanyReviewIndex("idx_company_reviews_company", "ALTER TABLE company_reviews ADD INDEX idx_company_reviews_company (company_id)");
+      ensureCompanyReviewIndex("idx_company_reviews_status", "ALTER TABLE company_reviews ADD INDEX idx_company_reviews_status (approved, is_hidden)");
     }
   );
 
-  const alters = [
-    "ALTER TABLE company_reviews ADD COLUMN user_id INT NULL",
-    "ALTER TABLE company_reviews ADD COLUMN reviewer_name VARCHAR(120) NULL",
-    "ALTER TABLE company_reviews ADD COLUMN reviewer_role VARCHAR(120) NULL",
-    "ALTER TABLE company_reviews MODIFY COLUMN reviewer_role VARCHAR(120) NULL",
-    "ALTER TABLE company_reviews ADD COLUMN approved TINYINT(1) DEFAULT 0",
-    "ALTER TABLE company_reviews ADD COLUMN is_hidden TINYINT(1) DEFAULT 0",
-    "ALTER TABLE company_reviews ADD INDEX idx_company_reviews_company (company_id)",
-    "ALTER TABLE company_reviews ADD INDEX idx_company_reviews_status (approved, is_hidden)"
-  ];
-
-  alters.forEach((sql) => {
-    db.query(sql, (err) => {
-      if (err && err.code !== "ER_DUP_FIELDNAME" && err.code !== "ER_DUP_KEYNAME") {
-        console.warn("company_reviews alter failed:", err.message);
-      }
-    });
-  });
+  db.query(
+    `SELECT DATA_TYPE
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'company_reviews' AND COLUMN_NAME = 'reviewer_role'
+     LIMIT 1`,
+    (typeErr, typeRows) => {
+      if (typeErr || !typeRows?.length) return;
+      const dataType = String(typeRows[0].DATA_TYPE || "").toLowerCase();
+      if (dataType === "varchar") return;
+      db.query("ALTER TABLE company_reviews MODIFY COLUMN reviewer_role VARCHAR(120) NULL", (modifyErr) => {
+        if (modifyErr && modifyErr.code !== "ER_DUP_FIELDNAME") {
+          console.warn("company_reviews reviewer_role normalize failed:", modifyErr.message);
+        }
+      });
+    }
+  );
 };
 
 ensureCompanyReviewsSchema();

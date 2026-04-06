@@ -1,3 +1,97 @@
+// --- Application Tags ---
+exports.addApplicationTag = (req, res) => {
+  const applicationId = Number(req.params.id);
+  const tag = String(req.body.tag || "").trim().slice(0, 50);
+  if (!applicationId || !tag) return res.status(400).json({ message: "Invalid application or tag" });
+  // Only allow for jobs owned by this employer
+  db.query(
+    `SELECT a.id FROM applications a JOIN jobs j ON a.job_id = j.id WHERE a.id = ? AND j.posted_by = ?`,
+    [applicationId, req.user.id],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!rows.length) return res.status(403).json({ message: "Not authorized" });
+      db.query(
+        `INSERT IGNORE INTO application_tags (application_id, tag) VALUES (?, ?)`,
+        [applicationId, tag],
+        (err2) => {
+          if (err2) return res.status(500).json({ error: err2.message });
+          res.json({ message: "Tag added" });
+        }
+      );
+    }
+  );
+};
+
+exports.removeApplicationTag = (req, res) => {
+  const applicationId = Number(req.params.id);
+  const tag = String(req.body.tag || "").trim().slice(0, 50);
+  if (!applicationId || !tag) return res.status(400).json({ message: "Invalid application or tag" });
+  db.query(
+    `SELECT a.id FROM applications a JOIN jobs j ON a.job_id = j.id WHERE a.id = ? AND j.posted_by = ?`,
+    [applicationId, req.user.id],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!rows.length) return res.status(403).json({ message: "Not authorized" });
+      db.query(
+        `DELETE FROM application_tags WHERE application_id = ? AND tag = ?`,
+        [applicationId, tag],
+        (err2) => {
+          if (err2) return res.status(500).json({ error: err2.message });
+          res.json({ message: "Tag removed" });
+        }
+      );
+    }
+  );
+};
+
+exports.getApplicationTags = (req, res) => {
+  const applicationId = Number(req.params.id);
+  if (!applicationId) return res.status(400).json({ message: "Invalid application" });
+  db.query(
+    `SELECT tag FROM application_tags WHERE application_id = ? ORDER BY tag ASC`,
+    [applicationId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json((rows || []).map(r => r.tag));
+    }
+  );
+};
+
+// --- Application Shortlist ---
+exports.setApplicationShortlist = (req, res) => {
+  const applicationId = Number(req.params.id);
+  const shortlisted = Boolean(req.body.shortlisted);
+  if (!applicationId) return res.status(400).json({ message: "Invalid application" });
+  db.query(
+    `SELECT a.id FROM applications a JOIN jobs j ON a.job_id = j.id WHERE a.id = ? AND j.posted_by = ?`,
+    [applicationId, req.user.id],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!rows.length) return res.status(403).json({ message: "Not authorized" });
+      db.query(
+        `UPDATE applications SET shortlisted = ? WHERE id = ?`,
+        [shortlisted ? 1 : 0, applicationId],
+        (err2) => {
+          if (err2) return res.status(500).json({ error: err2.message });
+          res.json({ message: "Shortlist updated" });
+        }
+      );
+    }
+  );
+};
+
+exports.getApplicationShortlist = (req, res) => {
+  const applicationId = Number(req.params.id);
+  if (!applicationId) return res.status(400).json({ message: "Invalid application" });
+  db.query(
+    `SELECT shortlisted FROM applications WHERE id = ?`,
+    [applicationId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ shortlisted: !!(rows && rows[0] && rows[0].shortlisted) });
+    }
+  );
+};
 const db = require("../config/mysql");
 
 const allowedStages = ["new", "screening", "interview", "offer", "hired", "rejected"];
@@ -242,6 +336,95 @@ exports.getEmployerStats = (req, res) => {
           );
         }
       );
+    }
+  );
+};
+
+exports.getApplicationNotifications = (req, res) => {
+  const userId = req.user.id;
+  const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 20));
+
+  db.query(
+    "SELECT COUNT(*) AS unread FROM employer_application_notifications WHERE employer_user_id = ? AND is_read = 0",
+    [userId],
+    (countErr, countRows) => {
+      if (countErr) {
+        if (countErr.code === "ER_NO_SUCH_TABLE") {
+          return res.json({ unread: 0, items: [] });
+        }
+        return res.status(500).json({ error: countErr.message });
+      }
+
+      const unread = Number(countRows?.[0]?.unread || 0);
+      db.query(
+        `SELECT n.id, n.application_id, n.job_id, n.message, n.is_read, n.created_at,
+                j.title AS job_title,
+                a.full_name,
+                a.email
+         FROM employer_application_notifications n
+         LEFT JOIN jobs j ON j.id = n.job_id
+         LEFT JOIN applications a ON a.id = n.application_id
+         WHERE n.employer_user_id = ?
+         ORDER BY n.created_at DESC
+         LIMIT ?`,
+        [userId, limit],
+        (err, rows) => {
+          if (err) {
+            if (err.code === "ER_NO_SUCH_TABLE") {
+              return res.json({ unread: 0, items: [] });
+            }
+            return res.status(500).json({ error: err.message });
+          }
+
+          const items = Array.isArray(rows) ? rows : [];
+          return res.json({ unread, items });
+        }
+      );
+    }
+  );
+};
+
+exports.markAllApplicationNotificationsRead = (req, res) => {
+  const userId = req.user.id;
+
+  db.query(
+    "UPDATE employer_application_notifications SET is_read = 1 WHERE employer_user_id = ? AND is_read = 0",
+    [userId],
+    (err, result) => {
+      if (err) {
+        if (err.code === "ER_NO_SUCH_TABLE") {
+          return res.json({ message: "No notifications table", updated: 0 });
+        }
+        return res.status(500).json({ error: err.message });
+      }
+      return res.json({ message: "Notifications marked as read", updated: Number(result.affectedRows || 0) });
+    }
+  );
+};
+
+exports.markApplicationNotificationRead = (req, res) => {
+  const userId = req.user.id;
+  const notificationId = Number(req.params.id);
+  if (!notificationId) {
+    return res.status(400).json({ message: "Invalid notification" });
+  }
+
+  db.query(
+    `UPDATE employer_application_notifications
+     SET is_read = 1
+     WHERE id = ? AND employer_user_id = ?`,
+    [notificationId, userId],
+    (err, result) => {
+      if (err) {
+        if (err.code === "ER_NO_SUCH_TABLE") {
+          return res.status(404).json({ message: "Notifications not available" });
+        }
+        return res.status(500).json({ error: err.message });
+      }
+      if (!result.affectedRows) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      return res.json({ message: "Notification marked as read" });
     }
   );
 };

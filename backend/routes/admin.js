@@ -55,6 +55,34 @@ ensureColumn(
   "users.is_blocked"
 );
 
+ensureColumn(
+  "companies",
+  "verification_status",
+  "ALTER TABLE companies ADD COLUMN verification_status VARCHAR(20) NOT NULL DEFAULT 'pending'",
+  "companies.verification_status"
+);
+
+ensureColumn(
+  "companies",
+  "verification_notes",
+  "ALTER TABLE companies ADD COLUMN verification_notes TEXT NULL",
+  "companies.verification_notes"
+);
+
+ensureColumn(
+  "companies",
+  "verified_by_admin_id",
+  "ALTER TABLE companies ADD COLUMN verified_by_admin_id INT NULL",
+  "companies.verified_by_admin_id"
+);
+
+ensureColumn(
+  "companies",
+  "verified_at",
+  "ALTER TABLE companies ADD COLUMN verified_at DATETIME NULL",
+  "companies.verified_at"
+);
+
 db.query(
   `CREATE TABLE IF NOT EXISTS company_reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -370,10 +398,17 @@ router.post("/jobs", adminAuth, (req, res) => {
   }
 
   db.query(
-    "INSERT INTO jobs (title, location, job_type, category, description, is_premium, is_approved) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    [title, location, job_type, category, description, is_premium ? 1 : 0, 1],
+    "INSERT INTO jobs (title, location, job_type, category, description, is_premium, is_approved, posted_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    [title, location, job_type, category, description, is_premium ? 1 : 0, 1, req.user.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
+      // Log admin job creation
+      try {
+        const { logJobAction } = require("../controllers/jobsController");
+        if (result && result.insertId) {
+          logJobAction(result.insertId, req.user.id, "admin", "created", { title, location, job_type, category });
+        }
+      } catch {}
       res.status(201).json({ message: "Job created", id: result.insertId });
     }
   );
@@ -396,6 +431,11 @@ router.put("/jobs/:id", adminAuth, (req, res) => {
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       if (result.affectedRows === 0) return res.status(404).json({ message: "Job not found" });
+      // Log admin job update
+      try {
+        const { logJobAction } = require("../controllers/jobsController");
+        logJobAction(Number(req.params.id), req.user.id, "admin", "edited", { title, location, job_type, category });
+      } catch {}
       res.json({ message: "Job updated" });
     }
   );
@@ -427,6 +467,11 @@ router.put("/jobs/:id/approve", adminAuth, (req, res) => {
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       if (result.affectedRows === 0) return res.status(404).json({ message: "Job not found" });
+      // Log admin job approval
+      try {
+        const { logJobAction } = require("../controllers/jobsController");
+        logJobAction(Number(req.params.id), req.user.id, "admin", "approved", {});
+      } catch {}
       res.json({ message: "Job approved" });
     }
   );
@@ -453,6 +498,11 @@ router.delete("/jobs/:id", adminAuth, (req, res) => {
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       if (result.affectedRows === 0) return res.status(404).json({ message: "Job not found" });
+      // Log admin job deletion
+      try {
+        const { logJobAction } = require("../controllers/jobsController");
+        logJobAction(Number(req.params.id), req.user.id, "admin", "deleted", {});
+      } catch {}
       res.json({ message: "Job deleted" });
     }
   );
@@ -751,13 +801,137 @@ router.put("/shifts/:id/release", adminAuth, (req, res) => {
 
 // COMPANIES (admin)
 router.get("/companies", adminAuth, (req, res) => {
-  db.query(
-    "SELECT id, name, industry, location, website, logo_url, created_at FROM companies ORDER BY created_at DESC",
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows || []);
+  const richSql = `SELECT c.id, c.name, c.industry, c.location, c.website, c.logo_url, c.created_at,
+                          c.owner_user_id,
+                          COALESCE(NULLIF(TRIM(c.verification_status), ''), 'pending') AS verification_status,
+                          c.verification_notes,
+                          u.name AS owner_name,
+                          u.email AS owner_email,
+                          u.verified AS owner_verified,
+                          ep.company_phone,
+                          ep.company_address,
+                          ep.company_location,
+             ep.website AS profile_website,
+             ep.id_document_url,
+             ep.business_certificate_url,
+             ep.tax_registration_number,
+             ep.authorization_letter_url,
+             ep.linkedin_profile_url
+                   FROM companies c
+                   LEFT JOIN users u ON u.id = c.owner_user_id
+                   LEFT JOIN employer_profiles ep ON ep.user_id = c.owner_user_id
+                   ORDER BY c.created_at DESC`;
+
+  const fallbackSql = `SELECT c.id, c.name, c.industry, c.location, c.website, c.logo_url, c.created_at,
+                              c.owner_user_id,
+                              u.name AS owner_name,
+                              u.email AS owner_email,
+                              u.verified AS owner_verified,
+                              NULL AS company_phone,
+                              NULL AS company_address,
+                              NULL AS company_location,
+                              NULL AS profile_website,
+                              NULL AS verification_status,
+                              NULL AS verification_notes
+                       FROM companies c
+                       LEFT JOIN users u ON u.id = c.owner_user_id
+                       ORDER BY c.created_at DESC`;
+
+  db.query(richSql, (err, rows) => {
+    if (!err) return res.json(rows || []);
+    if (err.code !== "ER_NO_SUCH_TABLE" && err.code !== "ER_BAD_FIELD_ERROR") {
+      return res.status(500).json({ error: err.message });
     }
-  );
+    db.query(fallbackSql, (fallbackErr, fallbackRows) => {
+      if (fallbackErr) return res.status(500).json({ error: fallbackErr.message });
+      res.json(fallbackRows || []);
+    });
+  });
+});
+
+router.put("/companies/:id/verify", adminAuth, (req, res) => {
+  const companyId = Number(req.params.id);
+  const verified = req.body && req.body.verified ? 1 : 0;
+  const notesRaw = String((req.body && req.body.notes) || "").trim();
+  const notes = notesRaw ? notesRaw.slice(0, 1000) : null;
+  const verificationStatus = verified ? "approved" : "pending";
+
+  if (!companyId) return res.status(400).json({ message: "Invalid company" });
+
+  const approveWithEvidenceGuard = (done) => {
+    if (!verified) return done();
+    db.query(
+      `SELECT ep.id_document_url, ep.business_certificate_url, ep.tax_registration_number
+       FROM companies c
+       LEFT JOIN employer_profiles ep ON ep.user_id = c.owner_user_id
+       WHERE c.id = ?
+       LIMIT 1`,
+      [companyId],
+      (evidenceErr, evidenceRows) => {
+        if (evidenceErr) {
+          if (evidenceErr.code === "ER_NO_SUCH_TABLE" || evidenceErr.code === "ER_BAD_FIELD_ERROR") {
+            return res.status(400).json({
+              message: "Verification evidence fields are missing in database. Please run migrations or restart to bootstrap schema."
+            });
+          }
+          return res.status(500).json({ error: evidenceErr.message });
+        }
+
+        const evidence = evidenceRows?.[0] || {};
+        const missing = [];
+        if (!String(evidence.id_document_url || "").trim()) missing.push("government ID document URL");
+        if (!String(evidence.business_certificate_url || "").trim()) missing.push("business certificate URL");
+        if (!String(evidence.tax_registration_number || "").trim()) missing.push("tax registration number");
+
+        if (missing.length) {
+          return res.status(400).json({
+            message: `Cannot verify company yet. Missing required evidence: ${missing.join(", ")}.`
+          });
+        }
+
+        return done();
+      }
+    );
+  };
+
+  approveWithEvidenceGuard(() => {
+
+    db.query(
+      `UPDATE companies
+       SET verification_status = ?, verification_notes = ?, verified_by_admin_id = ?, verified_at = ?
+       WHERE id = ?`,
+      [verificationStatus, notes, req.user.id, verified ? new Date() : null, companyId],
+      (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!result.affectedRows) return res.status(404).json({ message: "Company not found" });
+
+        db.query(
+          "SELECT owner_user_id FROM companies WHERE id = ? LIMIT 1",
+          [companyId],
+          (ownerErr, ownerRows) => {
+            if (ownerErr) return res.status(500).json({ error: ownerErr.message });
+            const ownerUserId = Number(ownerRows?.[0]?.owner_user_id || 0);
+            if (!ownerUserId) {
+              return res.json({ message: verified ? "Company verified" : "Company marked pending verification" });
+            }
+
+            db.query(
+              "UPDATE users SET verified = ? WHERE id = ?",
+              [verified ? 1 : 0, ownerUserId],
+              (userErr) => {
+                if (userErr) return res.status(500).json({ error: userErr.message });
+                return res.json({
+                  message: verified
+                    ? "Company verified and employer approved"
+                    : "Company marked pending and employer unverified"
+                });
+              }
+            );
+          }
+        );
+      }
+    );
+  });
 });
 
 router.delete("/companies/:id", adminAuth, (req, res) => {

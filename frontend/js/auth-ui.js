@@ -93,38 +93,11 @@
       bellLink.style.display = "inline-flex";
     }
 
-    if (!supportLink) {
-      supportLink = document.createElement("a");
-      supportLink.id = "supportBell";
-      supportLink.href = "#support-chat";
-      supportLink.className = "nav-bell";
-      supportLink.setAttribute("aria-label", "Support messages");
-      supportLink.innerHTML = '<span class="nav-bell-icon"><i class="fa-solid fa-headset"></i></span>';
-
-      supportBadge = document.createElement("span");
-      supportBadge.className = "nav-badge hidden";
-      supportBadge.textContent = "0";
-      supportLink.appendChild(supportBadge);
-
-      supportLink.addEventListener("click", (event) => {
-        event.preventDefault();
-        const toggle = document.getElementById("supportToggle");
-        toggle?.click();
-      });
-
-      if (navBar) {
-        const anchor = bellLink || navBar.querySelector(".nav-profile-chip") || navBar.querySelector("#logoutBtn");
-        if (anchor) {
-          anchor.insertAdjacentElement("beforebegin", supportLink);
-        } else {
-          navBar.appendChild(supportLink);
-        }
-      }
-    } else {
+    // Keep a single chat entry point: floating widget in the bottom-right.
+    if (supportLink) {
       supportBadge = supportLink.querySelector(".nav-badge");
+      supportLink.style.display = "none";
     }
-
-    supportLink.style.display = "inline-flex";
   } else {
     // Not logged in
     if (loginLink) loginLink.style.display = "inline-block";
@@ -138,6 +111,7 @@
   const isLoggedIn = !!(uiToken && uiUser);
   const canPostJobs = !!(isLoggedIn && (uiUser.is_admin || uiUser.role === "admin" || uiUser.role === "employer"));
   const canAccessAdmin = !!(isLoggedIn && (uiUser.is_admin || uiUser.role === "admin"));
+  const isEmployerUser = !!(isLoggedIn && (uiUser.role === "employer" || uiUser.role === "admin" || uiUser.is_admin));
   const authOnlyPages = new Set(["dashboard.html", "profile.html", "menu.html"]);
 
   const resolvePageName = (href) => {
@@ -168,6 +142,19 @@
         event.preventDefault();
         alert("You need to login as employer or admin to post jobs");
         window.location.href = "login.html";
+        return;
+      }
+
+      if (pageName === "employer.html" && !isEmployerUser) {
+        event.preventDefault();
+        alert("This page is for employers only");
+        window.location.href = "dashboard.html";
+        return;
+      }
+
+      if (pageName === "dashboard.html" && isEmployerUser && !uiUser.is_admin && uiUser.role !== "job_seeker") {
+        event.preventDefault();
+        window.location.href = "employer.html";
         return;
       }
 

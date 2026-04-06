@@ -4,6 +4,26 @@ const {
   sendApplicationUpdateEmail
 } = require("./notificationsController");
 
+db.query(
+  `CREATE TABLE IF NOT EXISTS employer_application_notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    employer_user_id INT NOT NULL,
+    application_id INT NOT NULL,
+    job_id INT NOT NULL,
+    message VARCHAR(255) NOT NULL,
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_employer_app_notifications_user (employer_user_id),
+    INDEX idx_employer_app_notifications_read (employer_user_id, is_read),
+    INDEX idx_employer_app_notifications_created (created_at)
+  )`,
+  (err) => {
+    if (err) {
+      console.warn("employer_application_notifications bootstrap failed:", err.message);
+    }
+  }
+);
+
 const isMissingColumnError = (err) => {
   return !!err && (err.code === "ER_BAD_FIELD_ERROR" || /Unknown column/i.test(err.message || ""));
 };
@@ -15,6 +35,17 @@ const escapeIcsText = (value) => {
     .replace(/,/g, "\\,")
     .replace(/\r\n|\n|\r/g, "\\n");
 };
+
+const isDigitsOnly = (value) => /^\d+$/.test(String(value || ""));
+const ALLOWED_COUNTRIES = new Set([
+  "United Kingdom",
+  "United States",
+  "Canada",
+  "Australia",
+  "India",
+  "Pakistan",
+  "United Arab Emirates"
+]);
 
 const formatIcsDate = (dateValue) => {
   const d = new Date(dateValue);
@@ -110,8 +141,16 @@ exports.applyJob = (req, res) => {
     return res.status(400).json({ message: "Phone is too long" });
   }
 
+  if (phone && !isDigitsOnly(phone)) {
+    return res.status(400).json({ message: "Phone must contain only digits" });
+  }
+
   if (country && country.length > 100) {
     return res.status(400).json({ message: "Country is too long" });
+  }
+
+  if (country && !ALLOWED_COUNTRIES.has(country)) {
+    return res.status(400).json({ message: "Please select a valid country from the dropdown list" });
   }
 
   const runJobLookup = (includeDeadlineColumn, callback) => {
@@ -155,7 +194,7 @@ exports.applyJob = (req, res) => {
         "pending",
         "new"
       ],
-      (insertErr) => {
+      (insertErr, insertResult) => {
         if (insertErr) {
           if (insertErr.code === "ER_DUP_ENTRY") {
             return res.status(400).json({ message: "You have already applied for this job" });
@@ -163,6 +202,53 @@ exports.applyJob = (req, res) => {
           console.error(insertErr);
           return res.status(500).json({ message: "Failed to submit application" });
         }
+
+        const applicationId = insertResult && insertResult.insertId ? Number(insertResult.insertId) : null;
+
+        db.query(
+          `SELECT j.title AS job_title, j.id AS job_id, j.posted_by AS employer_user_id,
+                  u.email AS employer_email, u.name AS employer_name
+           FROM jobs j
+           LEFT JOIN users u ON u.id = j.posted_by
+           WHERE j.id = ?
+           LIMIT 1`,
+          [jobId],
+          (notifyLookupErr, notifyRows) => {
+            if (!notifyLookupErr && notifyRows && notifyRows.length) {
+              const employer = notifyRows[0];
+              if (employer.employer_user_id && employer.employer_email) {
+                canSendNotification(employer.employer_user_id, "application_status_update", (prefErr, enabled) => {
+                  if (prefErr || !enabled) return;
+                  const applicationsUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/employer.html`;
+                  sendApplicationUpdateEmail(
+                    employer.employer_user_id,
+                    employer.employer_email,
+                    employer.job_title || "your job",
+                    applicationsUrl,
+                    "new_application"
+                  ).catch((mailErr) => {
+                    console.warn("[applications] employer application email failed:", mailErr.message);
+                  });
+                });
+              }
+
+              if (employer.employer_user_id) {
+                const safeTitle = String(employer.job_title || "your job").slice(0, 140);
+                const inAppMessage = `New application received for ${safeTitle}`;
+                if (!applicationId) return;
+                db.query(
+                  `INSERT INTO employer_application_notifications (employer_user_id, application_id, job_id, message)
+                   VALUES (?, ?, ?, ?)`,
+                  [employer.employer_user_id, applicationId, Number(jobId), inAppMessage],
+                  () => {
+                    // Best-effort: keep application submission successful even if notification insert fails.
+                  }
+                );
+              }
+
+            }
+          }
+        );
 
         res.status(201).json({ message: "Application submitted successfully" });
       }

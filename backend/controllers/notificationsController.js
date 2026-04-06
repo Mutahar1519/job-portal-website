@@ -229,7 +229,8 @@ const sendApplicationUpdateEmail = async (userId, userEmail, jobTitle, appUrl, s
     pending: "Your application is being reviewed",
     reviewed: "Your application has been reviewed",
     accepted: "Congratulations! Your application was accepted",
-    rejected: "Unfortunately, your application was not selected"
+    rejected: "Unfortunately, your application was not selected",
+    new_application: "A new candidate has applied to your job posting"
   };
 
   return sendEmailNotification(

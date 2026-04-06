@@ -373,6 +373,7 @@
         // Render shift jobs in the shifts section
         renderShiftJobs(shiftJobs);
 
+
         regularJobs.forEach(job => {
           const shiftBadge = "";
           const shiftPaid = "";
@@ -415,11 +416,61 @@
                 <button class="btn btn-outline" onclick="reboostJob('${job.id}')">Re-Boost</button>
                 <button class="btn btn-outline" onclick="viewJobApplications('${job.id}')">Applications</button>
                 <button class="btn btn-outline" onclick="deleteJob('${job.id}')">Delete</button>
+                <button class="btn btn-outline" onclick="viewJobHistory('${job.id}')">View History</button>
                 ${shiftAction}
               </div>
             </article>
           `;
         });
+
+// Admin: View job action history (audit trail)
+function viewJobHistory(jobId) {
+  const modal = document.getElementById("jobHistoryModal");
+  const title = document.getElementById("jobHistoryModalTitle");
+  const list = document.getElementById("jobHistoryModalList");
+  if (!modal || !title || !list) return;
+  title.textContent = `Job Action History #${jobId}`;
+  list.innerHTML = '<p class="p-muted">Loading...</p>';
+  modal.classList.remove("hidden");
+  adminAuthFetch(`${API}/admin/jobs/${jobId}/history`)
+    .then(res => res.json())
+    .then(history => {
+      if (!Array.isArray(history) || !history.length) {
+        list.innerHTML = '<p class="empty-state">No history found for this job.</p>';
+        return;
+      }
+      list.innerHTML = renderJobHistoryListHtml(history);
+    })
+    .catch(err => {
+      list.innerHTML = `<p class="empty-state" style="color:#ef4444;">${esc(err.message || "Failed to load history")}</p>`;
+    });
+}
+
+function closeJobHistoryModal() {
+  const modal = document.getElementById("jobHistoryModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+function renderJobHistoryListHtml(history) {
+  return history.map(entry => {
+    const actor = entry.actor_role === "admin" ? `Admin: ${esc(entry.actor_name || "(admin)")}` : `Employer: ${esc(entry.actor_name || "(employer)")}`;
+    const action = esc(entry.action);
+    const details = esc(entry.details || "");
+    const at = entry.created_at ? new Date(entry.created_at).toLocaleString() : "";
+    return `
+      <article class="job-card admin-record">
+        <div class="admin-record-head">
+          <div>
+            <h4>${action}</h4>
+            <p class="p-muted">${actor}</p>
+            <p class="p-muted">${at}</p>
+          </div>
+        </div>
+        <div class="p-muted">${details}</div>
+      </article>
+    `;
+  }).join("");
+}
 
         applyPendingAdminJobFeedback();
       })
@@ -581,6 +632,7 @@
         return;
       }
       loadUsers();
+      loadCompanies();
     });
   }
 
@@ -1366,9 +1418,83 @@
         container.innerHTML = "";
         list.forEach(company => {
           const created = company.created_at ? new Date(company.created_at).toLocaleDateString() : "";
+          const companyVerificationStatus = String(company.verification_status || "pending").toLowerCase();
+          const companyVerified = companyVerificationStatus === "approved";
+          const hasIdProof = Boolean(String(company.id_document_url || "").trim());
+          const hasBusinessProof = Boolean(String(company.business_certificate_url || "").trim());
+          const hasTaxNumber = Boolean(String(company.tax_registration_number || "").trim());
+          const hasProofOfAddress = Boolean(String(company.proof_of_address_url || "").trim());
+          // For UK: require 3 core, proof of address is optional but shown
+          const requiredProofCount = [hasIdProof, hasBusinessProof, hasTaxNumber].filter(Boolean).length;
+          const hasRequiredEvidence = requiredProofCount === 3;
+          // Collect missing items for tooltip
+          const missingItems = [];
+          if (!hasTaxNumber) missingItems.push("VAT/UTR");
+          if (!hasIdProof) missingItems.push("Passport/Driving Licence");
+          if (!hasBusinessProof) missingItems.push("Certificate of Incorporation/HMRC letter");
+          const verifyDisabled = !companyVerified && !hasRequiredEvidence;
           const logoHtml = company.logo_url
             ? `<img src="${esc(company.logo_url)}" alt="${esc(company.name)}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;margin-right:12px;">`
             : "";
+          // File preview chips/icons
+          function filePreviewChip(url, label) {
+            if (!url) return `<span class='tag-pill bg-amber-100 text-amber-700'>${label} missing</span>`;
+            const ext = url.split('.').pop().toLowerCase();
+            const isImg = ["jpg","jpeg","png","gif","bmp","webp"].includes(ext);
+            const isPdf = ext === "pdf";
+            if (isImg) {
+              return `<a href='${esc(url)}' target='_blank' rel='noopener noreferrer' title='${label}'><img src='${esc(url)}' alt='${label}' style='width:32px;height:32px;object-fit:cover;border-radius:4px;border:1px solid #ddd;vertical-align:middle;margin-right:4px;'>${label}</a>`;
+            } else if (isPdf) {
+              return `<a href='${esc(url)}' target='_blank' rel='noopener noreferrer' title='${label}'><span style='font-size:20px;vertical-align:middle;margin-right:4px;'>📄</span>${label}</a>`;
+            } else {
+              return `<a href='${esc(url)}' target='_blank' rel='noopener noreferrer' title='${label}'><span style='font-size:18px;vertical-align:middle;margin-right:4px;'>📎</span>${label}</a>`;
+            }
+          }
+          const evidenceChecklist = `
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px;">
+              <div class="tag-pill ${hasTaxNumber ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}">
+                ${hasTaxNumber ? "VAT/UTR provided" : "VAT/UTR missing"}
+              </div>
+              <div class="tag-pill ${hasIdProof ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}">
+                ${hasIdProof ? "Passport/Driving Licence provided" : "Passport/Driving Licence missing"}
+              </div>
+              <div class="tag-pill ${hasBusinessProof ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}">
+                ${hasBusinessProof ? "Certificate of Incorporation/HMRC letter provided" : "Certificate of Incorporation/HMRC letter missing"}
+              </div>
+              <div class="tag-pill ${hasProofOfAddress ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-700"}">
+                ${hasProofOfAddress ? "Proof of address provided" : "Proof of address optional"}
+              </div>
+            </div>
+          `;
+          // File preview row
+          const evidencePreviews = `
+            <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;align-items:center;">
+              ${filePreviewChip(company.id_document_url, "Passport/Driving Licence")}
+              ${filePreviewChip(company.business_certificate_url, "Certificate of Incorporation/HMRC letter")}
+              ${filePreviewChip(company.proof_of_address_url, "Proof of address")}
+              ${company.authorization_letter_url ? filePreviewChip(company.authorization_letter_url, "Authorization letter") : `<span class='tag-pill bg-slate-100 text-slate-700'>Authorization letter optional</span>`}
+            </div>
+          `;
+          const evidenceLinks = `
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px;">
+              <div class="job-card" style="padding:8px 10px;">
+                <p class="p-muted" style="margin:0 0 6px;">Passport/Driving Licence</p>
+                ${hasIdProof ? `<a href="${esc(company.id_document_url)}" target="_blank" rel="noopener noreferrer">Open file</a>` : `<span class="p-muted" style="color:#b45309;">Missing</span>`}
+              </div>
+              <div class="job-card" style="padding:8px 10px;">
+                <p class="p-muted" style="margin:0 0 6px;">Certificate of Incorporation/HMRC letter</p>
+                ${hasBusinessProof ? `<a href="${esc(company.business_certificate_url)}" target="_blank" rel="noopener noreferrer">Open file</a>` : `<span class="p-muted" style="color:#b45309;">Missing</span>`}
+              </div>
+              <div class="job-card" style="padding:8px 10px;">
+                <p class="p-muted" style="margin:0 0 6px;">Proof of address</p>
+                ${hasProofOfAddress ? `<a href="${esc(company.proof_of_address_url)}" target="_blank" rel="noopener noreferrer">Open file</a>` : `<span class="p-muted">Optional</span>`}
+              </div>
+              <div class="job-card" style="padding:8px 10px;">
+                <p class="p-muted" style="margin:0 0 6px;">Authorization letter</p>
+                ${company.authorization_letter_url ? `<a href="${esc(company.authorization_letter_url)}" target="_blank" rel="noopener noreferrer">Open file</a>` : `<span class="p-muted">Optional</span>`}
+              </div>
+            </div>
+          `;
 
           container.innerHTML += `
             <article class="job-card admin-record">
@@ -1379,14 +1505,32 @@
                     <h4>${esc(company.name || "Unnamed company")}</h4>
                     <p class="p-muted">${esc(company.industry || "No industry")} \u2022 ${esc(company.location || "No location")}</p>
                     ${company.website ? `<p class="p-muted"><a href="${esc(company.website)}" target="_blank" rel="noopener noreferrer">${esc(company.website)}</a></p>` : ""}
+                    ${company.owner_name || company.owner_email ? `<p class="p-muted">Owner: ${esc(company.owner_name || "Unknown")} (${esc(company.owner_email || "no-email")})</p>` : ""}
+                    ${company.company_phone ? `<p class="p-muted">Company phone: ${esc(company.company_phone)}</p>` : ""}
+                    ${company.company_address ? `<p class="p-muted">Address: ${esc(company.company_address)}</p>` : ""}
+                    ${company.company_location ? `<p class="p-muted">Profile location: ${esc(company.company_location)}</p>` : ""}
+                    ${company.tax_registration_number ? `<p class="p-muted">Tax number: ${esc(company.tax_registration_number)}</p>` : `<p class="p-muted" style="color:#b45309;">Tax number: missing</p>`}
+                    ${company.linkedin_profile_url ? `<p class="p-muted">LinkedIn: <a href="${esc(company.linkedin_profile_url)}" target="_blank" rel="noopener noreferrer">${esc(company.linkedin_profile_url)}</a></p>` : ""}
                     ${created ? `<p class="p-muted">Registered: ${created}</p>` : ""}
+                    <p class="p-muted" style="margin-top:8px;">Evidence readiness: ${requiredProofCount}/3 required proofs</p>
+                    ${evidenceChecklist}
+                    ${evidencePreviews}
+                    ${evidenceLinks}
                   </div>
                 </div>
                 <div class="admin-record-badges">
                   ${company.size ? `<span class="tag-pill bg-slate-100 text-slate-700">${company.size}</span>` : ""}
+                  <span class="tag-pill ${companyVerified ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}">
+                    ${companyVerified ? "Company verified" : "Company pending"}
+                  </span>
+                  <span class="tag-pill ${Number(company.owner_verified) === 1 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}">
+                    ${Number(company.owner_verified) === 1 ? "Employer verified" : "Pending verification"}
+                  </span>
                 </div>
               </div>
               <div class="admin-record-actions">
+                <button class="btn btn-outline" onclick="toggleCompanyVerify(${company.id}, ${companyVerified ? 0 : 1})" ${verifyDisabled ? `disabled title='Missing: ${missingItems.join(", ")}'` : ""}>${companyVerified ? "Mark company pending" : "Verify company"}</button>
+                ${company.owner_user_id ? `<button class="btn btn-outline" onclick="toggleUserVerify(${company.owner_user_id}, ${Number(company.owner_verified) === 1 ? 0 : 1})">${Number(company.owner_verified) === 1 ? "Mark unverified" : "Verify employer"}</button>` : ""}
                 <button class="btn btn-outline" onclick="deleteCompany(${company.id})">Delete</button>
               </div>
             </article>
@@ -1414,6 +1558,27 @@
         return;
       }
       loadCompanies();
+    });
+  }
+
+  function toggleCompanyVerify(companyId, verified) {
+    const actionLabel = verified ? "verify" : "mark pending";
+    const notes = prompt(`Optional note for this company ${actionLabel} action:`, "") || "";
+
+    adminAuthFetch(`${API}/admin/companies/${companyId}/verify`, {
+      method: "PUT",
+      body: JSON.stringify({ verified: !!verified, notes })
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to update company verification");
+        return;
+      }
+      if (typeof toast === "function") {
+        toast(data.message || "Company verification updated");
+      }
+      loadCompanies();
+      loadUsers();
     });
   }
 
@@ -1721,6 +1886,47 @@
     });
   }
 
+  function setupAdminTabs() {
+    const tabRoot = document.getElementById("adminSectionTabs");
+    if (!tabRoot) return;
+
+    const sectionIds = [
+      "admin-jobs-section",
+      "admin-applications-section",
+      "admin-users-section",
+      "admin-companies-section",
+      "admin-grants-section",
+      "admin-reviews-section",
+      "admin-shifts-section",
+      "admin-moderation-section",
+      "admin-support-section",
+      "admin-analytics-section"
+    ];
+
+    const showTarget = (targetId) => {
+      const showAll = targetId === "all";
+      sectionIds.forEach((id) => {
+        const section = document.getElementById(id);
+        if (!section) return;
+        section.style.display = showAll || id === targetId ? "" : "none";
+      });
+
+      tabRoot.querySelectorAll("button[data-admin-tab]").forEach((button) => {
+        const isActive = String(button.dataset.adminTab || "") === String(targetId || "");
+        button.classList.toggle("btn-primary", isActive);
+        button.classList.toggle("btn-outline", !isActive);
+      });
+    };
+
+    tabRoot.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-admin-tab]");
+      if (!button) return;
+      showTarget(String(button.dataset.adminTab || "all"));
+    });
+
+    showTarget("all");
+  }
+
   window.loadJobs = loadJobs;
   window.approveJob = approveJob;
   window.deleteJob = deleteJob;
@@ -1747,6 +1953,7 @@
   window.promoteUserToAdmin = promoteUserToAdmin;
   window.setGrantHistoryFilter = setGrantHistoryFilter;
   window.loadCompanies = loadCompanies;
+  window.toggleCompanyVerify = toggleCompanyVerify;
   window.deleteCompany = deleteCompany;
   window.setSupportFilter = setSupportFilter;
   window.setSupportMineFilter = setSupportMineFilter;
@@ -1795,6 +2002,7 @@
   connectSupportRealtime();
   loadStats();
   loadModerationSettings();
+  setupAdminTabs();
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {

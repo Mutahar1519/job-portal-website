@@ -46,6 +46,24 @@
 
   ensureToastA11y();
 
+  const ensureFooterSocialLinks = () => {
+    const footerBottom = document.querySelector(".site-footer .footer-bottom");
+    if (!footerBottom) return;
+    if (footerBottom.querySelector(".footer-social-links")) return;
+
+    const socialWrap = document.createElement("span");
+    socialWrap.className = "footer-social-links";
+    socialWrap.style.marginLeft = "10px";
+    socialWrap.innerHTML =
+      ' | <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a> · ' +
+      '<a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a> · ' +
+      '<a href="https://x.com" target="_blank" rel="noopener noreferrer">X</a>';
+
+    footerBottom.appendChild(socialWrap);
+  };
+
+  ensureFooterSocialLinks();
+
   const nav = document.querySelector(".navbar");
 
   const setupScrollReactiveNavbar = () => {
@@ -647,6 +665,65 @@
     });
   }
 
+  const setNavVisibility = (selector, isVisible) => {
+    document.querySelectorAll(selector).forEach((node) => {
+      node.style.display = isVisible ? "" : "none";
+    });
+  };
+
+  const setMenuLinkVisibility = (href, isVisible) => {
+    if (!panel) return;
+    panel.querySelectorAll(`a.nav-menu-link[href='${href}']`).forEach((node) => {
+      node.style.display = isVisible ? "flex" : "none";
+    });
+  };
+
+  const navRole = String(navUser?.role || "").toLowerCase();
+  const isAdmin = !!navUser?.is_admin || navRole === "admin";
+  const isEmployer = navRole === "employer";
+  const isJobSeeker = navRole === "job_seeker";
+  const currentPathLast = (window.location.pathname || "").split("/").filter(Boolean).pop() || "index.html";
+  const currentPage = currentPathLast.toLowerCase().endsWith(".html") ? currentPathLast.toLowerCase() : `${currentPathLast.toLowerCase()}.html`;
+
+  if (navToken && navUser && !isAdmin) {
+    // Job seekers should not see employer-only entries.
+    setNavVisibility("#postJobLink", isEmployer);
+    setMenuLinkVisibility("post-jobs.html", isEmployer);
+
+    // Employers should not see job-seeker-only dashboard entry.
+    setNavVisibility("#dashboardLink", isJobSeeker);
+    setMenuLinkVisibility("dashboard.html", isJobSeeker);
+  }
+
+  if (currentPage === "company.html") {
+    // Always show 'Company Profile' in navbar/profile links on company.html
+    const companyLabel = "Company Profile";
+    const profileHref = "company.html";
+
+    const topProfile = document.getElementById("profileLink");
+    if (topProfile) {
+      topProfile.textContent = companyLabel;
+      topProfile.setAttribute("href", profileHref);
+    }
+
+    const profileChip = document.querySelector("a.nav-profile-chip");
+    if (profileChip) {
+      profileChip.setAttribute("href", profileHref);
+      profileChip.setAttribute("aria-label", companyLabel);
+    }
+
+    if (panel) {
+      panel.querySelectorAll("a.nav-menu-link[href='profile.html']").forEach((node) => {
+        node.setAttribute("href", profileHref);
+        node.setAttribute("data-label", companyLabel);
+        const labelNode = node.querySelector("span");
+        if (labelNode) {
+          labelNode.textContent = companyLabel;
+        }
+      });
+    }
+  }
+
   const getFileName = (value) => {
     const clean = (value || "")
       .split("#")[0]
@@ -709,8 +786,8 @@
       "menu.html": "menu.html",
       "about.html": "about.html",
       "resume.html": "profile.html",
-      "company.html": "profile.html",
-      "employer.html": "post-jobs.html",
+        "company.html": "company.html",
+      "employer.html": "dashboard.html",
       "chat.html": "dashboard.html",
       "login.html": "login.html",
       "register.html": "login.html",
@@ -719,20 +796,43 @@
       "verify-email.html": "login.html",
     };
 
-    const target = routeToNavFile[current] || current;
-    const navLinks = Array.from(document.querySelectorAll(".navbar a[href]"));
+    let target = routeToNavFile[current] || current;
+    // Normalize menu and menu.html for highlighting
+    if (target === "menu" || target === "menu.html") target = "menu.html";
+    let navLinks = Array.from(document.querySelectorAll(".navbar a[href]"));
+
+    // If the current page is not present in the navbar, add a temporary nav-link for it
+    const alreadyInNavbar = navLinks.some(link => getHrefFileName(link.getAttribute("href")) === target);
+    if (!alreadyInNavbar && current !== "index.html") {
+      // Insert after logo in nav-left
+      const navLeft = nav.querySelector(".nav-left");
+      if (navLeft) {
+        const tempLink = document.createElement("a");
+        tempLink.className = "nav-link nav-active nav-temp";
+        tempLink.href = current;
+        tempLink.textContent = document.title.replace("| JobPortal", "").trim() || current.replace(/\.html$/, "");
+        navLeft.appendChild(tempLink);
+        navLinks = Array.from(document.querySelectorAll(".navbar a[href]"));
+      }
+    }
     navLinks.forEach((link) => {
       const isProfileChip = link.classList.contains("nav-profile-chip");
       const isLogo = link.classList.contains("logo");
       const isUtilityBell = link.classList.contains("nav-bell");
       const rawHref = String(link.getAttribute("href") || "").trim();
       const isHashOnlyLink = rawHref.startsWith("#");
-      link.classList.remove("nav-active");
+      // Only remove nav-active from non-temp links
+      if (!link.classList.contains("nav-temp")) link.classList.remove("nav-active");
       if (isProfileChip || isLogo || isUtilityBell || isHashOnlyLink) return;
 
-      const href = getHrefFileName(rawHref);
+      let href = getHrefFileName(rawHref);
+      // Normalize menu and menu.html for highlighting
+      if (href === "menu" || href === "menu.html") href = "menu.html";
       if (!href) return;
-      if (href === target) {
+      // Always highlight menu.html for any hash on menu.html
+      if (target === "menu.html" && href === "menu.html") {
+        link.classList.add("nav-active");
+      } else if (href === target) {
         link.classList.add("nav-active");
       }
     });

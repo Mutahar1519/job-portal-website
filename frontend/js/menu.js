@@ -113,6 +113,21 @@ document.addEventListener("DOMContentLoaded", () => {
         </ul>
       `
     },
+    "trustCenter": {
+      title: "Trust Center & Security",
+      icon: "fa-shield-halved",
+      content: `
+        <h3>Security Practices</h3>
+        <ul style="margin-left: 20px; line-height: 1.8;">
+          <li><strong>Encrypted auth:</strong> Session tokens are signed and expire automatically.</li>
+          <li><strong>Role-based access:</strong> Employer, seeker, and admin pages are separated.</li>
+          <li><strong>Employer checks:</strong> Company details are visible for admin verification workflows.</li>
+          <li><strong>Moderation controls:</strong> Jobs can be auto-reviewed and manually approved.</li>
+          <li><strong>Support traceability:</strong> Support tickets and admin replies are timestamped.</li>
+        </ul>
+        <p style="margin-top: 14px;"><strong>Need help?</strong> Contact support@jobportal.com with your account email and issue details.</p>
+      `
+    },
     "dataPreferences": {
       title: "Data Preferences",
       icon: "fa-database",
@@ -192,7 +207,9 @@ document.addEventListener("DOMContentLoaded", () => {
     "Payment & escrow": "paymentEscrow",
     "Shift rates": "shiftRates",
     "Verification": "verification",
-    "Moderation": "moderation"
+    "Moderation": "moderation",
+    "Review guidelines": "trustCenter",
+    "Trust Center": "trustCenter"
   };
 
   // Privacy cards get direct click action (not info popup - they ARE the action)
@@ -243,6 +260,31 @@ document.addEventListener("DOMContentLoaded", () => {
       card.appendChild(infoBtn);
     }
   });
+
+  const rawUser = localStorage.getItem("user");
+  let user = null;
+  try {
+    user = rawUser ? JSON.parse(rawUser) : null;
+  } catch (_err) {
+    user = null;
+  }
+
+  const role = String(user?.role || "").toLowerCase();
+  const isEmployer = role === "employer";
+  const isJobSeeker = role === "job_seeker";
+  const isAdmin = !!user?.is_admin || role === "admin";
+
+  if (isEmployer && !isAdmin) {
+    document.querySelectorAll('.menu-card[href="resume.html"], .menu-card[href="dashboard.html"]').forEach((card) => {
+      card.style.display = "none";
+    });
+  }
+
+  if (isJobSeeker && !isAdmin) {
+    document.querySelectorAll('.menu-card[href="post-jobs.html"], .menu-card[href="employer.html"]').forEach((card) => {
+      card.style.display = "none";
+    });
+  }
 
   // Style the info buttons
   const style = document.createElement("style");

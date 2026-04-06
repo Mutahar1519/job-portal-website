@@ -1,3 +1,15 @@
+// If you have employer job edit/delete endpoints, add logJobAction calls there as well for full audit.
+// Utility: Log job actions to job_action_logs
+const logJobAction = (jobId, userId, userRole, action, details = null) => {
+  if (!jobId || !userId || !userRole || !action) return;
+  const detailsStr = details ? (typeof details === "string" ? details : JSON.stringify(details)) : null;
+  db.query(
+    "INSERT INTO job_action_logs (job_id, user_id, user_role, action, details) VALUES (?, ?, ?, ?, ?)",
+    [jobId, userId, userRole, action, detailsStr],
+    () => {}
+  );
+};
+
 const db = require("../config/mysql");
 const { notifyShiftAlerts } = require("../utils/shiftAlerts");
 const { getPlatformSetting, toBooleanSetting } = require("../utils/platformSettings");
@@ -5,6 +17,43 @@ const { getPlatformSetting, toBooleanSetting } = require("../utils/platformSetti
 const isMissingColumnError = (err) => {
   return !!err && (err.code === "ER_BAD_FIELD_ERROR" || /Unknown column/i.test(err.message || ""));
 };
+
+const ensureCompanyVerificationColumns = () => {
+  const columns = [
+    {
+      name: "verification_status",
+      ddl: "ALTER TABLE companies ADD COLUMN verification_status VARCHAR(20) NOT NULL DEFAULT 'pending'"
+    },
+    {
+      name: "verification_notes",
+      ddl: "ALTER TABLE companies ADD COLUMN verification_notes TEXT NULL"
+    },
+    {
+      name: "verified_by_admin_id",
+      ddl: "ALTER TABLE companies ADD COLUMN verified_by_admin_id INT NULL"
+    },
+    {
+      name: "verified_at",
+      ddl: "ALTER TABLE companies ADD COLUMN verified_at DATETIME NULL"
+    }
+  ];
+
+  columns.forEach((col) => {
+    db.query(
+      `SELECT 1 AS ok
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'companies' AND COLUMN_NAME = ?
+       LIMIT 1`,
+      [col.name],
+      (checkErr, rows) => {
+        if (checkErr || rows?.length) return;
+        db.query(col.ddl, () => {});
+      }
+    );
+  });
+};
+
+ensureCompanyVerificationColumns();
 
 /* ===============================
    JOB MODERATION (AUTO-APPROVAL)
@@ -149,7 +198,7 @@ const evaluateJobModeration = async ({ title, description, location, jobType, ca
 };
 
 exports.getJobs = (req, res) => {
-  const { location, job_type, category, keyword, company_id, salary_min, salary_max, experience_level, is_remote } = req.query;
+  const { location, job_type, category, keyword, company_id, salary_min, salary_max, experience_level, is_remote, is_shift } = req.query;
 
   const buildQuery = ({ includeDeadlineColumn }) => {
     let sql = "SELECT j.*, c.name AS company_name, c.logo_url AS company_logo";
@@ -228,6 +277,14 @@ exports.getJobs = (req, res) => {
       sql += " AND j.is_remote = 1";
     }
 
+    if (is_shift === "1" || is_shift === "true") {
+      sql += " AND j.is_shift = 1";
+    }
+
+    if (is_shift === "0" || is_shift === "false") {
+      sql += " AND (j.is_shift = 0 OR j.is_shift IS NULL)";
+    }
+
     sql += " ORDER BY j.is_premium DESC, j.created_at DESC";
     return { sql, params };
   };
@@ -248,8 +305,127 @@ exports.getJobs = (req, res) => {
   });
 };
 
+exports.getPortalStats = (req, res) => {
+  const countJobsSql = "SELECT COUNT(*) AS total_jobs FROM jobs WHERE is_approved = 1";
+  const countActiveJobsSql = "SELECT COUNT(*) AS active_jobs FROM jobs WHERE is_approved = 1 AND (application_deadline IS NULL OR application_deadline >= NOW())";
+  const countCompaniesFromJobsSql = "SELECT COUNT(DISTINCT company_id) AS total_companies FROM jobs WHERE is_approved = 1 AND company_id IS NOT NULL";
+  const countCompaniesSql = "SELECT COUNT(*) AS total_companies FROM companies";
+  const applicationsStatsSql = `
+    SELECT
+      COUNT(*) AS total_applications,
+      SUM(
+        CASE
+          WHEN LOWER(COALESCE(status, '')) IN ('accepted', 'hired') OR LOWER(COALESCE(pipeline_stage, '')) = 'hired'
+          THEN 1
+          ELSE 0
+        END
+      ) AS total_placements
+    FROM applications
+  `;
+  const applicationsStatsFallbackSql = `
+    SELECT
+      COUNT(*) AS total_applications,
+      SUM(
+        CASE
+          WHEN LOWER(COALESCE(status, '')) IN ('accepted', 'hired')
+          THEN 1
+          ELSE 0
+        END
+      ) AS total_placements
+    FROM applications
+  `;
+
+  db.query(countJobsSql, [], (jobsErr, jobsRows) => {
+    if (jobsErr) return res.status(500).json({ message: "Failed to load portal stats", error: jobsErr.message });
+    const totalJobs = Number(jobsRows?.[0]?.total_jobs || 0);
+
+    const continueWithActiveJobs = () => {
+      db.query(countActiveJobsSql, [], (activeErr, activeRows) => {
+        const activeJobs = activeErr && isMissingColumnError(activeErr)
+          ? totalJobs
+          : Number(activeRows?.[0]?.active_jobs || totalJobs);
+
+        db.query(countCompaniesFromJobsSql, [], (companiesFromJobsErr, companiesFromJobsRows) => {
+          if (companiesFromJobsErr) {
+            if (companiesFromJobsErr.code === "ER_NO_SUCH_TABLE") {
+              return res.status(500).json({ message: "Failed to load portal stats", error: companiesFromJobsErr.message });
+            }
+          }
+
+          const jobsCompanyCount = Number(companiesFromJobsRows?.[0]?.total_companies || 0);
+          const resolveCompanies = (callback) => {
+            if (jobsCompanyCount > 0) return callback(jobsCompanyCount);
+            db.query(countCompaniesSql, [], (companiesErr, companiesRows) => {
+              if (companiesErr) {
+                if (companiesErr.code === "ER_NO_SUCH_TABLE") return callback(jobsCompanyCount);
+                return callback(jobsCompanyCount);
+              }
+              return callback(Number(companiesRows?.[0]?.total_companies || jobsCompanyCount));
+            });
+          };
+
+          resolveCompanies((totalCompanies) => {
+            db.query(applicationsStatsSql, [], (appsErr, appsRows) => {
+              if (appsErr) {
+                if (!isMissingColumnError(appsErr) && appsErr.code !== "ER_NO_SUCH_TABLE") {
+                  return res.status(500).json({ message: "Failed to load portal stats", error: appsErr.message });
+                }
+
+                return db.query(applicationsStatsFallbackSql, [], (appsFallbackErr, appsFallbackRows) => {
+                  if (appsFallbackErr) {
+                    if (appsFallbackErr.code === "ER_NO_SUCH_TABLE") {
+                      return res.json({
+                        total_jobs: totalJobs,
+                        active_jobs: activeJobs,
+                        total_companies: totalCompanies,
+                        total_placements: 0,
+                        success_rate: 0
+                      });
+                    }
+                    return res.status(500).json({ message: "Failed to load portal stats", error: appsFallbackErr.message });
+                  }
+
+                  const totalApplications = Number(appsFallbackRows?.[0]?.total_applications || 0);
+                  const totalPlacements = Number(appsFallbackRows?.[0]?.total_placements || 0);
+                  const successRate = totalApplications > 0
+                    ? Math.round((totalPlacements / totalApplications) * 100)
+                    : 0;
+
+                  return res.json({
+                    total_jobs: totalJobs,
+                    active_jobs: activeJobs,
+                    total_companies: totalCompanies,
+                    total_placements: totalPlacements,
+                    success_rate: successRate
+                  });
+                });
+              }
+
+              const totalApplications = Number(appsRows?.[0]?.total_applications || 0);
+              const totalPlacements = Number(appsRows?.[0]?.total_placements || 0);
+              const successRate = totalApplications > 0
+                ? Math.round((totalPlacements / totalApplications) * 100)
+                : 0;
+
+              return res.json({
+                total_jobs: totalJobs,
+                active_jobs: activeJobs,
+                total_companies: totalCompanies,
+                total_placements: totalPlacements,
+                success_rate: successRate
+              });
+            });
+          });
+        });
+      });
+    };
+
+    continueWithActiveJobs();
+  });
+};
+
 exports.getSalaryInsights = (req, res) => {
-  const { location, job_type, category, keyword, company_id, experience_level, is_remote } = req.query;
+  const { location, job_type, category, keyword, company_id, experience_level, is_remote, is_shift } = req.query;
 
   const buildWhereClause = (includeDeadlineColumn) => {
     let where = " WHERE j.is_approved = 1";
@@ -291,6 +467,14 @@ exports.getSalaryInsights = (req, res) => {
 
     if (is_remote === "1" || is_remote === "true") {
       where += " AND j.is_remote = 1";
+    }
+
+    if (is_shift === "1" || is_shift === "true") {
+      where += " AND j.is_shift = 1";
+    }
+
+    if (is_shift === "0" || is_shift === "false") {
+      where += " AND (j.is_shift = 0 OR j.is_shift IS NULL)";
     }
 
     return { where, params };
@@ -623,9 +807,38 @@ exports.addJob = (req, res) => {
           benefits || null
         ],
         (err, result) => {
+          if (!err && result && result.insertId) {
+            logJobAction(result.insertId, userId, "employer", "created", { title, location, jobType, category });
+          }
           if (err) {
             // Fallback: only if the missing column is image_url (legacy schema without that column).
             // Any other ER_BAD_FIELD_ERROR (e.g. salary_min missing) should surface as a real error.
+            // Endpoint: Get job action history for employer (only their jobs)
+            exports.getJobHistory = (req, res) => {
+              const jobId = Number(req.params.id);
+              const userId = req.user?.id;
+              if (!jobId || !userId) return res.status(400).json({ message: "Invalid job or user" });
+              // Only allow if this user owns the job
+              db.query("SELECT id FROM jobs WHERE id = ? AND posted_by = ?", [jobId, userId], (err, jobs) => {
+                if (err) return res.status(500).json({ error: err.message });
+                if (!jobs.length) return res.status(403).json({ message: "Not authorized for this job" });
+                db.query(
+                  `SELECT l.*, u.name AS user_name, u.role AS user_role_label
+                   FROM job_action_logs l
+                   LEFT JOIN users u ON l.user_id = u.id
+                   WHERE l.job_id = ?
+                   ORDER BY l.created_at ASC`,
+                  [jobId],
+                  (logErr, logs) => {
+                    if (logErr) return res.status(500).json({ error: logErr.message });
+                    res.json(logs.map(l => ({
+                      ...l,
+                      details: l.details ? (() => { try { return JSON.parse(l.details); } catch { return l.details; } })() : null
+                    })));
+                  }
+                );
+              });
+            };
             if (err.code === "ER_BAD_FIELD_ERROR" && (err.message || "").includes("image_url")) {
               return db.query(
                 `INSERT INTO jobs
@@ -671,30 +884,55 @@ exports.addJob = (req, res) => {
       );
     };
 
-        if (requestedCompanyId) {
-          db.query(
-            "SELECT id FROM companies WHERE id = ? AND owner_user_id = ?",
-            [requestedCompanyId, userId],
-            (err, rows) => {
-              if (err) return res.status(500).json({ error: err.message });
-              if (!rows.length) {
-                return res.status(403).json({ message: "Company not found for this user" });
-              }
-              insertJob(requestedCompanyId);
-            }
-          );
-          return;
-        }
+        const resolveAndValidateCompany = (targetCompanyId) => {
+          const companySqlWithStatus = `
+            SELECT id,
+                   owner_user_id,
+                   COALESCE(NULLIF(TRIM(verification_status), ''), 'pending') AS verification_status
+            FROM companies
+            WHERE ${targetCompanyId ? "id = ? AND" : ""} owner_user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+          `;
+          const params = targetCompanyId ? [targetCompanyId, userId] : [userId];
 
-        db.query(
-          "SELECT id FROM companies WHERE owner_user_id = ? LIMIT 1",
-          [userId],
-          (err, rows) => {
-            if (err) return res.status(500).json({ error: err.message });
-            const companyId = rows.length ? rows[0].id : null;
-            insertJob(companyId);
-          }
-        );
+          db.query(companySqlWithStatus, params, (companyErr, companyRows) => {
+            if (companyErr) {
+              if (!isMissingColumnError(companyErr)) {
+                return res.status(500).json({ error: companyErr.message });
+              }
+
+              const fallbackCompanySql = `
+                SELECT id, owner_user_id
+                FROM companies
+                WHERE ${targetCompanyId ? "id = ? AND" : ""} owner_user_id = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+              `;
+              return db.query(fallbackCompanySql, params, (fallbackErr, fallbackRows) => {
+                if (fallbackErr) return res.status(500).json({ error: fallbackErr.message });
+                if (!fallbackRows.length) {
+                  return res.status(403).json({ message: targetCompanyId ? "Company not found for this user" : "Create and verify a company profile before posting jobs." });
+                }
+                return res.status(403).json({ message: "Your company is pending verification by admin. Please complete company details and wait for approval before posting jobs." });
+              });
+            }
+
+            if (!companyRows.length) {
+              return res.status(403).json({ message: targetCompanyId ? "Company not found for this user" : "Create and verify a company profile before posting jobs." });
+            }
+
+            const company = companyRows[0];
+            const status = String(company.verification_status || "pending").toLowerCase();
+            if (status !== "approved") {
+              return res.status(403).json({ message: "Your company is pending verification by admin. Please complete company details and wait for approval before posting jobs." });
+            }
+
+            return insertJob(company.id);
+          });
+        };
+
+        resolveAndValidateCompany(requestedCompanyId || null);
       });
     }
   );
