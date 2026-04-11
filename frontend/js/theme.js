@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+﻿document.addEventListener("DOMContentLoaded", () => {
   const toggle = document.getElementById("themeToggle");
   const ICON_MOON = String.fromCodePoint(0x1f319);
   const ICON_SUN = String.fromCodePoint(0x2600, 0xfe0f);

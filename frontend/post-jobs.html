@@ -12,25 +12,126 @@
   <link rel="stylesheet" href="css/global.css">
   <link rel="stylesheet" href="css/auth.css">
   <style>
-    /* Small checkbox styling */
-    .post-toggle-field input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-      accent-color: var(--primary);
+.post-settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 6px;
     }
-    
-    .post-toggle-field {
+
+    .post-setting-card {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 12px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(37, 99, 235, 0.16);
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(239, 246, 255, 0.82));
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     }
-    
-    .post-toggle-field .form-label {
-      margin: 0;
+
+    .post-setting-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(37, 99, 235, 0.28);
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+    }
+
+    .post-setting-copy {
       display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .post-setting-title {
+      font-size: 0.96rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .post-setting-subtitle {
+      margin: 0;
+      font-size: 0.81rem;
+      color: #475569;
+      line-height: 1.35;
+    }
+
+    .post-switch {
+      position: relative;
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .post-switch input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    .post-switch-track {
+      width: 52px;
+      height: 30px;
+      border-radius: 999px;
+      background: #cbd5e1;
+      border: 1px solid #94a3b8;
+      position: relative;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+      display: inline-block;
+    }
+
+    .post-switch-track::after {
+      content: "";
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s ease;
+    }
+
+    .post-switch input:checked + .post-switch-track {
+      background: #2563eb;
+      border-color: #1d4ed8;
+    }
+
+    .post-switch input:checked + .post-switch-track::after {
+      transform: translateX(22px);
+    }
+
+    .post-switch input:focus-visible + .post-switch-track {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+
+    body.post-shift-active #shiftFields {
+      border-left: 3px solid #2563eb;
+      padding-left: 14px;
+    }
+
+    @media (max-width: 640px) {
+      .post-setting-card {
+        padding: 12px;
+      }
+
+      .post-setting-title {
+        font-size: 0.9rem;
+      }
+
+      .post-setting-subtitle {
+        font-size: 0.78rem;
+      }
     }
   </style>
 </head>
@@ -130,7 +231,12 @@
                   <option value="Design">Design</option>
                   <option value="Operations">Operations</option>
                   <option value="General">General</option>
+                  <option value="Other">Other (custom)</option>
                 </select>
+              </div>
+              <div class="form-group" id="jobCategoryCustomWrap" style="display:none;">
+                <label class="form-label" for="jobCategoryCustom">Custom Category</label>
+                <input type="text" id="jobCategoryCustom" name="jobCategoryCustom" class="form-input" placeholder="Enter your category" maxlength="100">
               </div>
               <div class="form-group" style="grid-column:1/-1;">
                 <label class="form-label" for="jobDescription">Description</label>
@@ -159,16 +265,68 @@
                 <p class="p-muted" style="margin-top:8px;">Jobs are hidden from applicants after this deadline.</p>
               </div>
               <div class="form-group">
-                <label class="form-label" for="salary">Salary</label>
-                <input type="text" id="salary" name="salary" class="form-input" placeholder="e.g. £30,000 – £45,000 or $25/hr">
+<label class="form-label">Salary range ($)</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <input type="number" id="salaryMin" name="salary_min" class="form-input" placeholder="Min e.g. 30000" min="0" step="500" style="flex:1;">
+                  <span style="opacity:.6;white-space:nowrap;">to</span>
+                  <input type="number" id="salaryMax" name="salary_max" class="form-input" placeholder="Max e.g. 60000" min="0" step="500" style="flex:1;">
+                </div>
+                <p class="p-muted" style="margin-top:6px;">Leave blank to mark as competitive / unspecified.</p>
               </div>
-              <div class="form-group post-toggle-field">
-                <label class="form-label" for="isPremium">Premium Job ($10)</label>
-                <input type="checkbox" id="isPremium" name="isPremium">
+              <div class="form-group">
+                <label class="form-label" for="experienceLevel">Experience Level</label>
+                <select id="experienceLevel" name="experience_level" class="form-input">
+                  <option value="">Any / Not specified</option>
+                  <option value="Entry-level">Entry-level</option>
+                  <option value="Junior">Junior</option>
+                  <option value="Mid-level">Mid-level</option>
+                  <option value="Senior">Senior</option>
+                  <option value="Lead">Lead</option>
+                  <option value="Executive">Executive</option>
+                </select>
               </div>
-              <div class="form-group post-toggle-field">
-                <label class="form-label" for="isShift">Shift Job (Escrow)</label>
-                <input type="checkbox" id="isShift" name="isShift">
+              <div class="form-group" style="grid-column:1/-1;">
+                <label class="form-label" for="benefits">Benefits <span style="font-weight:400;opacity:.65;font-size:.85em">(optional — e.g. Health insurance, Remote, Pension)</span></label>
+                <textarea id="benefits" name="benefits" class="form-input" rows="2" maxlength="2000" placeholder="List the main perks and benefits…"></textarea>
+              </div>
+              <div class="form-group" style="grid-column:1/-1;">
+                <div class="post-settings-grid">
+                  <div class="post-setting-card">
+                    <div class="post-setting-copy">
+                      <p class="post-setting-title">Remote / Work-from-home</p>
+                      <p class="post-setting-subtitle">Enable to surface this job in remote-work searches.</p>
+                    </div>
+                    <label class="post-switch" for="isRemote" aria-label="Mark as remote job">
+                      <input type="checkbox" id="isRemote" name="is_remote">
+                      <span class="post-switch-track"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group" style="grid-column:1/-1;">
+                <div class="post-settings-grid">
+                  <div class="post-setting-card">
+                    <div class="post-setting-copy">
+                      <p class="post-setting-title">Premium Job Boost ($10)</p>
+                      <p class="post-setting-subtitle">Featured placement and higher visibility in job listings.</p>
+                    </div>
+                    <label class="post-switch" for="isPremium" aria-label="Enable premium job boost">
+                      <input type="checkbox" id="isPremium" name="isPremium">
+                      <span class="post-switch-track"></span>
+                    </label>
+                  </div>
+
+                  <div class="post-setting-card">
+                    <div class="post-setting-copy">
+                      <p class="post-setting-title">Shift Job (Escrow Protected)</p>
+                      <p class="post-setting-subtitle">Collect payment securely and release to worker after confirmation.</p>
+                    </div>
+                    <label class="post-switch" for="isShift" aria-label="Enable shift job mode">
+                      <input type="checkbox" id="isShift" name="isShift">
+                      <span class="post-switch-track"></span>
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
             <p class="p-muted" id="shiftNotice" style="margin-top:8px;">
@@ -239,6 +397,45 @@
     </div>
   </div>
 
+  <div id="postPaymentModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="postPaymentTitle">
+    <div class="modal-inner glass-card" style="max-width:480px;width:100%;padding:28px;">
+      <h3 id="postPaymentTitle" style="margin-bottom:4px;">Select Payment Method</h3>
+      <p class="p-muted" style="margin-bottom:18px;font-size:13px;">Choose your preferred payment method for premium placement or support. Hosted checkout may still continue through the default card processor.</p>
+      <div id="postPaymentOptions" class="payment-method-grid" role="listbox" aria-label="Payment methods">
+        <button class="payment-method-option" type="button" role="option" data-method="card" tabindex="0">
+          <span class="payment-method-icon"><i class="fa-solid fa-credit-card"></i></span>
+          <span>Credit / Debit Card</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" type="button" role="option" data-method="applepay" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-apple"></i></span>
+          <span>Apple Pay</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" type="button" role="option" data-method="gpay" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-google-pay"></i></span>
+          <span>Google Pay</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" type="button" role="option" data-method="paypal" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-paypal"></i></span>
+          <span>PayPal</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" type="button" role="option" data-method="bank_transfer" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-solid fa-building-columns"></i></span>
+          <span>Bank Transfer</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+      </div>
+      <p id="postPaymentSelectedText" class="payment-method-selected" aria-live="polite">Selected: Card</p>
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button id="postPaymentConfirm" class="btn btn-primary" type="button" style="flex:1;">Confirm Payment Method</button>
+        <button id="postPaymentCancel" class="btn btn-outline" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <footer class="site-footer">
@@ -261,6 +458,7 @@
     </div>
     <div class="footer-bottom">© 2026 JobPortal. All rights reserved.</div>
   </footer>
+  <script src="js/error-ui.js"></script>
   <script src="js/config.js"></script>
   <script>
     // Login check for post-jobs page

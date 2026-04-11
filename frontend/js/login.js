@@ -1,4 +1,4 @@
-// ── OAuth callback handling ──────────────────────────────────────
+﻿// â”€â”€ OAuth callback handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // When Google/LinkedIn redirects back here, the URL has ?token=JWT&oauth=provider
 // or ?error=reason when something went wrong.
 (async () => {
@@ -71,9 +71,47 @@
   } catch { /* provider check optional */ }
 })();
 
-// ── Redirect if already logged in ───────────────────────────────
+// â”€â”€ Redirect if already logged in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const existingToken = localStorage.getItem("token");
 const existingUserRaw = localStorage.getItem("user");
+
+async function completeOAuthLogin() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  if (!token) return false;
+
+  try {
+    localStorage.setItem("token", token);
+    const res = await fetch(`${API}/users/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const user = await res.json();
+
+    if (!res.ok) {
+      throw new Error(user.message || "OAuth login failed");
+    }
+
+    localStorage.setItem("user", JSON.stringify(user));
+    window.history.replaceState({}, document.title, "login.html");
+
+    if (user.is_admin || user.role === "admin") {
+      window.location.href = "admin.html";
+    } else if (user.role === "employer") {
+      window.location.href = "employer.html";
+    } else {
+      window.location.href = "dashboard.html";
+    }
+    return true;
+  } catch (err) {
+    console.error(err);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    showError(err.message || "OAuth login failed");
+    return false;
+  }
+}
+
+completeOAuthLogin();
 
 if (existingToken && existingUserRaw) {
   try {
@@ -91,7 +129,7 @@ if (existingToken && existingUserRaw) {
 }
 
 document.getElementById("loginForm").addEventListener("submit", function (e) {
-  e.preventDefault(); // ⛔ stop page reload
+  e.preventDefault(); // â›” stop page reload
 
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
@@ -109,9 +147,9 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        alert("Login successful");
+        showSuccess("Login successful");
 
-        // Honour ?redirect= param (same-origin only — prevent open redirect)
+        // Honour ?redirect= param (same-origin only â€” prevent open redirect)
         const redirectParam = new URLSearchParams(window.location.search).get("redirect");
         if (redirectParam) {
           try {
@@ -121,7 +159,7 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
               return;
             }
           } catch {
-            // Malformed URL — fall through to role-based default
+            // Malformed URL â€” fall through to role-based default
           }
         }
 
@@ -133,11 +171,11 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
           window.location.href = "dashboard.html";
         }
       } else {
-        alert(data.message || "Login failed");
+        showError(data.message || "Login failed");
       }
     })
     .catch(err => {
       console.error(err);
-      alert("Server error");
+      showError("Server error");
     });
 });

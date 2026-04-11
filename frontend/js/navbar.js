@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const safeParseUser = () => {
     const raw = localStorage.getItem("user");
     if (!raw) return null;
@@ -46,7 +46,98 @@
 
   ensureToastA11y();
 
+  const ensureFooterSocialLinks = () => {
+    const footerBottom = document.querySelector(".site-footer .footer-bottom");
+    if (!footerBottom) return;
+    if (footerBottom.querySelector(".footer-social-links")) return;
+
+    const socialWrap = document.createElement("span");
+    socialWrap.className = "footer-social-links";
+    socialWrap.style.marginLeft = "10px";
+    socialWrap.innerHTML =
+      ' | <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a> Â· ' +
+      '<a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a> Â· ' +
+      '<a href="https://x.com" target="_blank" rel="noopener noreferrer">X</a>';
+
+    footerBottom.appendChild(socialWrap);
+  };
+
+  ensureFooterSocialLinks();
+
   const nav = document.querySelector(".navbar");
+
+  const setupScrollReactiveNavbar = () => {
+    if (!nav) return;
+
+    const threshold = 10;
+    let ticking = false;
+
+    const applyState = () => {
+      const shouldBeTransparent = window.scrollY > threshold;
+      document.body.classList.toggle("navbar-scroll-transparent", shouldBeTransparent);
+      ticking = false;
+    };
+
+    applyState();
+
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(applyState);
+      },
+      { passive: true }
+    );
+  };
+
+  setupScrollReactiveNavbar();
+
+  const removeLegacyThemeToggle = () => {
+    const themeToggle = document.getElementById("themeToggle");
+    if (themeToggle) {
+      themeToggle.remove();
+    }
+  };
+
+  removeLegacyThemeToggle();
+
+  const ensureNavLeftLayout = () => {
+    if (!nav) return;
+
+    let navLeft = nav.querySelector(".nav-left");
+    if (!navLeft) {
+      navLeft = document.createElement("div");
+      navLeft.className = "nav-left";
+      const logo = nav.querySelector(".logo");
+      if (logo) {
+        nav.insertBefore(navLeft, logo);
+        navLeft.appendChild(logo);
+      } else {
+        nav.prepend(navLeft);
+      }
+    }
+
+    const navLinks = Array.from(nav.querySelectorAll("a.nav-link"));
+    navLinks.forEach((link) => {
+      if (link.parentElement !== navLeft) {
+        navLeft.appendChild(link);
+      }
+    });
+
+    const firstRightControl =
+      nav.querySelector("#paletteSwitcher") ||
+      nav.querySelector("#navMenuToggle") ||
+      nav.querySelector(".nav-profile-chip") ||
+      nav.querySelector("#themeToggle") ||
+      nav.querySelector("#logoutBtn");
+
+    if (firstRightControl && navLeft.nextElementSibling !== firstRightControl) {
+      nav.insertBefore(navLeft, firstRightControl);
+    }
+  };
+
+  ensureNavLeftLayout();
 
   // Guarantee a visible logo mark in navbar even on pages with legacy logo markup.
   const ensureNavLogoMark = () => {
@@ -59,11 +150,17 @@
     const logo = nav.querySelector(".logo");
     if (!logo) return;
 
+    const existingMark = logo.querySelector(".logo-mark");
+    if (existingMark) {
+      existingMark.textContent = "JP";
+      existingMark.setAttribute("aria-hidden", "true");
+      return;
+    }
+
     if (shouldForceFallback) {
       logo.querySelectorAll("i.fa-solid.fa-briefcase").forEach((node) => node.remove());
     }
 
-    if (logo.querySelector(".logo-mark")) return;
     if (logo.querySelector("i") && !shouldForceFallback) return;
 
     const icon = document.createElement("span");
@@ -76,11 +173,23 @@
   ensureNavLogoMark();
 
   const paletteOptions = ["default", "ocean", "sunset", "forest"];
+  const navHighlightOptions = ["mix", "solid"];
   const paletteLabels = {
     default: "Default",
     ocean: "Ocean",
     sunset: "Sunset",
     forest: "Forest",
+  };
+  const navHighlightLabels = {
+    mix: "Mix",
+    solid: "Same",
+  };
+
+  const applyNavHighlightMode = (mode) => {
+    const selected = navHighlightOptions.includes(mode) ? mode : "mix";
+    document.body.classList.remove("nav-highlight-mix", "nav-highlight-solid");
+    document.body.classList.add(`nav-highlight-${selected}`);
+    localStorage.setItem("navHighlightMode", selected);
   };
 
   const activeModeOptions = ["same", "mixed"];
@@ -106,17 +215,25 @@
 
   const updatePaletteToggle = (selected) => {
     const paletteToggleBtn = document.getElementById("paletteToggle");
+    const highlightMode = localStorage.getItem("navHighlightMode") || "mix";
     if (paletteToggleBtn) {
-      paletteToggleBtn.textContent = `Palette: ${paletteLabels[selected] || "Default"}`;
+      paletteToggleBtn.textContent = `Palette: ${paletteLabels[selected] || "Default"} | Active: ${navHighlightLabels[highlightMode] || "Mix"}`;
       paletteToggleBtn.setAttribute(
         "aria-label",
-        `Choose palette (current: ${paletteLabels[selected] || "Default"})`
+        `Choose palette and navbar highlight mode (palette: ${paletteLabels[selected] || "Default"}, highlight: ${navHighlightLabels[highlightMode] || "Mix"})`
       );
     }
 
     const optionButtons = Array.from(document.querySelectorAll(".palette-option"));
     optionButtons.forEach((button) => {
-      const isActive = button.dataset.palette === selected;
+      const isDarkToggle = button.dataset.palette === "dark";
+      const isDarkNow = document.body.classList.contains("dark");
+      const isPaletteOption = Boolean(button.dataset.palette) && !isDarkToggle;
+      const isHighlightOption = Boolean(button.dataset.highlight);
+      const isActive =
+        (isPaletteOption && button.dataset.palette === selected) ||
+        (isDarkToggle && isDarkNow) ||
+        (isHighlightOption && button.dataset.highlight === highlightMode);
       button.classList.toggle("is-active", isActive);
       button.setAttribute("aria-checked", isActive ? "true" : "false");
     });
@@ -132,11 +249,6 @@
     );
     document.body.classList.add(`palette-${selected}`);
     localStorage.setItem("palette", selected);
-
-    const themeToggleBtn = document.getElementById("themeToggle");
-    if (themeToggleBtn) {
-      themeToggleBtn.title = `Theme: left click | Palette: ${selected} (right click or Alt+P to change)`;
-    }
 
     updatePaletteToggle(selected);
     setActiveMode(getActiveMode());
@@ -180,38 +292,25 @@
       paletteMenu.id = "paletteMenu";
       paletteMenu.className = "palette-menu";
       paletteMenu.setAttribute("role", "menu");
-
-      const paletteButtons = paletteOptions
+      const isDarkNow = document.body.classList.contains("dark");
+      paletteMenu.innerHTML = paletteOptions
         .map((palette) => {
           const label = paletteLabels[palette] || palette;
           return `<button type="button" class="palette-option" role="menuitemradio" aria-checked="false" data-palette="${palette}"><span class="palette-swatch" aria-hidden="true"></span><span>${label}</span></button>`;
         })
-        .join("");
-
-      const activeModeButtons = activeModeOptions
-        .map((mode) => {
-          const label = activeModeLabels[mode] || mode;
-          return `<button type="button" class="active-mode-option" role="menuitemradio" aria-checked="false" data-mode="${mode}">${label}</button>`;
-        })
-        .join("");
-
-      paletteMenu.innerHTML = `
-        <div class="palette-section">
-          <div class="palette-section-title">Palette</div>
-          ${paletteButtons}
-        </div>
-        <div class="palette-section">
-          <div class="palette-section-title">Nav highlight mode</div>
-          ${activeModeButtons}
-        </div>
-      `;
+        .join("") +
+        `<hr style="margin:6px 0;border:none;border-top:1px solid var(--border);">` +
+        `<button type="button" class="palette-option" role="menuitemradio" aria-checked="false" data-highlight="mix"><span class="palette-swatch" aria-hidden="true"></span><span>Active: Mix Colors</span></button>` +
+        `<button type="button" class="palette-option" role="menuitemradio" aria-checked="false" data-highlight="solid"><span class="palette-swatch" aria-hidden="true"></span><span>Active: Same Color</span></button>` +
+        `<hr style="margin:6px 0;border:none;border-top:1px solid var(--border);">` +
+        `<button type="button" class="palette-option palette-dark-toggle" role="menuitemcheckbox" aria-checked="${isDarkNow}" data-palette="dark"><span class="palette-swatch" aria-hidden="true"></span><span>Dark Mode</span>${isDarkNow ? '<span style="margin-left:auto;font-size:12px;font-weight:700;">âœ“</span>' : ''}</button>`;
       paletteSwitcher.appendChild(paletteMenu);
     }
 
     if (paletteSwitcher.parentElement !== nav) {
-      const themeToggleBtn = document.getElementById("themeToggle");
-      if (themeToggleBtn) {
-        nav.insertBefore(paletteSwitcher, themeToggleBtn);
+      const anchor = nav.querySelector(".nav-profile-chip") || nav.querySelector("#logoutBtn");
+      if (anchor) {
+        nav.insertBefore(paletteSwitcher, anchor);
       } else {
         nav.appendChild(paletteSwitcher);
       }
@@ -235,9 +334,12 @@
       };
       const focusSelectedPaletteOption = () => {
         const currentPalette = localStorage.getItem("palette") || "default";
+        const currentHighlight = localStorage.getItem("navHighlightMode") || "mix";
         const options = Array.from(paletteMenu.querySelectorAll(".palette-option"));
         if (!options.length) return;
-        const selectedIndex = options.findIndex((option) => option.dataset.palette === currentPalette);
+        const selectedIndex = options.findIndex(
+          (option) => option.dataset.palette === currentPalette || option.dataset.highlight === currentHighlight
+        );
         focusPaletteOption(selectedIndex >= 0 ? selectedIndex : 0);
       };
 
@@ -285,7 +387,17 @@
           event.preventDefault();
           const focusedOption = document.activeElement;
           if (!focusedOption || !focusedOption.classList.contains("palette-option")) return;
-          applyPalette(focusedOption.dataset.palette || "default");
+          const selectedPalette = focusedOption.dataset.palette;
+          const selectedHighlight = focusedOption.dataset.highlight;
+          if (selectedHighlight) {
+            applyNavHighlightMode(selectedHighlight);
+          } else if (selectedPalette === "dark") {
+            const isDark = document.body.classList.toggle("dark");
+            localStorage.setItem("theme", isDark ? "dark" : "light");
+          } else {
+            applyPalette(selectedPalette || "default");
+          }
+          updatePaletteToggle(localStorage.getItem("palette") || "default");
           closePaletteMenu();
           paletteToggleBtn.focus();
         } else if (event.key === "Escape") {
@@ -301,22 +413,42 @@
     if (paletteMenu.dataset.paletteBound !== "true") {
       paletteMenu.dataset.paletteBound = "true";
       paletteMenu.addEventListener("click", (event) => {
-        const selectedPaletteButton = event.target.closest(".palette-option");
-        const selectedModeButton = event.target.closest(".active-mode-option");
+        const selectedButton = event.target.closest(".palette-option");
+        if (!selectedButton || !selectedButton.classList.contains("palette-option")) return;
+        const selectedPalette = selectedButton.dataset.palette;
+        const selectedHighlight = selectedButton.dataset.highlight;
 
-        if (selectedPaletteButton && selectedPaletteButton.classList.contains("palette-option")) {
-          const selectedPalette = selectedPaletteButton.dataset.palette;
-          applyPalette(selectedPalette || "default");
-          setActiveMode(getActiveMode());
+        if (selectedHighlight) {
+          applyNavHighlightMode(selectedHighlight);
+          updatePaletteToggle(localStorage.getItem("palette") || "default");
           paletteSwitcher.classList.remove("open");
           paletteToggleBtn.setAttribute("aria-expanded", "false");
           return;
         }
 
-        if (selectedModeButton && selectedModeButton.classList.contains("active-mode-option")) {
-          setActiveMode(selectedModeButton.dataset.mode || "same");
+        if (selectedPalette === "dark") {
+          // Toggle dark mode
+          const isDark = document.body.classList.toggle("dark");
+          localStorage.setItem("theme", isDark ? "dark" : "light");
+          // Update the dark toggle button state in the menu
+          selectedButton.setAttribute("aria-checked", isDark ? "true" : "false");
+          const checkSpan = selectedButton.querySelector("span:last-child");
+          if (checkSpan && checkSpan !== selectedButton.querySelector("span:nth-child(2)")) {
+            checkSpan.textContent = isDark ? "âœ“" : "";
+          } else if (isDark) {
+            const ck = document.createElement("span");
+            ck.style.cssText = "margin-left:auto;font-size:12px;font-weight:700;";
+            ck.textContent = "âœ“";
+            selectedButton.appendChild(ck);
+          }
+          // Keep palette menu open for dark toggle
+          updatePaletteToggle(localStorage.getItem("palette") || "default");
           return;
         }
+        applyPalette(selectedPalette || "default");
+        updatePaletteToggle(localStorage.getItem("palette") || "default");
+        paletteSwitcher.classList.remove("open");
+        paletteToggleBtn.setAttribute("aria-expanded", "false");
       });
     }
 
@@ -340,34 +472,7 @@
   ensurePaletteToggle();
 
   applyPalette(localStorage.getItem("palette") || "default");
-
-  const attachPaletteHandlers = () => {
-    const themeToggleBtn = document.getElementById("themeToggle");
-    if (!themeToggleBtn || themeToggleBtn.dataset.paletteBound === "true") return;
-
-    themeToggleBtn.dataset.paletteBound = "true";
-    themeToggleBtn.title =
-      "Theme: click | Palette: Shift+click, right click, or Alt+P";
-
-    // Use capture so Shift+click can switch palette before theme.js click handler runs.
-    themeToggleBtn.addEventListener(
-      "click",
-      (event) => {
-        if (!event.shiftKey) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        cyclePalette();
-      },
-      true
-    );
-
-    themeToggleBtn.addEventListener("contextmenu", (event) => {
-      event.preventDefault();
-      cyclePalette();
-    });
-  };
-
-  attachPaletteHandlers();
+  applyNavHighlightMode(localStorage.getItem("navHighlightMode") || "mix");
 
   document.addEventListener("keydown", (event) => {
     const isAltP = event.altKey && (event.key === "p" || event.key === "P");
@@ -465,9 +570,9 @@
     backdrop.id = "navMenuBackdrop";
     backdrop.className = "nav-menu-backdrop";
 
-    const themeToggle = document.getElementById("themeToggle");
-    if (themeToggle) {
-      nav.insertBefore(toggle, themeToggle);
+    const menuAnchor = document.getElementById("paletteSwitcher") || nav.querySelector(".nav-profile-chip") || nav.querySelector("#logoutBtn");
+    if (menuAnchor) {
+      nav.insertBefore(toggle, menuAnchor);
     } else {
       nav.appendChild(toggle);
     }
@@ -483,7 +588,6 @@
 
     document.body.appendChild(backdrop);
     document.body.appendChild(panel);
-    attachPaletteHandlers();
 
     const closeBtn = panel.querySelector(".nav-menu-close");
     const searchInput = panel.querySelector(".nav-menu-search");
@@ -583,6 +687,65 @@
     });
   }
 
+  const setNavVisibility = (selector, isVisible) => {
+    document.querySelectorAll(selector).forEach((node) => {
+      node.style.display = isVisible ? "" : "none";
+    });
+  };
+
+  const setMenuLinkVisibility = (href, isVisible) => {
+    if (!panel) return;
+    panel.querySelectorAll(`a.nav-menu-link[href='${href}']`).forEach((node) => {
+      node.style.display = isVisible ? "flex" : "none";
+    });
+  };
+
+  const navRole = String(navUser?.role || "").toLowerCase();
+  const isAdmin = !!navUser?.is_admin || navRole === "admin";
+  const isEmployer = navRole === "employer";
+  const isJobSeeker = navRole === "job_seeker";
+  const currentPathLast = (window.location.pathname || "").split("/").filter(Boolean).pop() || "index.html";
+  const currentPage = currentPathLast.toLowerCase().endsWith(".html") ? currentPathLast.toLowerCase() : `${currentPathLast.toLowerCase()}.html`;
+
+  if (navToken && navUser && !isAdmin) {
+    // Job seekers should not see employer-only entries.
+    setNavVisibility("#postJobLink", isEmployer);
+    setMenuLinkVisibility("post-jobs.html", isEmployer);
+
+    // Employers should not see job-seeker-only dashboard entry.
+    setNavVisibility("#dashboardLink", isJobSeeker);
+    setMenuLinkVisibility("dashboard.html", isJobSeeker);
+  }
+
+  if (currentPage === "company.html") {
+    // Always show 'Company Profile' in navbar/profile links on company.html
+    const companyLabel = "Company Profile";
+    const profileHref = "company.html";
+
+    const topProfile = document.getElementById("profileLink");
+    if (topProfile) {
+      topProfile.textContent = companyLabel;
+      topProfile.setAttribute("href", profileHref);
+    }
+
+    const profileChip = document.querySelector("a.nav-profile-chip");
+    if (profileChip) {
+      profileChip.setAttribute("href", profileHref);
+      profileChip.setAttribute("aria-label", companyLabel);
+    }
+
+    if (panel) {
+      panel.querySelectorAll("a.nav-menu-link[href='profile.html']").forEach((node) => {
+        node.setAttribute("href", profileHref);
+        node.setAttribute("data-label", companyLabel);
+        const labelNode = node.querySelector("span");
+        if (labelNode) {
+          labelNode.textContent = companyLabel;
+        }
+      });
+    }
+  }
+
   const getFileName = (value) => {
     const clean = (value || "")
       .split("#")[0]
@@ -645,8 +808,8 @@
       "menu.html": "menu.html",
       "about.html": "about.html",
       "resume.html": "profile.html",
-      "company.html": "profile.html",
-      "employer.html": "post-jobs.html",
+        "company.html": "company.html",
+      "employer.html": "dashboard.html",
       "chat.html": "dashboard.html",
       "login.html": "login.html",
       "register.html": "login.html",
@@ -655,17 +818,43 @@
       "verify-email.html": "login.html",
     };
 
-    const target = routeToNavFile[current] || current;
-    const navLinks = Array.from(document.querySelectorAll(".navbar a[href]"));
+    let target = routeToNavFile[current] || current;
+    // Normalize menu and menu.html for highlighting
+    if (target === "menu" || target === "menu.html") target = "menu.html";
+    let navLinks = Array.from(document.querySelectorAll(".navbar a[href]"));
+
+    // If the current page is not present in the navbar, add a temporary nav-link for it
+    const alreadyInNavbar = navLinks.some(link => getHrefFileName(link.getAttribute("href")) === target);
+    if (!alreadyInNavbar && current !== "index.html") {
+      // Insert after logo in nav-left
+      const navLeft = nav.querySelector(".nav-left");
+      if (navLeft) {
+        const tempLink = document.createElement("a");
+        tempLink.className = "nav-link nav-active nav-temp";
+        tempLink.href = current;
+        tempLink.textContent = document.title.replace("| JobPortal", "").trim() || current.replace(/\.html$/, "");
+        navLeft.appendChild(tempLink);
+        navLinks = Array.from(document.querySelectorAll(".navbar a[href]"));
+      }
+    }
     navLinks.forEach((link) => {
       const isProfileChip = link.classList.contains("nav-profile-chip");
       const isLogo = link.classList.contains("logo");
-      link.classList.remove("nav-active");
-      if (isProfileChip || isLogo) return;
+      const isUtilityBell = link.classList.contains("nav-bell");
+      const rawHref = String(link.getAttribute("href") || "").trim();
+      const isHashOnlyLink = rawHref.startsWith("#");
+      // Only remove nav-active from non-temp links
+      if (!link.classList.contains("nav-temp")) link.classList.remove("nav-active");
+      if (isProfileChip || isLogo || isUtilityBell || isHashOnlyLink) return;
 
-      const href = getHrefFileName(link.getAttribute("href"));
+      let href = getHrefFileName(rawHref);
+      // Normalize menu and menu.html for highlighting
+      if (href === "menu" || href === "menu.html") href = "menu.html";
       if (!href) return;
-      if (href === target) {
+      // Always highlight menu.html for any hash on menu.html
+      if (target === "menu.html" && href === "menu.html") {
+        link.classList.add("nav-active");
+      } else if (href === target) {
         link.classList.add("nav-active");
       }
     });

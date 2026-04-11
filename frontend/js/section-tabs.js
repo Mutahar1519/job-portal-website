@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const sectionTabSelector =
     ".menu-tabs a[href^='#'], .about-tabs a[href^='#'], .resume-tabs a[href^='#'], .profile-tabs a[href^='#'], .employer-tabs a[href^='#'], .company-tabs a[href^='#'], .dashboard-tabs a[href^='#']";
 

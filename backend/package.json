@@ -5,12 +5,15 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "mammoth": "^1.12.0",
     "mongoose": "^9.1.6",
     "multer": "^2.0.2",
     "mysql2": "^3.16.3",
     "nodemailer": "^6.10.1",
     "pdf-parse": "^1.1.1",
-    "stripe": "^20.3.1"
+    "socket.io": "^4.8.1",
+    "stripe": "^20.3.1",
+    "word-extractor": "^1.0.4"
   },
   "name": "backend",
   "version": "1.0.0",
@@ -18,14 +21,29 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
+    "test:unit:simple": "node unit-tests/simple-auth-and-validation.test.js",
+    "test:unit:simple:split": "node unit-tests/simple/run-all.simple.test.js",
+    "test:unit:controllers": "node unit-tests/run-controller-unit-tests.js",
+    "test:unit:all": "npm run test:unit:simple:split && npm run test:unit:controllers",
+    "start": "node start.js",
+    "start:direct": "node server.js",
     "seed:demo": "node scripts/seedDemo.js",
     "test:smoke": "node scripts/smokeTest.js",
-    "test:preflight": "node scripts/preflight.js",
-    "test:go-live": "node scripts/goLiveGate.js",
-    "test:oauth-config": "node scripts/oauthConfigCheck.js"
+  "test:notifications-smoke": "node scripts/notificationsSmoke.js",
+  "test:notifications-smoke:mail": "node scripts/notificationsSmoke.js --send-mail",
+  "test:notifications-smoke:mail:strict": "node scripts/notificationsSmoke.js --send-mail --strict-mail",
+  "test:preflight": "node scripts/preflight.js",
+  "test:oauth-config": "node scripts/oauthConfigCheck.js",
+  "test:go-live": "node scripts/goLiveGate.js",
+  "test:integration:api": "node integration-tests/validation-and-security.integration.test.js",
+  "test:e2e": "playwright test",
+  "test:e2e:ui": "playwright test --ui",
+  "test:e2e:debug": "playwright test --debug"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
 }

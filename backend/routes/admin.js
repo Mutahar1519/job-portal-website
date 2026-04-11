@@ -96,14 +96,18 @@ const getMailer = () => {
 };
 
 router.get("/settings/auto-approval", adminAuth, async (req, res) => {
-  const raw = await getPlatformSetting("auto_approve_jobs", String(DEFAULT_AUTO_APPROVAL_ENABLED));
-  const enabled = toBooleanSetting(raw, DEFAULT_AUTO_APPROVAL_ENABLED);
-  const configured = process.env.HUGGINGFACE_API_KEY ? true : false;
+  try {
+    const raw = await getPlatformSetting("auto_approve_jobs", String(DEFAULT_AUTO_APPROVAL_ENABLED));
+    const enabled = toBooleanSetting(raw, DEFAULT_AUTO_APPROVAL_ENABLED);
+    const configured = process.env.HUGGINGFACE_API_KEY ? true : false;
 
-  res.json({
-    enabled,
-    ai_provider: configured ? "huggingface" : "heuristic-only"
-  });
+    res.json({
+      enabled,
+      ai_provider: configured ? "huggingface" : "heuristic-only"
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.put("/settings/auto-approval", adminAuth, async (req, res) => {
@@ -479,14 +483,22 @@ router.get("/stats", adminAuth, (req, res) => {
 router.get("/reviews", adminAuth, (req, res) => {
   const status = String(req.query.status || "pending").toLowerCase();
   const source = String(req.query.source || "portal").toLowerCase();
+  const verified = String(req.query.verified || "all").toLowerCase();
   const filters = {
     pending: "approved = 0",
     approved: "approved = 1 AND is_hidden = 0",
     hidden: "approved = 1 AND is_hidden = 1",
     all: "1 = 1"
   };
+  const verifiedFilters = {
+    all: "1 = 1",
+    verified: "reviewer_email IS NOT NULL AND job_id IS NOT NULL",
+    unverified: "NOT (reviewer_email IS NOT NULL AND job_id IS NOT NULL)"
+  };
 
   const where = filters[status] || filters.pending;
+  const companyVerifiedWhere = verifiedFilters[verified] || verifiedFilters.all;
+  const portalVerifiedWhere = verified === "verified" ? "0 = 1" : "1 = 1";
 
   const portalSql = `
     SELECT r.id,
@@ -504,9 +516,10 @@ router.get("/reviews", adminAuth, (req, res) => {
            NULL AS employer_user_id,
            NULL AS employer_name,
            NULL AS job_id,
-           NULL AS job_title
+           NULL AS job_title,
+           0 AS verified_review
     FROM reviews r
-    WHERE ${where}
+    WHERE ${where} AND ${portalVerifiedWhere}
   `;
 
   const companySql = `
@@ -525,12 +538,16 @@ router.get("/reviews", adminAuth, (req, res) => {
            cr.employer_user_id,
            u.name AS employer_name,
            cr.job_id,
-           j.title AS job_title
+           j.title AS job_title,
+           CASE
+             WHEN cr.reviewer_email IS NOT NULL AND cr.job_id IS NOT NULL THEN 1
+             ELSE 0
+           END AS verified_review
     FROM company_reviews cr
     LEFT JOIN companies c ON c.id = cr.company_id
     LEFT JOIN users u ON u.id = cr.employer_user_id
     LEFT JOIN jobs j ON j.id = cr.job_id
-    WHERE ${where}
+    WHERE ${where} AND ${companyVerifiedWhere}
   `;
 
   let sql = "";

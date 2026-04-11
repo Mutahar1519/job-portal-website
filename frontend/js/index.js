@@ -55,12 +55,12 @@ function closeApplyModal() {
 // ================= SUBMIT APPLICATION =================
 async function submitApplication() {
   if (!pageToken) {
-    alert("Login required");
+    showWarning("Login required");
     return;
   }
 
   if (!selectedJobId) {
-    alert("No job selected");
+    showWarning("No job selected");
     return;
   }
 
@@ -83,10 +83,10 @@ async function submitApplication() {
 
     if (!res.ok) throw new Error(data.message);
 
-    alert("Application submitted ✅");
+    showSuccess("Application submitted ✅");
     closeApplyModal();
 
   } catch (err) {
-    alert(err.message || "Apply failed");
+    showError(err.message || "Apply failed");
   }
 }

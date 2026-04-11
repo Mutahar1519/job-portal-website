@@ -2,6 +2,9 @@
 
 Enterprise Job Portal System developed as part of university coursework.
 
+**Status**: ✅ Ready for demo and deployment (see [docs/DELIVERY_READY_2026-03-27.md](docs/DELIVERY_READY_2026-03-27.md) for details)
+
+Final manual sign-off checklist: [docs/FINAL_SIGNOFF_CHECKLIST_2026-03-28.md](docs/FINAL_SIGNOFF_CHECKLIST_2026-03-28.md)
 ## GitHub Repository
 https://github.com/Mutahar1519/job-portal-website
 
@@ -40,6 +43,28 @@ npm run test:preflight
 ## Go-Live Readiness
 - Full deployment checklist: `docs/GO_LIVE_CHECKLIST.md`
 - Client demo handoff: `docs/CLIENT_DEMO_HANDOFF.md`
+
+## Running Tests
+
+All test commands run from the project root:
+
+| Command | What it checks |
+|---|---|
+| `npm --prefix backend run test:unit:simple:split` | Core logic: email, password, JWT, RBAC, job validation |
+| `npm --prefix backend run test:unit:controllers` | All 15 controllers export valid handler functions |
+| `npm --prefix backend run test:unit:all` | Both suites above in one command |
+| `npm --prefix backend run test:go-live` | Full smoke / preflight / OAuth gate *(requires server running)* |
+| `npm --prefix backend run test:e2e` | Playwright end-to-end tests *(requires server running)* |
+
+Quick pre-demo check:
+```bash
+# Terminal 1 – start backend
+cd backend && node server.js
+
+# Terminal 2 – run all unit tests + go-live gate
+npm --prefix backend run test:unit:all
+npm --prefix backend run test:go-live
+```
 - Job application flows and applicant tracking
 - Admin panel for user/job moderation and platform stats
 - Modern responsive UI with icons, avatars, tags, hover effects, and animations
@@ -134,11 +159,23 @@ npm install
 
 3. Run SQL schema/migrations.
 
-4. Start backend:
+4. Start backend (auto-kills existing processes on port 3000):
 ```bash
 cd backend
-node server.js
+npm start
 ```
+
+   Or directly:
+   ```bash
+   cd backend
+   node start.js
+   ```
+
+   To start without auto-cleanup:
+   ```bash
+   cd backend
+   npm run start:direct
+   ```
 
 5. (Optional) Seed demo accounts and sample data:
 ```bash
@@ -157,8 +194,61 @@ cd backend
 npm run test:smoke
 ```
 
-5. Open app:
-- http://localhost:3000
+## Simple Unit Tests (No Jest)
+
+For university evaluation, a lightweight unit test suite is included using plain JavaScript and console.assert (no external test framework such as Jest).
+
+Covered topics:
+- Email validation
+- Password hashing and comparison
+- JWT token validation
+- Role-based access control
+- Job creation validation
+
+Run all split tests:
+```bash
+cd backend
+npm run test:unit:simple:split
+```
+
+Alternative single-file runner:
+```bash
+cd backend
+npm run test:unit:simple
+```
+
+## Evaluator Quick Check
+
+Requirement coverage mapping:
+- Email validation: `backend/unit-tests/simple/emailValidation.simple.test.js`
+- Password hashing and comparison: `backend/unit-tests/simple/passwordHashing.simple.test.js`
+- JWT token validation: `backend/unit-tests/simple/jwtValidation.simple.test.js`
+- Role-based access control: `backend/unit-tests/simple/rbac.simple.test.js`
+- Job creation validation: `backend/unit-tests/simple/jobCreationValidation.simple.test.js`
+
+One-command verification:
+```bash
+cd backend
+npm run test:unit:simple:split
+```
+
+Expected pass lines:
+- PASS: Email validation tests
+- PASS: Password hashing/comparison tests
+- PASS: JWT validation tests
+- PASS: RBAC tests
+- PASS: Job creation validation tests
+
+7. Start frontend (optional, separate static server on port 3001):
+```bash
+cd frontend
+npm install
+npm start
+```
+
+8. Open app:
+- http://localhost:3000 (backend serves frontend)
+- http://localhost:3001 (standalone frontend server)
 
 ## UML Documentation
 UML diagrams are available in:

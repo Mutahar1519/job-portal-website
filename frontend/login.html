@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -33,7 +33,6 @@
         <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
           <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
         </a>
-        <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
         <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
   <div class="registration-container">
@@ -71,6 +70,8 @@
             Sign In
           </button>
         </form>
+
+        <div id="oauthProviders" class="auth-oauth-block" style="margin-top:16px;"></div>
 
         <p class="p-muted" style="text-align:center;margin-top:16px;">
           Don't have an account?
@@ -132,6 +133,7 @@
     <div class="footer-bottom">&copy; 2026 JobPortal. All rights reserved.</div>
   </footer>
 
+  <script src="js/error-ui.js"></script>
   <script src="js/config.js"></script>
   <script src="js/navbar.js"></script>
   <script src="js/utils.js"></script>

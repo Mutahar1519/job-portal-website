@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -35,7 +35,7 @@
       <div class="hero-content">
         <p class="eyebrow">Resume intelligence</p>
         <h1 class="hero-title">Turn your resume into searchable hiring signals</h1>
-        <p class="hero-subtitle">Upload a clean PDF and let the platform extract key text and skill signals for faster matching.</p>
+        <p class="hero-subtitle">Upload a clean resume file (PDF, DOC, or DOCX) and let the platform extract key text and skill signals for faster matching.</p>
         <p id="resumeStatus" class="p-muted"></p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="jobs.html"><i class="fa-solid fa-rocket"></i> Find matching jobs</a>
@@ -45,8 +45,8 @@
       <div class="hero-panel">
         <div class="glass" style="padding:18px;">
           <div class="p-muted">Tip</div>
-          <div class="h2" style="margin:8px 0;">Use a clean text PDF</div>
-          <p class="p-muted">Text-based resumes parse best. Image-only scanned files may return limited text.</p>
+          <div class="h2" style="margin:8px 0;">Use a clean text resume file</div>
+          <p class="p-muted">Text-based PDF, DOCX, and DOC files parse best. Image-only scanned files may return limited text.</p>
         </div>
       </div>
     </section>
@@ -60,16 +60,18 @@
     <section class="resume-layout">
       <div class="glass-card resume-panel">
         <h2 class="section-title">Upload resume</h2>
-        <p class="p-muted">Only PDF files are supported. Keep formatting simple for best extraction quality.</p>
+        <p class="p-muted">PDF, DOC, and DOCX files are supported. Parsed text preview works best for text-based files.</p>
         <form id="resumeForm" class="form-grid" enctype="multipart/form-data">
           <div class="form-group" style="grid-column: 1 / -1;">
-            <label class="form-label" for="resumeFile">PDF file</label>
-            <input id="resumeFile" class="form-input" type="file" accept=".pdf" required />
+            <label class="form-label" for="resumeFile">Resume file</label>
+            <input id="resumeFile" class="form-input" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
+            <p id="resumeFileSelection" class="p-muted" style="margin-top:8px;">No file selected yet.</p>
           </div>
           <div class="form-group form-actions">
             <button class="btn btn-primary" type="submit">Upload</button>
           </div>
         </form>
+        <p id="resumeUploadFeedback" class="p-muted" style="margin-top:10px;"></p>
         <div id="resumeMeta" class="p-muted" style="margin-top:12px;"></div>
       </div>
 
@@ -85,7 +87,7 @@
 
       <div class="glass-card resume-preview resume-panel">
         <h2 class="section-title">Extracted resume text</h2>
-        <p class="p-muted" style="margin-bottom:12px;">This is the raw text extracted from your uploaded PDF. It's used internally for skill matching — you don't need to edit it. If this section is empty, your PDF may be image-based and cannot be read by text extraction.</p>
+        <p class="p-muted" style="margin-bottom:12px;">This is the raw text extracted from your uploaded resume. It is used internally for skill matching; you do not need to edit it. If this section is empty, your file may be image-based or in a format with limited extraction support.</p>
         <div id="resumePreview" class="resume-text"></div>
       </div>
     </section>
@@ -116,7 +118,7 @@
 
   <script src="js/config.js"></script>
   <script src="js/navbar.js"></script>
-  <script src="js/utils.js"></script>
+  <script src="js/utils.js"></script>`n    <script src="js/error-ui.js"></script>
   <script src="js/resume.js"></script>
   <script src="js/support-chat.js"></script>
   <script src="js/auth-ui.js"></script>

@@ -1,4 +1,4 @@
-const defaultReviews = [
+﻿const defaultReviews = [
   {
     name: "Lena Ortiz",
     role: "Product Designer",
@@ -31,7 +31,7 @@ const renderReviews = (reviews) => {
 
   grid.innerHTML = "";
   reviews.forEach((review) => {
-    const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
+    const stars = "â˜…â˜…â˜…â˜…â˜…".slice(0, review.rating) + "â˜†â˜†â˜†â˜†â˜†".slice(0, 5 - review.rating);
     grid.innerHTML += `
       <article class="review-card">
         <div class="review-header">
@@ -78,7 +78,7 @@ const initReviews = () => {
     const message = messageInput.value.trim();
 
     if (!name || !role || !message || Number.isNaN(rating)) {
-      alert("Please fill all review fields");
+      showWarning("Please fill all review fields");
       return;
     }
 
@@ -92,7 +92,7 @@ const initReviews = () => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.warn("Review submit failed", res.status, data);
-        alert(data.message || "Failed to submit review (server error)");
+        showError(data.message || "Failed to submit review (server error)");
         return;
       }
 
@@ -100,11 +100,11 @@ const initReviews = () => {
       if (window.toast) {
         toast("Thanks! Your review is pending approval.");
       } else {
-        alert("Thanks! Your review is pending approval.");
+        showError("Thanks! Your review is pending approval.");
       }
     } catch (err) {
       console.error("Review submit error:", err);
-      alert(`Network error. ${err.message || "Please try again"}`);
+      showError(`Network error. ${err.message || "Please try again"}`);
     }
   });
 };

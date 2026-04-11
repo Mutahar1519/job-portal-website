@@ -27,3 +27,8 @@ ALTER TABLE applications ADD COLUMN cover_letter TEXT NOT NULL;
 ALTER TABLE applications ADD COLUMN cv_path VARCHAR(255) NULL;
 ALTER TABLE applications ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'pending';
 ALTER TABLE applications ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+-- Candidate ranking and interview tracking fields
+ALTER TABLE applications ADD COLUMN score TINYINT UNSIGNED NULL;
+ALTER TABLE applications ADD COLUMN interview_status VARCHAR(30) NOT NULL DEFAULT 'not_started';
+ALTER TABLE applications ADD COLUMN interview_notes TEXT NULL;

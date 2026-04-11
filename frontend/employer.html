@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -26,7 +26,6 @@
       <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
         <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
       </a>
-      <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
       <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
@@ -52,6 +51,7 @@
 
     <section class="employer-tabs" aria-label="Employer sections">
       <a href="#employer-jobs" class="employer-tab is-active"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+      <a href="#employer-bulk" class="employer-tab"><i class="fa-solid fa-file-csv"></i> Bulk Upload</a>
       <a href="#employer-analytics" class="employer-tab"><i class="fa-solid fa-chart-line"></i> Analytics</a>
       <a href="#employer-pipeline" class="employer-tab"><i class="fa-solid fa-users"></i> Pipeline</a>
       <a href="#employer-messages" class="employer-tab"><i class="fa-solid fa-comments"></i> Messages</a>
@@ -66,12 +66,56 @@
         <div class="toolbar-group">
           <label class="filter-label" for="jobSelect">Active role</label>
           <select id="jobSelect" class="form-input"></select>
+          <p id="selectedJobMeta" class="p-muted" style="margin-top:8px;"></p>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;">
+            <p id="applicationNotificationMeta" class="p-muted" style="margin:0;"></p>
+            <span id="applicationNotificationBadge" class="tag-pill bg-blue-100 text-blue-700" style="display:none;">0 unread</span>
+          </div>
+          <div id="applicationNotificationFilters" class="admin-record-actions" style="display:flex;gap:8px;margin-top:6px;">
+            <button type="button" class="btn btn-outline" data-notification-filter="unread">Unread</button>
+            <button type="button" class="btn btn-outline" data-notification-filter="all">All</button>
+            <button type="button" class="btn btn-outline" data-notification-filter="read">Read</button>
+          </div>
+          <div id="applicationNotificationsList" class="admin-list" style="margin-top:8px;"></div>
         </div>
         <div class="toolbar-actions">
+          <button id="markNotificationsReadBtn" class="btn btn-outline" type="button">Mark alerts as read</button>
+          <button id="renewJobBtn" class="btn btn-outline" type="button">Renew job (30 days)</button>
+          <button id="reboostJobBtn" class="btn btn-outline" type="button">Re-Boost job</button>
           <button id="refreshJobs" class="btn btn-outline" type="button">Refresh</button>
           <a class="btn btn-primary" href="post-jobs.html">Post a job</a>
         </div>
       </div>
+      <div class="glass" style="padding:14px;margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <h3 style="margin:0;">Posting history</h3>
+          <p id="jobHistoryMeta" class="p-muted" style="margin:0;">Loading history...</p>
+        </div>
+        <div id="jobHistoryList" class="admin-list" style="margin-top:10px;"></div>
+      </div>
+    </section>
+
+    <section id="employer-bulk" class="section-block employer-panel">
+      <div class="section-head">
+        <p class="eyebrow">Bulk posting</p>
+        <h2 class="section-title">Upload multiple jobs from CSV</h2>
+        <p class="p-muted">Validate rows first with Dry Run, then create all valid jobs in one click.</p>
+      </div>
+
+      <div class="bulk-upload-toolbar">
+        <button id="downloadBulkTemplateBtn" class="btn btn-outline" type="button">Download CSV template</button>
+        <label class="btn btn-outline" for="bulkCsvFile" style="cursor:pointer;">Choose CSV</label>
+        <input id="bulkCsvFile" type="file" accept=".csv,text/csv" style="display:none;" />
+        <span id="bulkCsvMeta" class="p-muted">No file selected</span>
+      </div>
+
+      <div class="bulk-upload-actions">
+        <button id="bulkDryRunBtn" class="btn btn-outline" type="button">Dry Run Validation</button>
+        <button id="bulkUploadBtn" class="btn btn-primary" type="button">Create Jobs</button>
+      </div>
+
+      <div id="bulkUploadResult" class="bulk-upload-result p-muted">Upload a CSV to start.</div>
+      <div id="bulkUploadIssues" class="admin-list"></div>
     </section>
 
     <section id="employer-analytics" class="section-block employer-panel">
@@ -97,6 +141,47 @@
     </section>
 
     <section class="pipeline-layout employer-panel">
+      <!-- Advanced Application Management Controls -->
+      <div class="pipeline-toolbar advanced-app-controls" style="margin-bottom:18px;display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;">
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label for="applicationSearch" class="filter-label">Search</label>
+          <input id="applicationSearch" class="form-input" type="text" placeholder="Search by name, email, tag..." style="min-width:180px;" />
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label for="applicationFilterStage" class="filter-label">Stage</label>
+          <select id="applicationFilterStage" class="form-input">
+            <option value="">All</option>
+            <option value="new">New</option>
+            <option value="screening">Screening</option>
+            <option value="interview">Interview</option>
+            <option value="offer">Offer</option>
+            <option value="hired">Hired</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label for="applicationSort" class="filter-label">Sort by</label>
+          <select id="applicationSort" class="form-input">
+            <option value="created_at_desc">Newest</option>
+            <option value="created_at_asc">Oldest</option>
+            <option value="score_desc">Score (high to low)</option>
+            <option value="score_asc">Score (low to high)</option>
+            <option value="name_asc">Name (A-Z)</option>
+            <option value="name_desc">Name (Z-A)</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label class="filter-label">Bulk Actions</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button id="bulkMoveStageBtn" class="btn btn-outline" type="button">Move Stage</button>
+            <button id="bulkMessageBtn" class="btn btn-outline" type="button">Message</button>
+            <button id="bulkTagBtn" class="btn btn-outline" type="button">Tag</button>
+            <button id="bulkShortlistBtn" class="btn btn-outline" type="button">Shortlist</button>
+            <button id="bulkExportBtn" class="btn btn-outline" type="button">Export</button>
+          </div>
+        </div>
+      </div>
+      <!-- End Advanced Controls -->
       <div id="employer-pipeline" class="pipeline-board employer-pipeline-board">
         <div class="pipeline-column" data-stage="new">
           <h3>New</h3>
@@ -205,6 +290,46 @@
 
   <div id="toast"></div>
 
+  <!-- Shift Payment Modal -->
+  <div id="shiftPaymentModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shiftPaymentTitle">
+    <div class="modal-inner glass-card" style="max-width:480px;width:100%;padding:28px;">
+      <h3 id="shiftPaymentTitle" style="margin-bottom:4px;">Select Payment Method</h3>
+      <p class="p-muted" style="margin-bottom:18px;font-size:13px;">Choose your preferred payment method for this shift. Hosted checkout may still continue through the default card processor.</p>
+      <div id="shiftPaymentOptions" class="payment-method-grid" role="listbox" aria-label="Payment methods">
+        <button class="payment-method-option" role="option" data-method="card" tabindex="0">
+          <span class="payment-method-icon"><i class="fa-solid fa-credit-card"></i></span>
+          <span>Credit / Debit Card</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="applepay" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-apple"></i></span>
+          <span>Apple Pay</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="gpay" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-google-pay"></i></span>
+          <span>Google Pay</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="paypal" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-paypal"></i></span>
+          <span>PayPal</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="bank_transfer" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-solid fa-building-columns"></i></span>
+          <span>Bank Transfer</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+      </div>
+      <p id="shiftPaymentSelectedText" class="payment-method-selected" aria-live="polite">Selected: Card</p>
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button id="shiftPaymentConfirm" class="btn btn-primary" type="button" style="flex:1;">Confirm Payment</button>
+        <button id="shiftPaymentCancel" class="btn btn-outline" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <footer class="site-footer">
     <div class="footer-grid">
       <div>
@@ -228,7 +353,7 @@
 
   <script src="js/config.js"></script>
   <script src="js/navbar.js"></script>
-  <script src="js/utils.js"></script>
+  <script src="js/utils.js"></script>`n    <script src="js/error-ui.js"></script>
   <script src="js/employer.js"></script>
   <script src="js/support-chat.js"></script>
   <script src="js/auth-ui.js"></script>

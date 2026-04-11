@@ -1,0 +1,36 @@
+﻿# Environment variables (keep real credentials local only)
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# User-generated uploads
+backend/uploads/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Test outputs
+test-results/
+playwright-report/
+coverage/
+
+# Temp
+.tmp/
+temp/

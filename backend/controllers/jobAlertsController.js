@@ -1,20 +1,84 @@
 const db = require("../config/mysql");
+const {
+  canSendNotification,
+  sendJobAlertEmail
+} = require("./notificationsController");
+
+// Bootstrap extra columns needed for shift alerts.
+// Only ALTER missing columns to avoid lock contention on every server boot.
+const SHIFT_ALERT_COLUMN_ALTERS = {
+  title: "ALTER TABLE job_alerts ADD COLUMN title VARCHAR(200) NULL",
+  preferred_days: "ALTER TABLE job_alerts ADD COLUMN preferred_days VARCHAR(200) NULL",
+  min_pay_cents: "ALTER TABLE job_alerts ADD COLUMN min_pay_cents INT NULL DEFAULT 0",
+  notifications_enabled: "ALTER TABLE job_alerts ADD COLUMN notifications_enabled TINYINT(1) NOT NULL DEFAULT 1",
+  is_shift_alert: "ALTER TABLE job_alerts ADD COLUMN is_shift_alert TINYINT(1) NOT NULL DEFAULT 0",
+};
+
+function runSeqBootstrap(sqls, idx) {
+  if (idx >= sqls.length) return;
+  db.query(sqls[idx], [], (err) => {
+    if (err && err.code !== "ER_DUP_FIELDNAME" && !String(err.message || "").includes("Duplicate column")) {
+      console.warn("[jobAlerts] schema bootstrap:", err.message);
+    }
+    runSeqBootstrap(sqls, idx + 1);
+  });
+}
+
+function bootstrapJobAlertsColumns() {
+  const requiredColumns = Object.keys(SHIFT_ALERT_COLUMN_ALTERS);
+  db.query(
+    `SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'job_alerts'
+       AND COLUMN_NAME IN (?)`,
+    [requiredColumns],
+    (err, rows) => {
+      if (err) {
+        console.warn("[jobAlerts] schema bootstrap check:", err.message);
+        return;
+      }
+
+      const existing = new Set((rows || []).map((row) => String(row.COLUMN_NAME || "").toLowerCase()));
+      const alters = requiredColumns
+        .filter((name) => !existing.has(name.toLowerCase()))
+        .map((name) => SHIFT_ALERT_COLUMN_ALTERS[name]);
+
+      if (alters.length) {
+        runSeqBootstrap(alters, 0);
+      }
+    }
+  );
+}
+
+bootstrapJobAlertsColumns();
 
 const clean = (value) => (value || "").trim();
 
 const normalize = (body) => {
+  const rawCategory = clean(body.category);
+  const customCategory = clean(body.category_custom);
+  const category = rawCategory.toLowerCase() === "other"
+    ? customCategory
+    : rawCategory;
+
   return {
+    title: clean(body.title),
     keyword: clean(body.keyword),
     location: clean(body.location),
-    category: clean(body.category),
+    category,
     jobType: clean(body.job_type),
     frequency: clean(body.frequency) || "daily",
-    isActive: body.is_active === false ? 0 : 1
+    isActive: body.is_active === false ? 0 : 1,
+    preferredDays: clean(body.preferred_days),
+    minPayCents: Number(body.min_pay_cents) || 0,
+    notificationsEnabled: body.notifications_enabled === false ? 0 : 1,
+    isShiftAlert: body.is_shift_alert ? 1 : 0,
   };
 };
 
 const validate = (payload) => {
-  if (!payload.keyword && !payload.location && !payload.category && !payload.jobType) {
+  if (!payload.title && !payload.keyword && !payload.location && !payload.category && !payload.jobType) {
     return "Add at least one alert filter";
   }
   const allowed = ["daily", "weekly"];
@@ -44,21 +108,103 @@ exports.createAlert = (req, res) => {
   const error = validate(payload);
   if (error) return res.status(400).json({ message: error });
 
+  const params = [
+    req.user.id,
+    payload.title || null,
+    payload.keyword || null,
+    payload.location || null,
+    payload.category || null,
+    payload.jobType || null,
+    payload.frequency,
+    payload.isActive,
+    payload.preferredDays || null,
+    payload.minPayCents,
+    payload.notificationsEnabled,
+    payload.isShiftAlert,
+  ];
+
+  const fallbackInsert = () => {
+    db.query(
+      `INSERT INTO job_alerts
+        (user_id, keyword, location, category, job_type, frequency, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      ,[
+        req.user.id,
+        payload.keyword || null,
+        payload.location || null,
+        payload.category || null,
+        payload.jobType || null,
+        payload.frequency,
+        payload.isActive,
+      ],
+      (legacyErr, legacyResult) => {
+        if (legacyErr) {
+          return res.status(500).json({ message: legacyErr.message, error: legacyErr.message });
+        }
+
+        db.query(
+          "SELECT email FROM users WHERE id = ? LIMIT 1",
+          [req.user.id],
+          (emailErr, userRows) => {
+            if (emailErr || !userRows.length || !userRows[0].email) return;
+
+            canSendNotification(req.user.id, "job_alert_match", (prefErr, enabled) => {
+              if (prefErr || !enabled) return;
+
+              const title = payload.title || payload.keyword || "Your Job Alert";
+              sendJobAlertEmail(req.user.id, userRows[0].email, legacyResult.insertId, {
+                title,
+                location: payload.location || "Remote",
+                company_name: "JobPortal",
+                salary_min: payload.minPayCents ? Math.round(Number(payload.minPayCents) / 100) : null
+              }).catch((mailErr) => {
+                console.warn("[jobAlerts] alert email send failed:", mailErr.message);
+              });
+            });
+          }
+        );
+
+        res.status(201).json({ message: "Alert created", id: legacyResult.insertId });
+      }
+    );
+  };
+
   db.query(
     `INSERT INTO job_alerts
-      (user_id, keyword, location, category, job_type, frequency, is_active)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ,[
-      req.user.id,
-      payload.keyword || null,
-      payload.location || null,
-      payload.category || null,
-      payload.jobType || null,
-      payload.frequency,
-      payload.isActive
-    ],
+      (user_id, title, keyword, location, category, job_type, frequency, is_active,
+       preferred_days, min_pay_cents, notifications_enabled, is_shift_alert)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ,params,
     (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) {
+        if (err.code === "ER_BAD_FIELD_ERROR" || /Unknown column/i.test(err.message || "")) {
+          return fallbackInsert();
+        }
+        return res.status(500).json({ message: err.message, error: err.message });
+      }
+
+      db.query(
+        "SELECT email FROM users WHERE id = ? LIMIT 1",
+        [req.user.id],
+        (emailErr, userRows) => {
+          if (emailErr || !userRows.length || !userRows[0].email) return;
+
+          canSendNotification(req.user.id, "job_alert_match", (prefErr, enabled) => {
+            if (prefErr || !enabled) return;
+
+            const title = payload.title || payload.keyword || "Your Job Alert";
+            sendJobAlertEmail(req.user.id, userRows[0].email, result.insertId, {
+              title,
+              location: payload.location || "Remote",
+              company_name: "JobPortal",
+              salary_min: payload.minPayCents ? Math.round(Number(payload.minPayCents) / 100) : null
+            }).catch((mailErr) => {
+              console.warn("[jobAlerts] alert email send failed:", mailErr.message);
+            });
+          });
+        }
+      );
+
       res.status(201).json({ message: "Alert created", id: result.insertId });
     }
   );
@@ -72,22 +218,62 @@ exports.updateAlert = (req, res) => {
   const error = validate(payload);
   if (error) return res.status(400).json({ message: error });
 
+  const params = [
+    payload.title || null,
+    payload.keyword || null,
+    payload.location || null,
+    payload.category || null,
+    payload.jobType || null,
+    payload.frequency,
+    payload.isActive,
+    payload.preferredDays || null,
+    payload.minPayCents,
+    payload.notificationsEnabled,
+    payload.isShiftAlert,
+    alertId,
+    req.user.id
+  ];
+
+  const fallbackUpdate = () => {
+    db.query(
+      `UPDATE job_alerts
+       SET keyword = ?, location = ?, category = ?, job_type = ?, frequency = ?, is_active = ?
+       WHERE id = ? AND user_id = ?`
+      ,[
+        payload.keyword || null,
+        payload.location || null,
+        payload.category || null,
+        payload.jobType || null,
+        payload.frequency,
+        payload.isActive,
+        alertId,
+        req.user.id
+      ],
+      (legacyErr, legacyResult) => {
+        if (legacyErr) {
+          return res.status(500).json({ message: legacyErr.message, error: legacyErr.message });
+        }
+        if (legacyResult.affectedRows === 0) {
+          return res.status(404).json({ message: "Alert not found" });
+        }
+        res.json({ message: "Alert updated" });
+      }
+    );
+  };
+
   db.query(
     `UPDATE job_alerts
-     SET keyword = ?, location = ?, category = ?, job_type = ?, frequency = ?, is_active = ?
+     SET title = ?, keyword = ?, location = ?, category = ?, job_type = ?, frequency = ?, is_active = ?,
+         preferred_days = ?, min_pay_cents = ?, notifications_enabled = ?, is_shift_alert = ?
      WHERE id = ? AND user_id = ?`
-    ,[
-      payload.keyword || null,
-      payload.location || null,
-      payload.category || null,
-      payload.jobType || null,
-      payload.frequency,
-      payload.isActive,
-      alertId,
-      req.user.id
-    ],
+    ,params,
     (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) {
+        if (err.code === "ER_BAD_FIELD_ERROR" || /Unknown column/i.test(err.message || "")) {
+          return fallbackUpdate();
+        }
+        return res.status(500).json({ message: err.message, error: err.message });
+      }
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: "Alert not found" });
       }
@@ -104,7 +290,7 @@ exports.deleteAlert = (req, res) => {
     "DELETE FROM job_alerts WHERE id = ? AND user_id = ?",
     [alertId, req.user.id],
     (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) return res.status(500).json({ message: err.message, error: err.message });
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: "Alert not found" });
       }
@@ -132,6 +318,7 @@ exports.listShiftNotifications = (req, res) => {
       ORDER BY n.created_at DESC
       LIMIT 50
     `;
+
     db.query(sql, [req.user.id], (err, rows) => {
       if (err) {
         if ((err.code === "ER_BAD_FIELD_ERROR" || /Unknown column/i.test(err.message)) && includeDeadline) {

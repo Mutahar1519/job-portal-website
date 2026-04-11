@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -37,67 +37,24 @@
         <h1 class="hero-title">Apply with Confidence</h1>
         <p class="hero-subtitle">Submit your application and get reviewed quickly. Our smart matching system connects you with the right opportunities.</p>
       </div>
-    </section>
-
-    <section class="apply-layout">
-      <aside class="apply-summary">
-        <div class="glass-card job-summary-card">
-          <div class="job-summary-header">
-            <p class="eyebrow">Position Details</p>
-            <h2 id="jobSummaryTitle" class="h2">Loading role...</h2>
-          </div>
-          <div id="jobSummaryBadges" class="job-card-badges"></div>
-          <div id="jobSummaryMeta" class="job-meta"></div>
-          <div id="jobSummaryCompany" class="company-badge"></div>
-          <div class="job-summary-description">
-            <p class="p-muted-bold">About this role:</p>
-            <p id="jobSummaryDescription" class="p-muted"></p>
-          </div>
-        </div>
-        <div class="glass-card apply-trust">
-          <div class="trust-header">
-            <h3><i class="fa-solid fa-shield-halved"></i> Why apply here</h3>
-          </div>
-          <p class="p-muted">Verified employers, escrow-backed shift work, and rapid response times.</p>
-          <ul class="apply-benefits-list">
-            <li><i class="fa-solid fa-check-circle"></i> Fast review turnaround</li>
-            <li><i class="fa-solid fa-check-circle"></i> Transparent hiring pipeline</li>
-            <li><i class="fa-solid fa-check-circle"></i> Secure shift payments</li>
-          </ul>
-        </div>
-      </aside>
-
-      <div class="apply-form-wrapper">
-        <div class="glass-card apply-container">
-          <div class="apply-form-header">
-            <h2>Complete Your Application</h2>
-            <p class="p-muted">Provide your information below. We use this to match you with the best opportunities.</p>
-          </div>
-
-          <form id="applyForm" enctype="multipart/form-data" class="apply-form">
-            <div class="form-section">
-              <p class="form-section-title">Personal Information</p>
-              
-              <div class="form-group">
-                <label class="form-label" for="name"><i class="fa-solid fa-user"></i> Full Name <span class="required">*</span></label>
-                <input type="text" id="name" class="form-input" required placeholder="Your full name" />
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label" for="email"><i class="fa-solid fa-envelope"></i> Email Address <span class="required">*</span></label>
-                  <input type="email" id="email" class="form-input" required placeholder="your@email.com" />
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="phone"><i class="fa-solid fa-phone"></i> Phone Number <span class="required">*</span></label>
-                  <input type="text" id="phone" class="form-input" required placeholder="+1 (555) 123-4567" />
+      <a href="jobs.html" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-left"></i> Back to Jobs
+      </a>
                 </div>
               </div>
 
               <div class="form-group">
                 <label class="form-label" for="country"><i class="fa-solid fa-globe"></i> Country / Region <span class="required">*</span></label>
-                <input type="text" id="country" class="form-input" required placeholder="Your country or region" />
+<select id="country" class="form-input" required>
+                  <option value="">Select country</option>
+                  <option value="United Kingdom">United Kingdom</option>
+                  <option value="United States">United States</option>
+                  <option value="Canada">Canada</option>
+                  <option value="Australia">Australia</option>
+                  <option value="India">India</option>
+                  <option value="Pakistan">Pakistan</option>
+                  <option value="United Arab Emirates">United Arab Emirates</option>
+                </select>
               </div>
             </div>
 
@@ -130,12 +87,13 @@
 
               <div class="form-group">
                 <label class="form-label" for="cv"><i class="fa-solid fa-file-pdf"></i> Upload CV/Resume</label>
-                <div class="file-upload-box">
+<div class="file-upload-box" id="cvUploadBox">
                   <input type="file" id="cv" class="file-input" accept=".pdf,.doc,.docx" />
                   <div class="file-upload-content">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <p class="file-upload-text">Drag and drop your CV or <span class="file-link">click to browse</span></p>
-                    <p class="file-upload-hint">PDF, DOC, or DOCX (Max 5MB)</p>
+                    <p class="file-upload-text" id="cvUploadText">Drag and drop your CV or <span class="file-link">click to browse</span></p>
+                    <p class="file-upload-hint" id="cvUploadHint">PDF, DOC, or DOCX (Max 5MB)</p>
+                    <p class="file-upload-status hidden" id="cvUploadStatus"></p>
                   </div>
                 </div>
               </div>
@@ -200,14 +158,14 @@
         <a href="dashboard.html">Dashboard</a>
       </div>
     </div>
-    <div class="footer-bottom">© 2026 JobPortal. All rights reserved.</div>
+<div class="footer-bottom">� 2026 JobPortal. All rights reserved.</div>
   </footer>
 
   <div id="toast"></div>
 
   <script src="js/config.js"></script>
   <script src="js/navbar.js"></script>
-  <script src="js/utils.js"></script>
+  <script src="js/utils.js"></script>`n    <script src="js/error-ui.js"></script>
   <script src="js/apply.js"></script>
   <script src="js/support-chat.js"></script>
   <script src="js/auth-ui.js"></script>

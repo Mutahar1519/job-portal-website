@@ -1,4 +1,4 @@
-const apiPort = "3000";
+﻿const apiPort = "3000";
 
 const getDefaultApiOrigin = () => {
   if (window.location.protocol === "file:") {
@@ -16,26 +16,25 @@ const getDefaultApiOrigin = () => {
   return `${window.location.protocol}//${window.location.host}`;
 };
 
-// Base origin for asset URLs (images, uploads, etc.) — no /api suffix
+// Base origin for asset URLs (images, uploads, etc.) â€” no /api suffix
 const apiOrigin = getDefaultApiOrigin();
 const API = `${apiOrigin}/api`;
 
-window.authFetch = (url, options = {}) => {
+// eslint-disable-next-line no-var
+var authFetch = function(url, options = {}) {
   const token = localStorage.getItem("token");
-  // Do NOT set Content-Type for FormData — browser must set it with the multipart boundary
+  // Do NOT set Content-Type for FormData â€” browser must set it with the multipart boundary
   const isFormData = options.body instanceof FormData;
   const method = String(options.method || "GET").toUpperCase();
-  const shouldSetJsonContentType = !isFormData && options.body != null && method !== "GET" && method !== "HEAD";
-
-  // Only add Authorization header if token exists and is not empty
-  const headers = {
-    ...(shouldSetJsonContentType ? { "Content-Type": "application/json" } : {}),
-    ...(token && token.trim() ? { Authorization: `Bearer ${token.trim()}` } : {}),
-    ...(options.headers || {})
-  };
+  const shouldSetJsonHeader = !isFormData && !["GET", "HEAD"].includes(method);
 
   return fetch(url, {
     ...options,
-    headers
+    headers: {
+      ...(shouldSetJsonHeader ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {})
+    }
   });
 };
+window.authFetch = authFetch;

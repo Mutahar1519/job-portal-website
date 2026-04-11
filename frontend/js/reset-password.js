@@ -1,4 +1,4 @@
-document.getElementById("resetPasswordForm")?.addEventListener("submit", async (event) => {
+﻿document.getElementById("resetPasswordForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const newPassword = document.getElementById("newPassword")?.value.trim();
@@ -6,17 +6,17 @@ document.getElementById("resetPasswordForm")?.addEventListener("submit", async (
   const token = new URLSearchParams(window.location.search).get("token");
 
   if (!token) {
-    alert("Reset token is missing");
+    showError("Reset token is missing");
     return;
   }
 
   if (!newPassword || newPassword.length < 6) {
-    alert("Password must be at least 6 characters");
+    showWarning("Password must be at least 6 characters");
     return;
   }
 
   if (newPassword !== confirmPassword) {
-    alert("Passwords do not match");
+    showError("Passwords do not match");
     return;
   }
 
@@ -31,14 +31,14 @@ document.getElementById("resetPasswordForm")?.addEventListener("submit", async (
 
     const data = await res.json();
     if (!res.ok) {
-      alert(data.message || "Password reset failed");
+      showSuccess(data.message || "Password reset failed");
       return;
     }
 
-    alert("Password updated. Please log in.");
+    showSuccess("Password updated. Please log in.");
     window.location.href = "login.html";
   } catch (err) {
     console.error(err);
-    alert("Server error");
+    showError("Server error");
   }
 });

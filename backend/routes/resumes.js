@@ -4,9 +4,11 @@ const fs = require("fs");
 const multer = require("multer");
 const db = require("../config/mysql");
 const resumesController = require("../controllers/resumesController");
+const { getPolicy } = require("../utils/uploadPolicy");
 const { auth } = require("../middleware/auth");
 
 const router = express.Router();
+const resumePolicy = getPolicy("resumes");
 
 // Bootstrap resumes table if missing
 // (prevents 500s on upload when schema wasn't fully applied)
@@ -47,17 +49,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: resumePolicy.maxSizeMB * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = new Set([
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ]);
+    const allowed = new Set(resumePolicy.allowedMimeTypes);
     const ext = path.extname(file.originalname || "").toLowerCase();
-    const isAllowedExt = [".pdf", ".doc", ".docx"].includes(ext);
+    const isAllowedExt = resumePolicy.allowedExtensions.includes(ext);
     const isAllowed = allowed.has(file.mimetype) || isAllowedExt;
-    cb(isAllowed ? null : new Error("Only PDF, DOC, or DOCX files are allowed"), isAllowed);
+    cb(isAllowed ? null : new Error(`Only ${resumePolicy.allowedExtensions.join(", ")} files are allowed`), isAllowed);
   }
 });
 
@@ -69,7 +67,7 @@ router.use((err, req, res, next) => {
 
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
-      return res.status(400).json({ message: "Resume must be 5MB or smaller" });
+      return res.status(400).json({ message: `Resume must be ${resumePolicy.maxSizeMB}MB or smaller` });
     }
     return res.status(400).json({ message: err.message || "Invalid resume upload" });
   }

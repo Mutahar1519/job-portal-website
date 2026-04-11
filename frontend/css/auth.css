@@ -725,12 +725,17 @@ body {
 }
 
 .navbar .logo {
+  font-family: "Poppins", sans-serif;
   font-size: 22px;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  text-decoration: none;
+  color: #0f172a;
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  -webkit-text-fill-color: currentColor;
 }
 
 /* Preserve visible logo mark badge even when gradient text is enabled on logo link. */
@@ -740,12 +745,16 @@ body {
   justify-content: center;
   width: 34px;
   height: 34px;
-  margin-right: 8px;
+  margin-right: 0;
   border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  background: linear-gradient(135deg, var(--logo-mark-start, #2563eb), var(--logo-mark-end, #0ea5e9));
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.3px;
+  font-family: "Poppins", sans-serif;
+  line-height: 1;
+  text-transform: uppercase;
   -webkit-background-clip: border-box;
   background-clip: border-box;
   -webkit-text-fill-color: #ffffff;

@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+﻿document.addEventListener("DOMContentLoaded", () => {
   // Modal registry for about page features
   const modals = {
     "trustedPostings": {
@@ -45,10 +45,10 @@ document.addEventListener("DOMContentLoaded", () => {
         </ul>
         <p style="margin-top: 16px;"><strong>Why Escrow Matters:</strong></p>
         <ul style="margin-left: 20px; line-height: 1.8;">
-          <li>✓ Workers guaranteed payment for completed work</li>
-          <li>✓ Employers protected from fraudulent claims</li>
-          <li>✓ Disputes resolved fairly by our team</li>
-          <li>✓ No surprise non-payment or rejection</li>
+          <li>âœ“ Workers guaranteed payment for completed work</li>
+          <li>âœ“ Employers protected from fraudulent claims</li>
+          <li>âœ“ Disputes resolved fairly by our team</li>
+          <li>âœ“ No surprise non-payment or rejection</li>
         </ul>
       `
     },
@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <ul style="margin-left: 20px; line-height: 1.8;">
           <li><strong>Pre-verified candidates:</strong> Profiles already checked and validated</li>
           <li><strong>Smart filtering:</strong> Find the right fit in seconds, not days</li>
-          <li><strong>Direct messaging:</strong> Chat with candidates immediately—no email delays</li>
+          <li><strong>Direct messaging:</strong> Chat with candidates immediatelyâ€”no email delays</li>
           <li><strong>One-click scheduling:</strong> Quick interviews, fast decisions</li>
           <li><strong>Profile signals:</strong> Ratings, skills, and history visible upfront</li>
         </ul>
@@ -89,10 +89,10 @@ document.addEventListener("DOMContentLoaded", () => {
           <li><strong>Shortlist:</strong> Save candidates or jobs with one click</li>
           <li><strong>Chat:</strong> Message employers or applicants directly on the platform</li>
           <li><strong>Schedule:</strong> Arrange interviews without leaving JobPortal</li>
-          <li><strong>Pipeline stages:</strong> Move candidates from Pending → Reviewed → Accepted/Rejected</li>
+          <li><strong>Pipeline stages:</strong> Move candidates from Pending â†’ Reviewed â†’ Accepted/Rejected</li>
           <li><strong>Shift management:</strong> Post, book, and confirm shift work end-to-end</li>
         </ul>
-        <p style="margin-top: 16px;">No external tools required — the entire hiring journey lives here.</p>
+        <p style="margin-top: 16px;">No external tools required â€” the entire hiring journey lives here.</p>
       `
     },
     "fairAccess": {
@@ -128,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
       icon: "fa-diagram-project",
       content: `
         <h3>One Coherent Flow</h3>
-        <p>The full journey — from discovering a job to receiving an offer — is designed as a single, smooth path:</p>
+        <p>The full journey â€” from discovering a job to receiving an offer â€” is designed as a single, smooth path:</p>
         <ol style="margin-left: 20px; line-height: 1.8; margin-top: 12px;">
           <li>Search and filter jobs on the Jobs page</li>
           <li>Shortlist interesting roles to save for later</li>
@@ -151,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <li><strong>Rating system:</strong> Transparent company reviews from real candidates</li>
           <li><strong>Alert matching:</strong> Job alerts delivered when roles match your preferences</li>
         </ul>
-        <p style="margin-top: 16px;">Both sides of the hiring equation get better information — resulting in fewer mismatches and faster, more confident decisions.</p>
+        <p style="margin-top: 16px;">Both sides of the hiring equation get better information â€” resulting in fewer mismatches and faster, more confident decisions.</p>
       `
     },
     "hiringPartners": {
@@ -160,7 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
       content: `
         <h3>Built for Hiring Teams</h3>
         <ul style="margin-left: 20px; line-height: 1.8;">
-          <li><strong>Post jobs fast:</strong> Fill out a structured form — live in minutes after approval</li>
+          <li><strong>Post jobs fast:</strong> Fill out a structured form â€” live in minutes after approval</li>
           <li><strong>Company profile:</strong> A dedicated page candidates can browse</li>
           <li><strong>Pipeline view:</strong> See all applicants and move them through stages</li>
           <li><strong>Shift jobs:</strong> Post short-term shifts with hourly rates and escrow payment</li>
@@ -183,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <li><strong>Resume parser:</strong> Upload your CV and let the platform extract your skills</li>
           <li><strong>Track progress:</strong> See all your applications and their status in one dashboard</li>
         </ul>
-        <p style="margin-top: 16px;"><a href="register.html" style="color:var(--primary,#2563eb);">Create your free account →</a></p>
+        <p style="margin-top: 16px;"><a href="register.html" style="color:var(--primary,#2563eb);">Create your free account â†’</a></p>
       `
     },
     "operations": {
@@ -198,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <li><strong>Dispute resolution:</strong> Admins can freeze, dispute, or refund escrow payments</li>
           <li><strong>Admin controls:</strong> Full control over users, jobs, reviews, and platform data</li>
         </ul>
-        <p style="margin-top: 16px;">Designed to be transparent — every action has a paper trail.</p>
+        <p style="margin-top: 16px;">Designed to be transparent â€” every action has a paper trail.</p>
       `
     }
   };

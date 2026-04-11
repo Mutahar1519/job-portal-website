@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+﻿document.addEventListener("DOMContentLoaded", () => {
   // Modal registry for future expansion
   const modals = {
     "gettingStarted": {
@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <li><strong>Escrow:</strong> Payment is held securely until work completion</li>
           <li><strong>Fee:</strong> Standard 10% fee covers platform, security, and insurance</li>
           <li><strong>Example:</strong> $100 shift + $10 fee = $110 total held in escrow</li>
-          <li><strong>Release:</strong> Worker completes shift → Employer confirms → Payment released</li>
+          <li><strong>Release:</strong> Worker completes shift â†’ Employer confirms â†’ Payment released</li>
         </ul>
         <p style="margin-top: 16px;"><strong>Security Benefits:</strong></p>
         <ul style="margin-left: 20px; line-height: 1.8;">
@@ -81,10 +81,10 @@ document.addEventListener("DOMContentLoaded", () => {
         </ul>
         <p style="margin-top: 16px;"><strong>What the Badge Means:</strong></p>
         <ul style="margin-left: 20px; line-height: 1.8;">
-          <li>✓ Employer identity confirmed</li>
-          <li>✓ Legitimate business registered</li>
-          <li>✓ History of successful hires</li>
-          <li>✓ Platform stands behind this employer</li>
+          <li>âœ“ Employer identity confirmed</li>
+          <li>âœ“ Legitimate business registered</li>
+          <li>âœ“ History of successful hires</li>
+          <li>âœ“ Platform stands behind this employer</li>
         </ul>
       `
     },
@@ -111,6 +111,21 @@ document.addEventListener("DOMContentLoaded", () => {
           <li>We investigate all reports within 12 hours</li>
           <li>Your safety is our top priority</li>
         </ul>
+      `
+    },
+    "trustCenter": {
+      title: "Trust Center & Security",
+      icon: "fa-shield-halved",
+      content: `
+        <h3>Security Practices</h3>
+        <ul style="margin-left: 20px; line-height: 1.8;">
+          <li><strong>Encrypted auth:</strong> Session tokens are signed and expire automatically.</li>
+          <li><strong>Role-based access:</strong> Employer, seeker, and admin pages are separated.</li>
+          <li><strong>Employer checks:</strong> Company details are visible for admin verification workflows.</li>
+          <li><strong>Moderation controls:</strong> Jobs can be auto-reviewed and manually approved.</li>
+          <li><strong>Support traceability:</strong> Support tickets and admin replies are timestamped.</li>
+        </ul>
+        <p style="margin-top: 14px;"><strong>Need help?</strong> Contact support@jobportal.com with your account email and issue details.</p>
       `
     },
     "dataPreferences": {
@@ -147,10 +162,10 @@ document.addEventListener("DOMContentLoaded", () => {
         <p>JobPortal uses <strong>localStorage</strong> (not cookies) for essential session data only. No third-party trackers or advertising cookies are used.</p>
         <p style="margin-top: 16px;"><strong>What is stored:</strong></p>
         <ul style="margin-left: 20px; line-height: 1.8;">
-          <li><strong>token</strong> — your login JWT, expires in 24 hours</li>
-          <li><strong>user</strong> — your basic profile for UI display</li>
-          <li><strong>theme / palette</strong> — appearance preferences</li>
-          <li><strong>jobPostDraft.v1</strong> — draft job post (employers)</li>
+          <li><strong>token</strong> â€” your login JWT, expires in 24 hours</li>
+          <li><strong>user</strong> â€” your basic profile for UI display</li>
+          <li><strong>theme / palette</strong> â€” appearance preferences</li>
+          <li><strong>jobPostDraft.v1</strong> â€” draft job post (employers)</li>
         </ul>
         <p style="margin-top: 16px;">To clear all local data, log out and clear your browser storage. This will sign you out of the platform.</p>
       `
@@ -192,7 +207,9 @@ document.addEventListener("DOMContentLoaded", () => {
     "Payment & escrow": "paymentEscrow",
     "Shift rates": "shiftRates",
     "Verification": "verification",
-    "Moderation": "moderation"
+    "Moderation": "moderation",
+    "Review guidelines": "trustCenter",
+    "Trust Center": "trustCenter"
   };
 
   // Privacy cards get direct click action (not info popup - they ARE the action)
@@ -206,7 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "Delete account": () => {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("You must be logged in to delete your account. Please log in first.");
+        showWarning("You must be logged in to delete your account. Please log in first.");
         window.location.href = "login.html";
         return;
       }
@@ -243,6 +260,31 @@ document.addEventListener("DOMContentLoaded", () => {
       card.appendChild(infoBtn);
     }
   });
+
+  const rawUser = localStorage.getItem("user");
+  let user = null;
+  try {
+    user = rawUser ? JSON.parse(rawUser) : null;
+  } catch (_err) {
+    user = null;
+  }
+
+  const role = String(user?.role || "").toLowerCase();
+  const isEmployer = role === "employer";
+  const isJobSeeker = role === "job_seeker";
+  const isAdmin = !!user?.is_admin || role === "admin";
+
+  if (isEmployer && !isAdmin) {
+    document.querySelectorAll('.menu-card[href="resume.html"], .menu-card[href="dashboard.html"]').forEach((card) => {
+      card.style.display = "none";
+    });
+  }
+
+  if (isJobSeeker && !isAdmin) {
+    document.querySelectorAll('.menu-card[href="post-jobs.html"], .menu-card[href="employer.html"]').forEach((card) => {
+      card.style.display = "none";
+    });
+  }
 
   // Style the info buttons
   const style = document.createElement("style");

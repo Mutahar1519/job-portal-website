@@ -100,3 +100,26 @@ exports.chatBot = async (req, res) => {
   const reply = buildFallbackReply(message);
   return res.json({ reply });
 };
+
+exports.getChatStatus = (_req, res) => {
+  res.json({
+    ok: true,
+    aiProvider: HUGGINGFACE_API_KEY ? "huggingface" : "fallback",
+    liveSupport: "unavailable"
+  });
+};
+
+const liveSupportUnavailable = (res) => {
+  return res.status(503).json({
+    message: "Live support module is temporarily unavailable"
+  });
+};
+
+exports.requestLiveSupport = (_req, res) => liveSupportUnavailable(res);
+exports.getMySupportTickets = (_req, res) => liveSupportUnavailable(res);
+exports.getAdminSupportTickets = (_req, res) => liveSupportUnavailable(res);
+exports.getTicketMessages = (_req, res) => liveSupportUnavailable(res);
+exports.sendTicketMessage = (_req, res) => liveSupportUnavailable(res);
+exports.updateTicketStatus = (_req, res) => liveSupportUnavailable(res);
+exports.assignTicketAdmin = (_req, res) => liveSupportUnavailable(res);
+exports.getSupportUnreadCounts = (_req, res) => res.json({ open: 0, unassigned: 0, mine: 0 });

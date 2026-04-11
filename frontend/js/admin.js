@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const adminToken = localStorage.getItem("token");
   const rawUser = localStorage.getItem("user");
   let adminUser = null;
@@ -12,7 +12,7 @@
   }
 
   if (!adminToken || !adminUser || !adminUser.is_admin) {
-    alert("Access denied");
+    showError("Access denied");
     window.location.href = "index.html";
     return;
   }
@@ -34,6 +34,7 @@
   let editJobId = null;
   let reviewStatusFilter = "pending";
   let reviewSourceFilter = "portal";
+  let reviewVerifiedFilter = "all";
   let grantHistoryFilter = "all";
 
   const adminJobForm = document.getElementById("adminJobForm");
@@ -66,10 +67,10 @@
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Payment confirmation failed");
+        showError(data.message || "Payment confirmation failed");
         return;
       }
-      alert("Job upgraded to premium ✅");
+      showError("Job upgraded to premium Γ£à");
       window.history.replaceState({}, document.title, "admin.html");
       loadJobs();
     });
@@ -113,11 +114,11 @@
             : null;
           const moderationStatus = (job.moderation_status || "pending_manual_review").replace(/_/g, " ");
           const moderationReason = (job.moderation_reason || "No moderation notes").trim();
-          const aiFlag = moderationReason.toLowerCase().includes("ai") ? "🤖" : "";
+          const aiFlag = moderationReason.toLowerCase().includes("ai") ? "≡ƒñû" : "";
           const moderationMeta = `
             <div class="p-muted" style="margin-top:6px;">
               Moderation: <strong>${esc(moderationStatus)}</strong>
-              ${moderationScore !== null ? `• Score: <strong>${moderationScore}</strong>` : ""}
+              ${moderationScore !== null ? `ΓÇó Score: <strong>${moderationScore}</strong>` : ""}
               ${aiFlag}
             </div>
             <div class="p-muted" style="margin-top:4px;">Reason: ${esc(moderationReason)}</div>
@@ -204,7 +205,7 @@
                 <div>
                   <h4>${esc(user.name || "Unnamed user")}</h4>
                   <p class="p-muted">${esc(user.email || "No email")}</p>
-                  <p class="p-muted">Role: ${role}${created ? ` • Joined: ${created}` : ""}</p>
+                  <p class="p-muted">Role: ${role}${created ? ` ΓÇó Joined: ${created}` : ""}</p>
                 </div>
                 <div class="admin-record-badges">
                   ${blockedBadge}
@@ -245,7 +246,7 @@
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || `Failed to ${actionLabel} user`);
+        showError(data.message || `Failed to ${actionLabel} user`);
         return;
       }
       loadUsers();
@@ -259,7 +260,7 @@
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to update verification status");
+        showError(data.message || "Failed to update verification status");
         return;
       }
       loadUsers();
@@ -274,7 +275,7 @@
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to delete user");
+        showError(data.message || "Failed to delete user");
         return;
       }
       loadUsers();
@@ -287,10 +288,10 @@
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to request admin grant");
+        showError(data.message || "Failed to request admin grant");
         return;
       }
-      alert(data.message || "Approval requested. Ask test@sample.com for code.");
+      showError(data.message || "Approval requested. Ask test@sample.com for code.");
       loadGrantHistory();
     });
   }
@@ -308,10 +309,10 @@
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to promote user");
+        showError(data.message || "Failed to promote user");
         return;
       }
-      alert(data.message || "User promoted to admin");
+      showError(data.message || "User promoted to admin");
       loadUsers();
       loadGrantHistory();
     });
@@ -350,7 +351,7 @@
                   <h4>${esc(item.target_name || "Unknown user")} (${esc(item.target_email || "n/a")})</h4>
                   <p class="p-muted">Requested by: ${esc(item.requested_by_name || "Unknown")} (${esc(item.requested_by_email || "n/a")})</p>
                   <p class="p-muted">Approver: ${esc(item.approver_email || "n/a")}</p>
-                  <p class="p-muted">Created: ${created}${expires ? ` • Expires: ${expires}` : ""}${approved ? ` • Approved: ${approved}` : ""}</p>
+                  <p class="p-muted">Created: ${created}${expires ? ` ΓÇó Expires: ${expires}` : ""}${approved ? ` ΓÇó Approved: ${approved}` : ""}</p>
                 </div>
                 <div class="admin-record-badges">
                   <span class="tag-pill ${statusClass}">${statusLabel}</span>
@@ -370,11 +371,12 @@
     loadGrantHistory(status);
   }
 
-  function loadReviewQueue(status = reviewStatusFilter, source = reviewSourceFilter) {
+  function loadReviewQueue(status = reviewStatusFilter, source = reviewSourceFilter, verified = reviewVerifiedFilter) {
     reviewStatusFilter = status;
     reviewSourceFilter = source;
+    reviewVerifiedFilter = verified;
 
-    adminAuthFetch(`${API}/admin/reviews?status=${encodeURIComponent(reviewStatusFilter)}&source=${encodeURIComponent(reviewSourceFilter)}`)
+    adminAuthFetch(`${API}/admin/reviews?status=${encodeURIComponent(reviewStatusFilter)}&source=${encodeURIComponent(reviewSourceFilter)}&verified=${encodeURIComponent(reviewVerifiedFilter)}`)
       .then(res => res.json())
       .then(reviews => {
         const container = document.getElementById("reviewQueue");
@@ -395,13 +397,16 @@
 
         container.innerHTML = "";
         reviews.forEach(review => {
-          const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
+          const stars = "ΓÿàΓÿàΓÿàΓÿàΓÿà".slice(0, review.rating) + "ΓÿåΓÿåΓÿåΓÿåΓÿå".slice(0, 5 - review.rating);
           const created = review.created_at ? new Date(review.created_at).toLocaleString() : "";
           const emailRow = review.email ? `<p class="meta">${esc(review.email)}</p>` : "";
           const source = review.source || reviewSourceFilter;
           const sourceBadge = `<span class="tag-pill bg-slate-100 text-slate-700">${esc(source)}</span>`;
+          const verifiedBadge = Number(review.verified_review) === 1
+            ? `<span class="tag-pill" style="background:#dcfce7;color:#166534;border:1px solid #86efac;">verified candidate review</span>`
+            : "";
           const companyMeta = source === "company"
-            ? `<p class="meta">Company: ${esc(review.company_name || "Unknown")} ${review.job_title ? `• Job: ${esc(review.job_title)}` : ""} ${review.employer_name ? `• Employer: ${esc(review.employer_name)}` : ""}</p>`
+            ? `<p class="meta">Company: ${esc(review.company_name || "Unknown")} ${review.job_title ? `ΓÇó Job: ${esc(review.job_title)}` : ""} ${review.employer_name ? `ΓÇó Employer: ${esc(review.employer_name)}` : ""}</p>`
             : "";
 
           let actionButtons = `
@@ -436,6 +441,7 @@
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                   ${sourceBadge}
+                  ${verifiedBadge}
                   <span class="review-stars">${stars}</span>
                 </div>
               </div>
@@ -458,11 +464,19 @@
   }
 
   function setReviewFilter(status) {
-    loadReviewQueue(status, reviewSourceFilter);
+    loadReviewQueue(status, reviewSourceFilter, reviewVerifiedFilter);
   }
 
   function setReviewSource(source) {
-    loadReviewQueue(reviewStatusFilter, source);
+    loadReviewQueue(reviewStatusFilter, source, reviewVerifiedFilter);
+  }
+
+  function setReviewSourceFilter(source) {
+    setReviewSource(source);
+  }
+
+  function setReviewVerified(filter) {
+    loadReviewQueue(reviewStatusFilter, reviewSourceFilter, filter);
   }
 
   function renderShiftJobs(shiftJobs) {
@@ -496,8 +510,8 @@
           <div class="admin-record-head">
             <div>
               <h4>${job.title}</h4>
-              <p class="p-muted">${job.location || "No location"} • ${job.category || "General"}</p>
-              ${shiftStart ? `<p class="p-muted">Start: ${shiftStart}${shiftEnd ? " — " + shiftEnd : ""}</p>` : ""}
+              <p class="p-muted">${job.location || "No location"} ΓÇó ${job.category || "General"}</p>
+              ${shiftStart ? `<p class="p-muted">Start: ${shiftStart}${shiftEnd ? " ΓÇö " + shiftEnd : ""}</p>` : ""}
             </div>
             <div class="admin-record-badges">
               <span class="tag-pill bg-cyan-100 text-cyan-700">Shift</span>
@@ -542,9 +556,9 @@
           container.innerHTML += `
             <div class="job-card">
               <h4>${row.job_title || "Shift"}</h4>
-              <p>Client: ${row.client_name || ""} • Worker: ${row.worker_name || ""}</p>
-              <p>Status: <strong>${status}</strong> ${amount ? "• " + amount : ""}</p>
-              <p class="p-muted">Created: ${created}${releaseAt ? " • Release at: " + releaseAt : ""}</p>
+              <p>Client: ${row.client_name || ""} ΓÇó Worker: ${row.worker_name || ""}</p>
+              <p>Status: <strong>${status}</strong> ${amount ? "ΓÇó " + amount : ""}</p>
+              <p class="p-muted">Created: ${created}${releaseAt ? " ΓÇó Release at: " + releaseAt : ""}</p>
               ${reason}
               <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
                 <button class="btn btn-outline" onclick="disputeShift(${row.id})">Dispute</button>
@@ -641,11 +655,11 @@
     adminAuthFetch(`${API}/admin/jobs/purge-demo`, { method: "DELETE" })
       .then(async (res) => {
         const data = await res.json();
-        if (!res.ok) { alert(data.error || "Purge failed"); return; }
-        alert(data.message);
+        if (!res.ok) { showError(data.error || "Purge failed"); return; }
+        showError(data.message);
         loadJobs();
       })
-      .catch((err) => alert("Purge request failed: " + err.message));
+      .catch((err) => showError("Purge request failed: " + err.message));
   }
 
   function makePremium(id) {
@@ -658,7 +672,7 @@
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok || !data.url) {
-        alert(data.message || "Failed to start payment");
+        showError(data.message || "Failed to start payment");
         return;
       }
       window.location.href = data.url;
@@ -764,10 +778,10 @@
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to resend alerts");
+        showError(data.message || "Failed to resend alerts");
         return;
       }
-      alert("Shift alerts sent ✅");
+      showSuccess("Shift alerts sent Γ£à");
     });
   }
 
@@ -922,15 +936,15 @@
       .then(res => res.json())
       .then(data => {
         if (data.error) {
-          alert(data.error || "Failed to save moderation settings");
+          showError(data.error || "Failed to save moderation settings");
           return;
         }
-        alert(data.message || "Moderation settings updated");
+        showSuccess(data.message || "Moderation settings updated");
         loadModerationSettings();
       })
       .catch((err) => {
         console.error(err);
-        alert("Failed to save moderation settings");
+        showError("Failed to save moderation settings");
       });
   }
 
@@ -994,7 +1008,7 @@
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to delete company");
+        showError(data.message || "Failed to delete company");
         return;
       }
       loadCompanies();
@@ -1016,6 +1030,8 @@
   window.deleteReview = deleteReview;
   window.setReviewFilter = setReviewFilter;
   window.setReviewSource = setReviewSource;
+  window.setReviewSourceFilter = setReviewSourceFilter;
+  window.setReviewVerified = setReviewVerified;
   window.disputeShift = disputeShift;
   window.refundShift = refundShift;
   window.releaseShift = releaseShift;

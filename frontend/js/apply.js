@@ -1,5 +1,6 @@
-let jobId = null;
+﻿let jobId = null;
 let canSubmitApplication = true;
+let updateCvUi = () => {};
 
 document.addEventListener("DOMContentLoaded", () => {
   // Must be logged in to apply
@@ -10,6 +11,88 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const params = new URLSearchParams(window.location.search);
   jobId = params.get("jobId");
+  const cvInput = document.getElementById("cv");
+  const phoneInput = document.getElementById("phone");
+  const countryInput = document.getElementById("country");
+  const cvUploadBox = document.getElementById("cvUploadBox");
+  const cvUploadText = document.getElementById("cvUploadText");
+  const cvUploadHint = document.getElementById("cvUploadHint");
+  const cvUploadStatus = document.getElementById("cvUploadStatus");
+
+  const formatFileSize = (bytes) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 KB";
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  };
+
+  const pickCountryFromLocale = () => {
+    const locale = String(navigator.language || "").toLowerCase();
+    const timezone = String(Intl.DateTimeFormat().resolvedOptions().timeZone || "").toLowerCase();
+
+    if (timezone.includes("europe/london") || locale.endsWith("-gb")) return "United Kingdom";
+    if (timezone.includes("america/") || locale.endsWith("-us")) return "United States";
+    if (timezone.includes("toronto") || timezone.includes("vancouver") || locale.endsWith("-ca")) return "Canada";
+    if (timezone.includes("australia/") || locale.endsWith("-au")) return "Australia";
+    if (timezone.includes("asia/karachi") || locale.endsWith("-pk")) return "Pakistan";
+    if (timezone.includes("asia/dubai") || locale.endsWith("-ae")) return "United Arab Emirates";
+    if (timezone.includes("asia/kolkata") || locale.endsWith("-in")) return "India";
+    return "";
+  };
+
+  if (countryInput && !countryInput.value) {
+    const autoCountry = pickCountryFromLocale();
+    if (autoCountry) {
+      countryInput.value = autoCountry;
+    }
+  }
+
+  if (phoneInput) {
+    phoneInput.addEventListener("input", () => {
+      const clean = String(phoneInput.value || "").replace(/\D+/g, "");
+      if (clean !== phoneInput.value) {
+        phoneInput.value = clean;
+      }
+    });
+  }
+
+  updateCvUi = (file) => {
+    if (!cvUploadBox || !cvUploadText || !cvUploadHint || !cvUploadStatus) return;
+
+    if (!file) {
+      cvUploadBox.classList.remove("has-file");
+      cvUploadText.innerHTML = 'Drag and drop your CV or <span class="file-link">click to browse</span>';
+      cvUploadHint.textContent = "PDF, DOC, or DOCX (Max 5MB)";
+      cvUploadStatus.textContent = "";
+      cvUploadStatus.classList.add("hidden");
+      return;
+    }
+
+    cvUploadBox.classList.add("has-file");
+    cvUploadText.textContent = file.name;
+    cvUploadHint.textContent = `Selected file size: ${formatFileSize(file.size)}`;
+    cvUploadStatus.textContent = "CV/Resume selected and ready to upload.";
+    cvUploadStatus.classList.remove("hidden");
+  };
+
+  if (cvInput && cvUploadBox) {
+    cvInput.addEventListener("change", () => {
+      updateCvUi(cvInput.files?.[0] || null);
+    });
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+      cvUploadBox.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        cvUploadBox.classList.add("drag-over");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      cvUploadBox.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        cvUploadBox.classList.remove("drag-over");
+      });
+    });
+  }
 
   const donationStatus = params.get("donation");
   const donationContext = params.get("context");
@@ -21,13 +104,13 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "POST",
         body: JSON.stringify({ sessionId: donationSession, mode: "donation" })
       }).then(() => {
-        alert("Thanks for your support! ✅");
+        showError("Thanks for your support! âœ…");
         window.history.replaceState({}, document.title, "apply.html");
       });
     }
 
     if (donationStatus === "cancel") {
-      alert("Donation canceled.");
+      showError("Donation canceled.");
       window.history.replaceState({}, document.title, "apply.html");
     }
   }
@@ -48,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Check if jobId is missing or invalid
   if (!jobId) {
-    alert("Invalid job - No job ID provided");
+    showWarning("Invalid job - No job ID provided");
     window.location.href = "jobs.html";
     return;
   }
@@ -57,7 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
   jobId = parseInt(jobId, 10);
   
   if (isNaN(jobId) || jobId <= 0) {
-    alert("Invalid job - Job ID must be a valid number");
+    showWarning("Invalid job - Job ID must be a valid number");
     return;
   }
 
@@ -150,14 +233,14 @@ const startDonation = async (amountCents) => {
     });
     const data = await res.json();
     if (!res.ok || !data.url) {
-      alert(data.message || "Donation failed");
+      showError(data.message || "Donation failed");
       closeDonationModal();
       return;
     }
     window.location.href = data.url;
   } catch (err) {
     console.error(err);
-    alert("Donation failed");
+    showError("Donation failed");
     closeDonationModal();
   }
 };
@@ -195,18 +278,18 @@ document.getElementById("applyForm").addEventListener("submit", async (e) => {
 
   const token = localStorage.getItem("token");
   if (!token) {
-    alert("Login required to apply");
+    showWarning("Login required to apply");
     window.location.href = "login.html";
     return;
   }
 
   if (!jobId) {
-    alert("Invalid job");
+    showWarning("Invalid job");
     return;
   }
 
   if (!canSubmitApplication) {
-    alert("This job is no longer open for applications");
+    showError("This job is no longer open for applications");
     return;
   }
 
@@ -214,11 +297,16 @@ document.getElementById("applyForm").addEventListener("submit", async (e) => {
   const fullName = document.getElementById("name").value.trim();
   const email = document.getElementById("email").value.trim();
   const phone = document.getElementById("phone").value.trim();
+    if (!/^\d+$/.test(phone)) {
+      showError("Phone number must contain only digits");
+      return;
+    }
+
   const country = document.getElementById("country").value.trim();
   const cvFile = document.getElementById("cv").files[0];
   
   if (!coverLetter) {
-    alert("Cover letter is required");
+    showWarning("Cover letter is required");
     return;
   }
 
@@ -241,15 +329,16 @@ document.getElementById("applyForm").addEventListener("submit", async (e) => {
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message || "Application failed");
+      showError(data.message || "Application failed");
       return;
     }
 
-    alert("Application submitted successfully ✅");
+    showSuccess("Application submitted successfully âœ…");
     document.getElementById("applyForm").reset();
+    updateCvUi(null);
     openDonationModal();
   } catch (err) {
     console.error(err);
-    alert("Server error");
+    showError("Server error");
   }
 });

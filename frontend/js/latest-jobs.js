@@ -28,7 +28,22 @@ async function loadLatestJobs() {
     const skeleton = document.getElementById("skeleton");
     if (skeleton) skeleton.style.display = "grid";
 
-    const jobs = await fetchLatestJobsWithFallback();
+    let jobs = [];
+    const candidates = [`${API}/jobs`, `${window.location.origin}/api/jobs`, "http://localhost:3000/api/jobs"];
+    for (const candidate of candidates) {
+      try {
+        const res = await authFetch(candidate);
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          jobs = data;
+          break;
+        }
+      } catch {
+        // try next candidate
+      }
+    }
+
     const box = document.getElementById("latestJobs");
     const recommended = document.getElementById("recommendedJobs");
     if (!box) return;
@@ -43,13 +58,36 @@ async function loadLatestJobs() {
     const countText = `${allJobs.length}+`;
     const activeCount = document.getElementById("heroActiveCount");
     const postedCount = document.getElementById("jobsPostedCount");
+    const companiesCount = document.getElementById("companiesCount");
+    const placementsCount = document.getElementById("placementsCount");
+    const successRateCount = document.getElementById("successRateCount");
     if (activeCount) activeCount.textContent = countText;
     if (postedCount) postedCount.textContent = countText;
+
+    try {
+      const statsRes = await authFetch(`${API}/jobs/portal-stats`);
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        const totalJobs = Number(stats?.total_jobs || 0);
+        const totalCompanies = Number(stats?.total_companies || 0);
+        const placements = Number(stats?.total_placements || 0);
+        const successRate = Number(stats?.success_rate || 0);
+
+        if (postedCount) postedCount.textContent = `${totalJobs.toLocaleString()}+`;
+        if (companiesCount) companiesCount.textContent = `${totalCompanies.toLocaleString()}+`;
+        if (placementsCount) placementsCount.textContent = `${placements.toLocaleString()}+`;
+        if (successRateCount) successRateCount.textContent = `${Math.max(0, Math.min(100, successRate))}%`;
+      }
+    } catch (_err) {
+      if (companiesCount) companiesCount.textContent = "0+";
+      if (placementsCount) placementsCount.textContent = "0+";
+      if (successRateCount) successRateCount.textContent = "0%";
+    }
 
     if (recommended) {
       const picks = getRecommendedJobs(allJobs);
       recommended.innerHTML = picks.length
-        ? picks.map(renderJobCard).join("")
+        ? picks.map((job) => renderJobCard(job, { includeSaveButton: true, saved: !!job.is_saved })).join("")
         : "<p class=\"empty-state\">No recommendations yet. Search to personalize.</p>";
     }
   } catch (err) {
@@ -151,6 +189,8 @@ const renderCompanyAvatar = (job) => {
   return `<span class="job-company-avatar job-company-avatar-fallback" aria-hidden="true">${getCompanyInitials(job.company_name || "Company")}</span>`;
 };
 
+const buildJobDetailHref = (jobId) => `job.html?jobId=${jobId}&id=${jobId}`;
+
 const renderJobCard = (job, options = {}) => {
   const { includeSaveButton = false, saved = false } = options;
   const matchScore = getMatchScore(job);
@@ -208,7 +248,7 @@ const renderJobCard = (job, options = {}) => {
           <p class="job-desc job-card-description">${jobDescription}</p>
 
       <div class="job-card-actions">
-        <a href="job.html?jobId=${job.id}&id=${job.id}" class="btn btn-ghost job-action-btn" data-job-id="${job.id}">Details</a>
+        <a href="${buildJobDetailHref(job.id)}" class="btn btn-ghost job-action-btn" data-job-id="${job.id}">Details</a>
         <a href="apply.html?jobId=${job.id}" class="apply-btn job-action-btn" data-job-id="${job.id}"><i class="fa-solid fa-rocket"></i> Apply Now</a>
         ${includeSaveButton ? `<button class="btn btn-outline save-btn" type="button" data-save-id="${job.id}" data-saved="${saved ? 1 : 0}">${saved ? "Saved" : "Save"}</button>` : ""}
       </div>
@@ -216,7 +256,12 @@ const renderJobCard = (job, options = {}) => {
   `;
 };
 
-document.getElementById("latestJobs")?.addEventListener("click", async (event) => {
+const handleHomeJobCardClick = async (event) => {
+  const detailsLink = event.target.closest('a[data-job-id]');
+  if (detailsLink) {
+    sessionStorage.setItem("lastJobId", detailsLink.getAttribute("data-job-id"));
+  }
+
   const button = event.target.closest(".save-btn");
   if (!button) return;
 
@@ -225,7 +270,7 @@ document.getElementById("latestJobs")?.addEventListener("click", async (event) =
   const token = localStorage.getItem("token");
 
   if (!token) {
-    alert("Login required");
+    showWarning("Login required");
     return;
   }
 
@@ -235,15 +280,18 @@ document.getElementById("latestJobs")?.addEventListener("click", async (event) =
     });
     const data = await res.json();
     if (!res.ok) {
-      alert(data.message || "Failed to update saved job");
+      showError(data.message || "Failed to update saved job");
       return;
     }
     await loadLatestJobs();
   } catch (err) {
     console.error(err);
-    alert("Failed to update saved job");
+    showError("Failed to update saved job");
   }
-});
+};
+
+document.getElementById("latestJobs")?.addEventListener("click", handleHomeJobCardClick);
+document.getElementById("recommendedJobs")?.addEventListener("click", handleHomeJobCardClick);
 
 const homeSearchForm = document.getElementById("homeSearchForm");
 const homeSearchInput = document.getElementById("homeSearchInput");

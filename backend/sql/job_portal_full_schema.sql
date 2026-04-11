@@ -1,3 +1,15 @@
+-- JOB ACTION LOGS TABLE (for audit trail)
+CREATE TABLE IF NOT EXISTS job_action_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  job_id INT NOT NULL,
+  user_id INT NOT NULL,
+  user_role ENUM('admin','employer') NOT NULL,
+  action VARCHAR(40) NOT NULL,
+  details TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 -- Job Portal canonical schema (MySQL 8+)
 -- Aligned with specification: Job Seeker, Employer, Administrator
 -- Safe to run on a fresh database.
@@ -60,6 +72,9 @@ CREATE TABLE IF NOT EXISTS jobs (
   shift_paid TINYINT(1) DEFAULT 0,
   shift_status VARCHAR(50) DEFAULT 'open',
   application_deadline DATETIME NULL,
+  repost_of_job_id INT NULL,
+  reboost_count INT NOT NULL DEFAULT 0,
+  last_reboosted_at DATETIME NULL,
   moderation_status VARCHAR(40) NULL,
   moderation_score INT NULL,
   moderation_reason VARCHAR(500) NULL,
@@ -71,9 +86,11 @@ CREATE TABLE IF NOT EXISTS jobs (
   INDEX idx_jobs_type (job_type),
   INDEX idx_jobs_category (category),
   INDEX idx_jobs_is_approved (is_approved),
+  INDEX idx_jobs_repost_of_job_id (repost_of_job_id),
   FULLTEXT INDEX ftx_jobs_title_description (title, description),
   CONSTRAINT fk_jobs_posted_by FOREIGN KEY (posted_by) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT fk_jobs_company FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL
+  CONSTRAINT fk_jobs_company FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL,
+  CONSTRAINT fk_jobs_repost_parent FOREIGN KEY (repost_of_job_id) REFERENCES jobs(id) ON DELETE SET NULL
 );
 
 -- APPLICATIONS TABLE
@@ -262,6 +279,7 @@ CREATE TABLE IF NOT EXISTS employer_profiles (
   registration_number VARCHAR(100) NULL,
   linkedin_url VARCHAR(255) NULL,
   tax_id VARCHAR(100) NULL,
+  proof_of_address_url VARCHAR(500) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_employer_user (user_id),

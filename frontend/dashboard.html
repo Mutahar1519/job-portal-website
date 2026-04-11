@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -71,180 +71,14 @@
 
     <section class="dashboard-tabs" aria-label="Dashboard sections">
       <a href="#dashboard-overview" class="dashboard-tab is-active"><i class="fa-solid fa-chart-simple"></i> Overview</a>
+      <a href="#recommendations-panel" class="dashboard-tab"><i class="fa-solid fa-wand-magic-sparkles"></i> For You</a>
       <a href="#applications-panel" class="dashboard-tab"><i class="fa-solid fa-file-lines"></i> Applications</a>
+      <a href="#interviews-panel" class="dashboard-tab"><i class="fa-solid fa-calendar-check"></i> Interviews</a>
       <a href="#saved-jobs-panel" class="dashboard-tab"><i class="fa-solid fa-bookmark"></i> Saved Jobs</a>
-      <a href="#alerts-panel" class="dashboard-tab"><i class="fa-solid fa-bell-concierge"></i> Job Alerts</a>
-      <a href="#shift-alerts" class="dashboard-tab"><i class="fa-solid fa-bell"></i> Alerts</a>
-    </section>
-
-    <section id="dashboard-overview" class="section-block quick-actions">
-      <a class="action-card" href="#shift-alerts">
-        <div>
-          <p class="eyebrow">Alerts</p>
-          <h3>Shift alerts</h3>
-          <p class="p-muted">View urgent opportunities as soon as they appear.</p>
-        </div>
-        <span class="action-arrow">â†’</span>
-      </a>
-      <a class="action-card" href="#alerts-panel">
-        <div>
-          <p class="eyebrow">Saved</p>
-          <h3>Job alerts</h3>
-          <p class="p-muted">Manage keywords, location targets, and frequency.</p>
-        </div>
-        <span class="action-arrow">â†’</span>
-      </a>
-      <a class="action-card" href="#saved-jobs-panel">
-        <div>
-          <p class="eyebrow">Library</p>
-          <h3>Saved jobs</h3>
-          <p class="p-muted">Keep shortlisted roles ready for quick apply.</p>
-        </div>
-        <span class="action-arrow">â†’</span>
-      </a>
-    </section>
-
-    <section class="filters filters-card">
-      <div class="filter-group">
-        <label class="filter-label" for="searchInput">Search</label>
-        <input id="searchInput" class="filter-input" type="text" placeholder="Search by title or location" />
-      </div>
-      <div class="filter-group">
-        <label class="filter-label" for="statusFilter">Status</label>
-        <select id="statusFilter" class="filter-input">
-          <option value="all">All</option>
-          <option value="pending">Pending</option>
-          <option value="reviewed">Reviewed</option>
-          <option value="accepted">Accepted</option>
-          <option value="rejected">Rejected</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label class="filter-label" for="sortBy">Sort</label>
-        <select id="sortBy" class="filter-input">
-          <option value="recent">Most recent</option>
-          <option value="oldest">Oldest</option>
-          <option value="title">Title</option>
-        </select>
-      </div>
-    </section>
-
-    <section class="section-block dashboard-panel" id="applications-panel">
-      <div class="section-head">
-        <p class="eyebrow">Pipeline</p>
-        <h2 class="section-title">Applications</h2>
-        <p class="p-muted">Stay on top of every stage with quick actions and clear status.</p>
-      </div>
-      <div id="applications" class="app-grid"></div>
-    </section>
-
-    <section id="saved-jobs-panel" class="section-block dashboard-panel">
-      <div class="section-head">
-        <p class="eyebrow">Saved</p>
-        <h2 class="section-title">Saved jobs</h2>
-      </div>
-      <div id="savedJobs" class="jobs-grid"></div>
-    </section>
-
-    <section id="shift-alerts" class="section-block dashboard-panel">
-      <div class="section-head">
-        <p class="eyebrow">Alerts</p>
-        <h2 class="section-title">Shift alerts</h2>
-      </div>
-      <div class="shift-alert-summary">
-        <div class="shift-alert-count">
-          New shift alerts: <span id="shiftAlertCount">0</span>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button id="createShiftAlertBtn" class="btn btn-primary" type="button">Create Shift Alert</button>
-          <button id="refreshShiftAlerts" class="btn btn-outline" type="button">Refresh</button>
-        </div>
-      </div>
-
-      <div id="shiftAlertBuilder" class="glass-card" style="margin:12px 0 14px; display:none;">
-        <form id="shiftAlertForm" class="form-grid">
-          <div class="form-group">
-            <label class="form-label" for="shiftAlertKeyword">Keyword</label>
-            <input id="shiftAlertKeyword" class="form-input" type="text" placeholder="Driver, warehouse, support" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="shiftAlertLocation">Location</label>
-            <input id="shiftAlertLocation" class="form-input" type="text" placeholder="City or area" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="shiftAlertCategory">Category</label>
-            <select id="shiftAlertCategory" class="form-input">
-              <option value="">Any category</option>
-              <option value="Operations">Operations</option>
-              <option value="Logistics">Logistics</option>
-              <option value="Customer Support">Customer Support</option>
-              <option value="Healthcare">Healthcare</option>
-              <option value="Sales">Sales</option>
-              <option value="General">General</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="shiftAlertFrequency">Frequency</label>
-            <select id="shiftAlertFrequency" class="form-input">
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-            </select>
-          </div>
-          <div class="form-group form-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="btn btn-primary" type="submit">Save Shift Alert</button>
-            <button id="cancelShiftAlertBtn" class="btn btn-outline" type="button">Cancel</button>
-          </div>
-        </form>
-      </div>
-
-      <div id="shiftAlertRules" class="alert-list" style="margin-bottom:12px;"></div>
-      <div id="shiftAlerts" class="shift-alert-list"></div>
-    </section>
-
-    <section id="job-alerts-display" class="section-block dashboard-panel">
-      <div class="section-head">
-        <p class="eyebrow">Alerts</p>
-        <h2 class="section-title">Job alerts</h2>
-      </div>
-      <div class="job-alert-summary">
-        <div class="job-alert-count">
-          Matching jobs: <span id="jobAlertCount">0</span>
-        </div>
-        <button id="refreshJobAlerts" class="btn btn-outline" type="button">Refresh</button>
-      </div>
-      <div id="jobAlerts" class="job-alert-list"></div>
-    </section>
-
-    <section id="alerts-panel" class="section-block dashboard-panel">
-      <div class="section-head">
-        <p class="eyebrow">Alerts</p>
-        <h2 class="section-title">Job alerts</h2>
-      </div>
-      <div class="glass-card">
-        <form id="alertForm" class="form-grid">
-          <div class="form-group">
-            <label class="form-label" for="alertKeyword">Keyword</label>
-            <input id="alertKeyword" name="alertKeyword" class="form-input" type="text" placeholder="Design, React, Product" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="alertLocation">Location</label>
-            <input id="alertLocation" name="alertLocation" class="form-input" type="text" placeholder="Remote, London" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="alertCategory">Category</label>
-            <select id="alertCategory" name="alertCategory" class="form-input">
-              <option value="">Any category</option>
-              <option value="IT">IT</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Finance">Finance</option>
-              <option value="Healthcare">Healthcare</option>
-              <option value="Education">Education</option>
-              <option value="Engineering">Engineering</option>
-              <option value="Sales">Sales</option>
-              <option value="Design">Design</option>
-              <option value="Operations">Operations</option>
-              <option value="General">General</option>
-            </select>
+      <a href="#referrals-panel" class="dashboard-tab"><i class="fa-solid fa-user-plus"></i> Referrals</a>
+      <div id="applications" class="application-list"></div>
+        <div id="savedJobs" class="saved-jobs-list"></div>
+        <div id="shiftAlerts" class="shift-alert-list"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="alertType">Job type</label>
@@ -297,6 +131,7 @@
     <div class="footer-bottom">&copy; 2026 JobPortal. All rights reserved.</div>
   </footer>
 
+  <script src="js/error-ui.js"></script>
   <script src="js/config.js"></script>
   <script src="js/navbar.js"></script>
   <script src="js/utils.js"></script>

@@ -301,3 +301,143 @@ exports.updateApplicationStatus = (req, res) => {
     }
   );
 };
+
+/* LIST USER INTERVIEWS */
+exports.getMyInterviews = (req, res) => {
+  const userId = req.user.id;
+  const sql = `
+    SELECT i.id,
+           i.application_id,
+           i.interviewer_name,
+           i.interviewer_email,
+           i.scheduled_at,
+           i.duration_minutes,
+           i.timezone,
+           i.location,
+           i.meeting_link,
+           i.notes,
+           i.status,
+           i.created_at,
+           j.id AS job_id,
+           j.title AS job_title,
+           j.location AS job_location,
+           a.pipeline_stage,
+           a.status AS application_status
+    FROM interviews_scheduled i
+    JOIN applications a ON a.id = i.application_id
+    JOIN jobs j ON j.id = a.job_id
+    WHERE a.user_id = ?
+    ORDER BY i.scheduled_at ASC, i.created_at DESC
+  `;
+
+  db.query(sql, [userId], (err, rows) => {
+    if (err) {
+      if (err.code === "ER_NO_SUCH_TABLE") {
+        return res.json([]);
+      }
+      return res.status(500).json({ message: "Failed to load interviews" });
+    }
+    res.json(rows || []);
+  });
+};
+
+/* LIST USER BACKGROUND CHECKS */
+exports.getMyBackgroundChecks = (req, res) => {
+  const userId = req.user.id;
+  const sql = `
+    SELECT bc.id,
+           bc.application_id,
+           bc.provider,
+           bc.status,
+           bc.result,
+           bc.notes,
+           bc.created_at,
+           bc.updated_at,
+           j.id AS job_id,
+           j.title AS job_title,
+           a.pipeline_stage,
+           a.status AS application_status
+    FROM background_checks bc
+    JOIN applications a ON a.id = bc.application_id
+    JOIN jobs j ON j.id = a.job_id
+    WHERE a.user_id = ?
+    ORDER BY bc.created_at DESC
+  `;
+
+  db.query(sql, [userId], (err, rows) => {
+    if (err) {
+      if (err.code === "ER_NO_SUCH_TABLE") {
+        return res.json([]);
+      }
+      return res.status(500).json({ message: "Failed to load background checks" });
+    }
+    res.json(rows || []);
+  });
+};
+
+/* DOWNLOAD ICS FOR A USER INTERVIEW */
+exports.downloadMyInterviewIcs = (req, res) => {
+  const userId = req.user.id;
+  const interviewId = Number(req.params.id);
+  if (!interviewId) return res.status(400).json({ message: "Invalid interview id" });
+
+  const sql = `
+    SELECT i.id,
+           i.scheduled_at,
+           i.duration_minutes,
+           i.timezone,
+           i.location,
+           i.meeting_link,
+           i.notes,
+           j.title AS job_title
+    FROM interviews_scheduled i
+    JOIN applications a ON a.id = i.application_id
+    JOIN jobs j ON j.id = a.job_id
+    WHERE i.id = ? AND a.user_id = ?
+    LIMIT 1
+  `;
+
+  db.query(sql, [interviewId, userId], (err, rows) => {
+    if (err) {
+      if (err.code === "ER_NO_SUCH_TABLE") {
+        return res.status(404).json({ message: "Interview scheduling is not available" });
+      }
+      return res.status(500).json({ message: "Failed to generate interview calendar file" });
+    }
+
+    if (!rows.length) return res.status(404).json({ message: "Interview not found" });
+
+    const row = rows[0];
+    const start = new Date(row.scheduled_at);
+    const durationMinutes = Number(row.duration_minutes || 30);
+    const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+
+    const asIcsDate = (d) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+    const uid = `interview-${row.id}@jobportal.local`;
+    const summary = `Interview: ${row.job_title || "Job Interview"}`;
+    const description = [row.notes || "", row.meeting_link ? `Meeting link: ${row.meeting_link}` : ""]
+      .filter(Boolean)
+      .join("\\n");
+
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//JobPortal//Interview Scheduler//EN",
+      "CALSCALE:GREGORIAN",
+      "BEGIN:VEVENT",
+      `UID:${uid}`,
+      `DTSTAMP:${asIcsDate(new Date())}`,
+      `DTSTART:${asIcsDate(start)}`,
+      `DTEND:${asIcsDate(end)}`,
+      `SUMMARY:${summary}`,
+      `LOCATION:${row.location || "Online"}`,
+      `DESCRIPTION:${description.replace(/\n/g, "\\n")}`,
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ].join("\r\n");
+
+    res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename=interview-${row.id}.ics`);
+    return res.status(200).send(ics);
+  });
+};

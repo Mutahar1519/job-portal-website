@@ -1,5 +1,7 @@
 # Job Portal Delivery Report
 
+> Status note (March 27, 2026): This file is a high-level delivery summary, not the authoritative feature-completeness source. For the current audited repo state, use `docs/TRUTH_MATRIX_2026-03-27.md`.
+
 ## Scope Delivered
 This repository now contains a complete full-stack job portal implementation with role-aware user flows, modern responsive UI, and MySQL-backed APIs.
 
@@ -44,6 +46,8 @@ Last smoke run confirmed:
 - `GET /jobs.html` -> 200
 - `GET /api/jobs` -> 200
 - `GET /api/health` -> status `ok`, database `connected`
+
+Current stronger smoke coverage is tracked in `backend/scripts/smokeTest.js` and includes auth provider checks, company reviews, report job, admin review moderation, multipart apply, and duplicate apply protection.
 
 ## Remaining Recommendations
 - Move DB credentials and secrets fully to environment variables.

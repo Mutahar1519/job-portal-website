@@ -3,6 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const db = require("./config/mysql");
+const requestId = require("./middleware/requestId");
+const paymentsWebhookRoutes = require("./routes/paymentsWebhook");
 
 const app = express();
 
@@ -29,6 +31,7 @@ if (NODE_ENV === "production") {
 }
 
 app.disable("x-powered-by");
+app.use(requestId);
 
 // Basic security headers without extra dependencies.
 app.use((req, res, next) => {
@@ -87,6 +90,10 @@ app.use(
     credentials: true
   })
 );
+
+// Stripe webhook must receive raw body for signature verification.
+app.use("/api/payments", paymentsWebhookRoutes);
+
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
@@ -213,13 +220,54 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error(err);
+  console.error(`[${req.requestId || "no-request-id"}]`, err);
   if (req.path.startsWith("/api")) {
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({
+      message: "Server error",
+      requestId: req.requestId || null
+    });
   }
   res.status(500).sendFile(path.join(__dirname, "../frontend/500.html"));
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
+});
+
+let shuttingDown = false;
+
+const shutdown = (signal) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  console.log(`\n[shutdown] Received ${signal}. Closing server...`);
+  server.close(() => {
+    console.log("[shutdown] HTTP server closed.");
+    db.end((dbErr) => {
+      if (dbErr) {
+        console.error("[shutdown] Error while closing DB pool:", dbErr.message);
+        process.exit(1);
+      }
+      console.log("[shutdown] DB pool closed.");
+      process.exit(0);
+    });
+  });
+
+  setTimeout(() => {
+    console.error("[shutdown] Forced exit after timeout.");
+    process.exit(1);
+  }, 10000).unref();
+};
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+process.on("uncaughtException", (err) => {
+  console.error("[fatal] uncaughtException:", err);
+  shutdown("uncaughtException");
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[fatal] unhandledRejection:", reason);
+  shutdown("unhandledRejection");
 });

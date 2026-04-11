@@ -1,4 +1,4 @@
-const searchInput = document.getElementById("searchInput");
+﻿const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const jobsContainer = document.getElementById("jobsContainer");
 
@@ -21,14 +21,14 @@ function renderJobs(jobs) {
 
   jobs.forEach(job => {
     const premiumBadge = job.is_premium
-      ? '<span class="badge badge-premium">Premium ⭐</span>'
+      ? '<span class="badge badge-premium">Premium â­</span>'
       : "";
     const premiumClass = job.is_premium ? "premium-job" : "";
 
     jobsContainer.innerHTML += `
       <div class="job-card ${premiumClass}">
       <h3>${job.title} ${premiumBadge}</h3>
-      <p>${job.location} • ${job.jobType}</p>
+      <p>${job.location} â€¢ ${job.jobType}</p>
       <p>${job.description}</p>
       <a href="apply.html?jobId=${job.id}" class="apply-btn" data-job-id="${job.id}">Apply Now</a>
       </div>

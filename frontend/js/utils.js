@@ -1,4 +1,4 @@
-function toast(msg) {
+﻿function toast(msg) {
   const t = document.getElementById("toast");
   if (!t) { console.info("[toast]", msg); return; }
   t.innerText = msg;
@@ -6,7 +6,7 @@ function toast(msg) {
   setTimeout(() => { t.style.display = "none"; }, 2500);
 }
 
-/* Escape HTML — use on every user-supplied value in innerHTML to prevent XSS */
+/* Escape HTML â€” use on every user-supplied value in innerHTML to prevent XSS */
 function esc(str) {
   return String(str == null ? "" : str)
     .replace(/&/g, "&amp;")
@@ -25,37 +25,27 @@ function safeParseJson(value, label) {
   }
 }
 
-/* 🔐 authFetch fallback: only define if config.js did not provide one */
-if (!window.authFetch) {
-  window.authFetch = function fallbackAuthFetch(url, options = {}) {
+/* ðŸ” authFetch: defined in config.js as a var â€” available globally.
+   Do not redefine here. If config.js is not loaded, define a basic fallback. */
+if (typeof authFetch === "undefined") {
+  // eslint-disable-next-line no-var
+  var authFetch = function(url, options = {}) {
     const token = localStorage.getItem("token");
     const isFormData = options.body instanceof FormData;
     const method = String(options.method || "GET").toUpperCase();
-    const shouldSetJsonContentType = !isFormData && options.body != null && method !== "GET" && method !== "HEAD";
-    const baseHeaders = {
-      ...(shouldSetJsonContentType ? { "Content-Type": "application/json" } : {}),
-      ...(options.headers || {})
-    };
-
-    if (token && token.trim()) {
-      baseHeaders.Authorization = `Bearer ${token.trim()}`;
-    }
-
+    const shouldSetJsonHeader = !isFormData && !["GET", "HEAD"].includes(method);
     return fetch(url, {
       ...options,
       headers: {
-        ...baseHeaders
+        ...(shouldSetJsonHeader ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {})
       }
-    }).then(res => {
-      if (!res.ok && res.status === 401) {
-        console.error(`[authFetch] 401 Unauthorized for ${url}. Token may be expired or invalid.`);
-      }
-      return res;
     });
   };
 }
 
-/* 🚪 Logout */
+/* ðŸšª Logout */
 document.getElementById("logoutBtn")?.addEventListener("click", () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
@@ -63,7 +53,7 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
 });
 
 
-/* 👤 Get logged user */
+/* ðŸ‘¤ Get logged user */
 function getUser() {
   const raw = localStorage.getItem("user");
   const user = safeParseJson(raw, "localStorage.user");

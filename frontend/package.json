@@ -1,0 +1,11 @@
+{
+  "name": "job-portal-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "serve -l 3001 ."
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

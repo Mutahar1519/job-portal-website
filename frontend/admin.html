@@ -65,7 +65,31 @@
       </article>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section class="glass-card admin-panel" style="margin-bottom:14px;">
+      <div class="admin-panel-head" style="margin-bottom:10px;">
+        <div>
+          <p class="eyebrow">Sections</p>
+          <h3>Admin tabs</h3>
+        </div>
+      </div>
+      <div id="adminSectionTabs" class="admin-record-actions" style="display:flex;flex-wrap:wrap;gap:8px;">
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-jobs-section">Jobs</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-applications-section">Applications</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-users-section">Users</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-companies-section">Companies</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-grants-section">Admin Grants</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-reviews-section">Reviews</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-shifts-section">Shifts</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-moderation-section">AI Moderation</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-support-section">Support</button>
+        <button type="button" class="btn btn-outline" data-admin-tab="admin-analytics-section">Analytics</button>
+        <button type="button" class="btn btn-primary" data-admin-tab="all">Show all</button>
+      </div>
+    </section>
+
+    <div class="admin-layout">
+      <div class="admin-content">
+    <section id="admin-jobs-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Jobs</p>
@@ -112,7 +136,12 @@
             <option value="Design">Design</option>
             <option value="Operations">Operations</option>
             <option value="General">General</option>
+            <option value="Other">Other (custom)</option>
           </select>
+        </div>
+        <div class="form-group" id="adminJobCategoryCustomWrap" style="display:none;">
+          <label class="form-label" for="adminJobCategoryCustom">Custom Category</label>
+          <input type="text" id="adminJobCategoryCustom" name="adminJobCategoryCustom" class="form-input" placeholder="Enter custom category" maxlength="100">
         </div>
         <div class="form-group" style="grid-column:1/-1;">
           <label class="form-label" for="adminJobDescription">Description</label>
@@ -129,9 +158,27 @@
       </form>
 
       <div id="jobs" class="admin-list"></div>
+
+      <!-- Job History Modal -->
+      <div id="jobHistoryModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="jobHistoryModalTitle">
+        <div class="modal-inner glass-card" style="max-width:720px;width:100%;padding:22px;">
+          <div class="admin-record-head" style="margin-bottom:12px;">
+            <h3 id="jobHistoryModalTitle" style="margin:0;">Job Action History</h3>
+            <button id="jobHistoryModalClose" class="btn btn-outline" type="button">Close</button>
+          </div>
+          <div id="jobHistoryModalList" class="admin-list"></div>
+        </div>
+      </div>
+      <script>
+        // Modal close handler for job history
+        document.addEventListener("DOMContentLoaded", function() {
+          const closeBtn = document.getElementById("jobHistoryModalClose");
+          if (closeBtn) closeBtn.onclick = closeJobHistoryModal;
+        });
+      </script>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-applications-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Applications</p>
@@ -141,7 +188,46 @@
       <div id="applications" class="admin-list"></div>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-users-section" class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Users</p>
+          <h3>Account management</h3>
+        </div>
+        <button class="btn btn-outline" type="button" onclick="loadUsers()">Reload Users</button>
+      </div>
+      <p class="p-muted">Promoting a user to admin requires an approval code from the configured approver email shown when you request the grant.</p>
+      <div id="users" class="admin-list"></div>
+    </section>
+
+    <section id="admin-companies-section" class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Companies</p>
+          <h3>Registered companies</h3>
+        </div>
+        <button class="btn btn-outline" type="button" onclick="loadCompanies()">Reload</button>
+      </div>
+      <div id="companies" class="admin-list"></div>
+    </section>
+
+    <section id="admin-grants-section" class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Admin grants</p>
+          <h3>Grant history</h3>
+        </div>
+        <div class="admin-record-actions" style="gap:8px;">
+          <button class="btn btn-outline" type="button" onclick="setGrantHistoryFilter('all')">All</button>
+          <button class="btn btn-outline" type="button" onclick="setGrantHistoryFilter('pending')">Pending</button>
+          <button class="btn btn-outline" type="button" onclick="setGrantHistoryFilter('approved')">Approved</button>
+          <button class="btn btn-outline" type="button" onclick="setGrantHistoryFilter('expired')">Expired</button>
+        </div>
+      </div>
+      <div id="grantHistory" class="admin-list"></div>
+    </section>
+
+    <section id="admin-reviews-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Users</p>
@@ -186,19 +272,28 @@
           <p class="eyebrow">Reviews</p>
           <h3>Moderation queue</h3>
         </div>
-        <div class="admin-record-actions" style="gap:8px;">
-          <button class="btn btn-outline" type="button" onclick="setReviewSource('portal')">Portal</button>
-          <button class="btn btn-outline" type="button" onclick="setReviewSource('company')">Company</button>
-          <button class="btn btn-outline" type="button" onclick="setReviewSource('all')">All Sources</button>
-          <button class="btn btn-outline" type="button" onclick="setReviewFilter('pending')">Pending</button>
-          <button class="btn btn-outline" type="button" onclick="setReviewFilter('approved')">Published</button>
-          <button class="btn btn-outline" type="button" onclick="setReviewFilter('hidden')">Hidden</button>
+<div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+          <div class="admin-record-actions" style="gap:6px;">
+            <button id="reviewSourcePortal" class="btn btn-ghost btn-sm" type="button" onclick="setReviewSourceFilter('portal')">Portal</button>
+            <button id="reviewSourceCompany" class="btn btn-ghost btn-sm" type="button" onclick="setReviewSourceFilter('company')">Company</button>
+            <button id="reviewSourceAll" class="btn btn-ghost btn-sm" type="button" onclick="setReviewSourceFilter('all')">All Sources</button>
+          </div>
+          <div class="admin-record-actions" style="gap:8px;">
+            <button class="btn btn-outline" type="button" onclick="setReviewFilter('pending')">Pending</button>
+            <button class="btn btn-outline" type="button" onclick="setReviewFilter('approved')">Published</button>
+            <button class="btn btn-outline" type="button" onclick="setReviewFilter('hidden')">Hidden</button>
+          </div>
+          <div class="admin-record-actions" style="gap:8px;">
+            <button class="btn btn-outline" type="button" onclick="setReviewVerified('all')">All Reviews</button>
+            <button class="btn btn-outline" type="button" onclick="setReviewVerified('verified')">Verified Only</button>
+            <button class="btn btn-outline" type="button" onclick="setReviewVerified('unverified')">Unverified Only</button>
+          </div>
         </div>
       </div>
       <div id="reviewQueue" class="admin-list"></div>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-shifts-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Shifts</p>
@@ -208,7 +303,7 @@
       <div id="shiftEscrows" class="admin-list"></div>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-moderation-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">AI moderation</p>
@@ -224,7 +319,51 @@
       <button class="btn btn-outline" type="button" id="saveAutoApproveBtn">Save moderation settings</button>
     </section>
 
-    <section class="glass-card admin-panel">
+    <section id="admin-support-section" class="glass-card admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <p class="eyebrow">Support inbox</p>
+          <h3>Human support tickets</h3>
+          <p id="supportInboxMeta" class="p-muted" style="margin-top:6px;">Loading support inbox...</p>
+        </div>
+        <div class="admin-record-actions" style="gap:8px;">
+          <button class="btn btn-outline" type="button" onclick="setSupportMineFilter()">My tickets</button>
+          <button class="btn btn-outline" type="button" onclick="setSupportFilter('open')">Open</button>
+          <button class="btn btn-outline" type="button" onclick="setSupportFilter('waiting_support')">Waiting support</button>
+          <button class="btn btn-outline" type="button" onclick="setSupportFilter('waiting_user')">Waiting user</button>
+          <button class="btn btn-outline" type="button" onclick="setSupportFilter('closed')">Closed</button>
+          <button class="btn btn-outline" type="button" onclick="setSupportFilter('all')">All</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(280px, 1fr) minmax(340px, 1.3fr);gap:14px;">
+        <div id="supportTickets" class="admin-list"></div>
+        <div class="job-card" style="padding:14px;">
+          <div class="admin-record-head" style="margin-bottom:10px;">
+            <h4 id="supportThreadTitle" style="margin:0;">Select a ticket</h4>
+            <div class="admin-record-actions" style="gap:8px;">
+              <button class="btn btn-outline" type="button" onclick="assignSupportTicketToMe()">Assign to me</button>
+              <button class="btn btn-outline" type="button" onclick="closeSupportTicket()">Close ticket</button>
+            </div>
+          </div>
+          <p id="supportThreadMeta" class="p-muted" style="margin-bottom:10px;">No ticket selected.</p>
+          <div id="supportThread" class="support-messages" style="max-height:260px;"></div>
+          <form id="supportReplyForm" class="support-form" style="margin-top:10px;">
+            <textarea id="supportReplyInput" name="supportReply" class="form-input" rows="3" placeholder="Type your reply"></textarea>
+            <div id="supportQuickReplies" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+              <button type="button" class="btn btn-outline" data-template="greeting">Greeting</button>
+              <button type="button" class="btn btn-outline" data-template="checking">Checking now</button>
+              <button type="button" class="btn btn-outline" data-template="ask_steps">Ask steps</button>
+              <button type="button" class="btn btn-outline" data-template="refresh_login">Refresh/login</button>
+              <button type="button" class="btn btn-outline" data-template="issue_fixed">Issue fixed</button>
+            </div>
+            <button class="btn btn-primary" type="submit">Send reply</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="admin-analytics-section" class="glass-card admin-panel">
       <div class="admin-panel-head">
         <div>
           <p class="eyebrow">Analytics</p>
@@ -233,7 +372,74 @@
       </div>
       <canvas id="statsChart" height="220"></canvas>
     </section>
+      </div>
+
+      <aside class="glass-card admin-quick-nav" aria-label="Admin section navigation">
+        <p class="eyebrow">Quick navigation</p>
+        <h3>Jump to section</h3>
+        <a href="#statsSummary" class="admin-quick-link">Overview stats</a>
+        <a href="#admin-jobs-section" class="admin-quick-link">Jobs</a>
+        <a href="#admin-applications-section" class="admin-quick-link">Applications</a>
+        <a href="#admin-users-section" class="admin-quick-link">Users</a>
+        <a href="#admin-companies-section" class="admin-quick-link">Companies</a>
+        <a href="#admin-grants-section" class="admin-quick-link">Admin grants</a>
+        <a href="#admin-reviews-section" class="admin-quick-link">Reviews</a>
+        <a href="#admin-shifts-section" class="admin-quick-link">Shifts</a>
+        <a href="#admin-moderation-section" class="admin-quick-link">AI moderation</a>
+        <a href="#admin-support-section" class="admin-quick-link">Support inbox</a>
+        <a href="#admin-analytics-section" class="admin-quick-link">Analytics</a>
+      </aside>
+    </div>
   </main>
+
+  <div id="jobApplicationsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="jobApplicationsModalTitle">
+    <div class="modal-inner glass-card" style="max-width:920px;width:100%;padding:22px;">
+      <div class="admin-record-head" style="margin-bottom:12px;">
+        <h3 id="jobApplicationsModalTitle" style="margin:0;">Applications</h3>
+        <button id="jobApplicationsModalClose" class="btn btn-outline" type="button">Close</button>
+      </div>
+      <div id="jobApplicationsModalList" class="admin-list"></div>
+    </div>
+  </div>
+
+  <div id="adminPaymentModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminPaymentTitle">
+    <div class="modal-inner glass-card" style="max-width:480px;width:100%;padding:28px;">
+      <h3 id="adminPaymentTitle" style="margin-bottom:4px;">Select Payment Method</h3>
+      <p class="p-muted" style="margin-bottom:18px;font-size:13px;">Choose your preferred payment method for the premium upgrade. Hosted checkout may still continue through the default card processor.</p>
+      <div id="adminPaymentOptions" class="payment-method-grid" role="listbox" aria-label="Payment methods">
+        <button class="payment-method-option" role="option" data-method="card" tabindex="0">
+          <span class="payment-method-icon"><i class="fa-solid fa-credit-card"></i></span>
+          <span>Credit / Debit Card</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="applepay" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-apple"></i></span>
+          <span>Apple Pay</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="gpay" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-google-pay"></i></span>
+          <span>Google Pay</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="paypal" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-brands fa-paypal"></i></span>
+          <span>PayPal</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+        <button class="payment-method-option" role="option" data-method="bank_transfer" tabindex="-1">
+          <span class="payment-method-icon"><i class="fa-solid fa-building-columns"></i></span>
+          <span>Bank Transfer</span>
+          <span class="payment-method-check" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+        </button>
+      </div>
+      <p id="adminPaymentSelectedText" class="payment-method-selected" aria-live="polite">Selected: Card</p>
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button id="adminPaymentConfirm" class="btn btn-primary" type="button" style="flex:1;">Confirm Payment Method</button>
+        <button id="adminPaymentCancel" class="btn btn-outline" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <div id="toast"></div>
 
@@ -257,6 +463,7 @@
     </div>
     <div class="footer-bottom">&copy; 2026 JobPortal. All rights reserved.</div>
   </footer>
+  <script src="js/error-ui.js"></script>
   <script src="js/config.js"></script>
   <script src="js/navbar.js"></script>
   <script src="js/utils.js"></script>

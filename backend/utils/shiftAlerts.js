@@ -1,26 +1,5 @@
 const db = require("../config/mysql");
-const nodemailer = require("nodemailer");
-
-const getMailer = () => {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM;
-
-  if (!host || !user || !pass || !from) {
-    return null;
-  }
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass }
-  });
-
-  return { transporter, from };
-};
+const { sendMail } = require("./mailer");
 
 const matchShiftAlerts = (job, callback) => {
   const sql = `
@@ -49,8 +28,6 @@ const insertNotifications = (job, users, status, paidAt, callback) => {
   if (!users.length) return callback(null);
 
   let pending = users.length;
-  const mailer = status === "posted" ? getMailer() : null;
-
   users.forEach((user) => {
     const sql = `
       INSERT INTO shift_notifications (user_id, job_id, status, paid_at, is_read, created_at, updated_at)
@@ -66,7 +43,7 @@ const insertNotifications = (job, users, status, paidAt, callback) => {
         console.error("Shift notification insert failed:", err);
       }
 
-      if (mailer && user.email) {
+      if (status === "posted" && user.email) {
         const subject = `New shift: ${job.title}`;
         const pay = job.shift_pay_cents ? `$${(job.shift_pay_cents / 100).toFixed(2)}` : "";
         const start = job.shift_start ? new Date(job.shift_start).toLocaleString() : "";
@@ -76,13 +53,11 @@ const insertNotifications = (job, users, status, paidAt, callback) => {
 
         const text = `A new paid shift was posted: ${job.title}\n${details}\nApply now: ${process.env.FRONTEND_URL || "http://localhost:3000"}/apply.html?jobId=${job.id}`;
 
-        mailer.transporter
-          .sendMail({
-            from: mailer.from,
-            to: user.email,
-            subject,
-            text
-          })
+        sendMail({
+          to: user.email,
+          subject,
+          text
+        })
           .catch((mailErr) => {
             console.error("Shift alert email failed:", mailErr);
           });

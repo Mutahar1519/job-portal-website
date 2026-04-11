@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", async () => {
+﻿document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token");
   const userRaw = localStorage.getItem("user");
   let user = null;
@@ -139,12 +139,17 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div>
             <p style="margin: 0; font-weight: 600; font-size: 13px;">${esc(alert.title || "Shift Alert")}</p>
             <p class="p-muted" style="margin: 4px 0 0 0; font-size: 12px;">
-              ${esc(alert.keyword || "Any shift type")}${alert.location ? ` • ${esc(alert.location)}` : ""}
+              ${esc(alert.keyword || "Any shift type")}${alert.location ? ` â€¢ ${esc(alert.location)}` : ""}
             </p>
           </div>
-          <button class="btn-icon" onclick="removeAlert(${alert.id})" style="background: none; border: none; color: #ef4444; cursor: pointer;">
-            <i class="fa-solid fa-trash"></i>
-          </button>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="btn-icon" onclick="editAlert(${alert.id})" style="background: none; border: none; color: var(--primary, #2563eb); cursor: pointer;" title="Edit alert">
+              <i class="fa-solid fa-pencil"></i>
+            </button>
+            <button class="btn-icon" onclick="removeAlert(${alert.id})" style="background: none; border: none; color: #ef4444; cursor: pointer;" title="Delete alert">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
         </div>
       `).join("") + (userAlerts.length > 3 ? `<p class="p-muted" style="margin-top: 8px; font-size: 12px;">+${userAlerts.length - 3} more alerts</p>` : "");
   };
@@ -185,17 +190,35 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   // Modal handlers
+  let _editingAlertId = null;
+
+  const _resetAlertModal = () => {
+    _editingAlertId = null;
+    document.getElementById("alertTitle").value = "";
+    document.getElementById("alertLocation").value = "";
+    document.getElementById("alertShiftType").value = "";
+    document.getElementById("alertPayMin").value = "";
+    document.querySelectorAll(".days-select input").forEach(cb => { cb.checked = false; });
+    document.getElementById("alertNotifications").checked = true;
+    const h3 = createAlertModal.querySelector("h3");
+    if (h3) h3.innerHTML = '<i class="fa-solid fa-bell"></i> Create Shift Alert';
+    const saveBtn = document.getElementById("saveAlertBtn");
+    if (saveBtn) saveBtn.textContent = "Create Alert";
+  };
+
   const openCreateAlertModal = () => {
     if (!token) {
-      alert("Please login first to create alerts");
+      showWarning("Please login first to create alerts");
       window.location.href = "login.html";
       return;
     }
+    _resetAlertModal();
     createAlertModal.classList.remove("hidden");
   };
 
   const closeCreateAlertModal = () => {
     createAlertModal.classList.add("hidden");
+    _resetAlertModal();
   };
 
   const saveAlert = async () => {
@@ -208,13 +231,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     const notifications = document.getElementById("alertNotifications").checked;
 
     if (!title) {
-      alert("Please enter an alert name");
+      showWarning("Please enter an alert name");
       return;
     }
 
+    const isEditing = !!_editingAlertId;
+
     try {
-      const res = await authFetch(`${API}/job-alerts`, {
-        method: "POST",
+      const url = isEditing
+        ? `${API}/job-alerts/${_editingAlertId}`
+        : `${API}/job-alerts`;
+      const res = await authFetch(url, {
+        method: isEditing ? "PUT" : "POST",
         body: JSON.stringify({
           title,
           keyword: shiftTypeKeyword,
@@ -223,22 +251,24 @@ document.addEventListener("DOMContentLoaded", async () => {
           min_pay_cents: Math.round(payMin * 100),
           preferred_days: days,
           notifications_enabled: notifications,
-          is_shift_alert: true
+          is_shift_alert: true,
+          frequency: "daily",
+          is_active: 1
         })
       });
 
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to create alert");
+        showError(data.message || data.error || (isEditing ? "Failed to update alert" : "Failed to create alert"));
         return;
       }
 
-      alert("Alert created! You'll get notified when matching shifts are posted.");
+      showSuccess(isEditing ? "Alert updated!" : "Alert created! You'll get notified when matching shifts are posted.");
       closeCreateAlertModal();
       await loadUserAlerts();
     } catch (err) {
       console.error(err);
-      alert("Failed to create alert");
+      showError(isEditing ? "Failed to update alert" : "Failed to create alert");
     }
   };
 
@@ -259,15 +289,49 @@ document.addEventListener("DOMContentLoaded", async () => {
         method: "DELETE"
       });
 
-      if (res.ok) {
-        await loadUserAlerts();
-      } else {
-        alert("Failed to remove alert");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showError(data.message || data.error || "Failed to remove alert");
+        return;
       }
+      await loadUserAlerts();
     } catch (err) {
       console.error(err);
-      alert("Failed to remove alert");
+      showError("Failed to remove alert");
     }
+  };
+
+  // Make editAlert globally accessible
+  window.editAlert = (alertId) => {
+    const alert_item = userAlerts.find(a => a.id === alertId);
+    if (!alert_item) return;
+
+    _editingAlertId = alertId;
+
+    // Prefill form
+    document.getElementById("alertTitle").value = alert_item.title || alert_item.keyword || "";
+    document.getElementById("alertLocation").value = alert_item.location || "";
+    document.getElementById("alertShiftType").value = alert_item.keyword || "";
+    document.getElementById("alertPayMin").value =
+      alert_item.min_pay_cents ? (alert_item.min_pay_cents / 100).toFixed(2) : "";
+    // Reset and repopulate days
+    document.querySelectorAll(".days-select input").forEach(cb => { cb.checked = false; });
+    if (alert_item.preferred_days) {
+      const days = alert_item.preferred_days.split(",").map(d => d.trim());
+      document.querySelectorAll(".days-select input").forEach(cb => {
+        if (days.includes(cb.value)) cb.checked = true;
+      });
+    }
+    document.getElementById("alertNotifications").checked =
+      alert_item.notifications_enabled !== false;
+
+    // Update modal heading and button
+    const h3 = createAlertModal.querySelector("h3");
+    if (h3) h3.innerHTML = '<i class="fa-solid fa-pencil"></i> Edit Shift Alert';
+    const saveBtn = document.getElementById("saveAlertBtn");
+    if (saveBtn) saveBtn.textContent = "Update Alert";
+
+    createAlertModal.classList.remove("hidden");
   };
 
   // Initial load

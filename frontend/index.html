@@ -48,7 +48,7 @@
         <p class="hero-subtitle">A professional job portal built for job seekers, recruiters, and growing companies with verified listings, cleaner workflows, and faster decisions.</p>
         <div class="hero-actions">
           <a class="btn btn-primary" id="exploreJobsBtn" href="jobs.html"><i class="fa-solid fa-magnifying-glass"></i> Explore Jobs</a>
-          <a class="btn btn-primary" href="post-jobs.html"><i class="fa-solid fa-briefcase"></i> Post a Job</a>
+          <a class="btn btn-primary hero-post-highlight" href="post-jobs.html"><i class="fa-solid fa-briefcase"></i> Post a Job</a>
         </div>
         <div class="hero-metrics hero-pro-metrics">
           <div class="hero-metric-card">
@@ -109,21 +109,21 @@
       <div class="hero-stat-item">
         <i class="fa-solid fa-building"></i>
         <div>
-          <strong>200+</strong>
+          <strong id="companiesCount">0+</strong>
           <span>Companies</span>
         </div>
       </div>
       <div class="hero-stat-item">
         <i class="fa-solid fa-star"></i>
         <div>
-          <strong>5K+</strong>
+          <strong id="placementsCount">0+</strong>
           <span>Placements</span>
         </div>
       </div>
       <div class="hero-stat-item">
         <i class="fa-solid fa-arrow-trend-up"></i>
         <div>
-          <strong>94%</strong>
+          <strong id="successRateCount">0%</strong>
           <span>Success Rate</span>
         </div>
       </div>
@@ -245,7 +245,7 @@
   </footer>
   
   <script src="js/config.js"></script>
-  <script src="js/navbar.js"></script>
+  <script src="js/navbar.js"></script>`n    <script src="js/error-ui.js"></script>
   <script src="js/latest-jobs.js"></script>
   <script src="js/reviews.js"></script>
   <script src="js/theme.js" defer></script>
