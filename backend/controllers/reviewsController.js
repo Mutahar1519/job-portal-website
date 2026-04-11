@@ -179,21 +179,6 @@ exports.createReview = (req, res) => {
   );
 };
 
-<<<<<<< HEAD
-/* === COMPANY REVIEWS === */
-
-exports.getCompanyReviews = (req, res) => {
-  const companyId = parseInt(req.params.companyId);
-  if (!companyId) return res.status(400).json({ message: "Invalid company" });
-
-  db.query(
-    "SELECT reviewer_name, rating, message, created_at FROM company_reviews WHERE company_id = ? AND approved = 1 AND is_hidden = 0 ORDER BY created_at DESC LIMIT 20",
-    [companyId],
-    (err, rows) => {
-      if (err) {
-        console.error("getCompanyReviews error:", err.message);
-        return res.status(500).json({ message: "Failed to load reviews" });
-=======
 exports.getCompanyReviews = async (req, res) => {
   const companyId = Number(req.params.companyId);
   const limit = Math.min(Number(req.query.limit || 12), 50);
@@ -210,7 +195,16 @@ exports.getCompanyReviews = async (req, res) => {
   }
 
   db.query(
-    `SELECT reviewer_name AS name, reviewer_role AS role, rating, message, created_at
+    `SELECT reviewer_name AS name,
+            reviewer_role AS role,
+            rating,
+            message,
+            created_at,
+            job_id,
+            CASE
+              WHEN reviewer_email IS NOT NULL AND job_id IS NOT NULL THEN 1
+              ELSE 0
+            END AS verified_review
      FROM company_reviews
      WHERE approved = 1 AND is_hidden = 0 AND company_id = ?
      ORDER BY created_at DESC
@@ -220,76 +214,36 @@ exports.getCompanyReviews = async (req, res) => {
       if (err) {
         console.error(err);
         return res.status(500).json({ message: "Failed to load company reviews" });
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
       }
       res.json(rows);
     }
   );
 };
 
-<<<<<<< HEAD
-exports.createCompanyReview = (req, res) => {
-  const companyId = parseInt(req.params.companyId);
-  if (!companyId) return res.status(400).json({ message: "Invalid company" });
-
-  const reviewerName = (req.body.reviewer_name || req.body.name || req.user?.name || "").trim().slice(0, 120);
-  const reviewerRole = (req.body.reviewer_role || req.body.role || req.user?.role || "Candidate").trim().slice(0, 120);
-  const rating = parseInt(req.body.rating);
-  const message = (req.body.message || "").trim().slice(0, 1000);
-  const userId = req.user?.id || null;
-
-  if (!reviewerName) return res.status(400).json({ message: "Name is required" });
-  if (!rating || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be 1-5" });
-  if (!message) return res.status(400).json({ message: "Review message required" });
-
-  db.query(
-    "SELECT id FROM companies WHERE id = ? LIMIT 1",
-    [companyId],
-    (companyErr, companyRows) => {
-      if (companyErr) {
-        console.error("createCompanyReview company lookup error:", companyErr.message);
-        return res.status(500).json({ message: "Failed to save review" });
-      }
-      if (!companyRows.length) {
-        return res.status(404).json({ message: "Company not found" });
-      }
-
-      db.query(
-        "INSERT INTO company_reviews (company_id, user_id, reviewer_name, reviewer_role, rating, message, approved) VALUES (?, ?, ?, ?, ?, ?, 0)",
-        [companyId, userId, reviewerName, reviewerRole || null, rating, message],
-        (err) => {
-          if (err) {
-            console.error("createCompanyReview insert error:", err.message);
-            return res.status(500).json({ message: "Failed to save review" });
-          }
-          res.status(201).json({ message: "Review submitted for approval. Thank you!" });
-        }
-      );
-=======
 exports.createCompanyReview = async (req, res) => {
   const companyId = Number(req.params.companyId);
-  const name = (req.body.name || "").trim();
   const role = (req.body.role || "Candidate").trim();
-  const email = (req.body.email || "").trim().toLowerCase();
   const message = (req.body.message || "").trim();
   const rating = Number(req.body.rating || 0);
   const employerUserId = req.body.employer_user_id ? Number(req.body.employer_user_id) : null;
   const jobId = req.body.job_id ? Number(req.body.job_id) : null;
 
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ message: "Login required to post a company review" });
+  }
+
+  const reviewerUserId = Number(req.user.id);
+
   if (!companyId) {
     return res.status(400).json({ message: "Invalid company id" });
   }
 
-  if (!name || !role || !message || !rating) {
+  if (!role || !message || !rating) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
-  if (!isEmail(email)) {
-    return res.status(400).json({ message: "Invalid email format" });
-  }
-
-  if (name.length > 120 || role.length > 120) {
-    return res.status(400).json({ message: "Name or role too long" });
+  if (role.length > 120) {
+    return res.status(400).json({ message: "Role is too long" });
   }
 
   if (message.length > 600) {
@@ -307,17 +261,118 @@ exports.createCompanyReview = async (req, res) => {
     return res.status(500).json({ message: "Failed to initialize company reviews" });
   }
 
+  const reviewer = await new Promise((resolve, reject) => {
+    db.query(
+      "SELECT id, name, email, role FROM users WHERE id = ? LIMIT 1",
+      [reviewerUserId],
+      (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows && rows[0] ? rows[0] : null);
+      }
+    );
+  }).catch((err) => {
+    console.error(err);
+    return null;
+  });
+
+  if (!reviewer) {
+    return res.status(404).json({ message: "Reviewer account not found" });
+  }
+
+  const eligibilityRows = await new Promise((resolve, reject) => {
+    const eligibilitySql = `
+      SELECT a.id AS application_id,
+             a.job_id,
+             a.status,
+             a.pipeline_stage,
+             a.interview_status,
+             j.company_id,
+             j.posted_by
+      FROM applications a
+      JOIN jobs j ON j.id = a.job_id
+      WHERE a.user_id = ?
+        AND j.company_id = ?
+        AND (
+          LOWER(COALESCE(a.status, '')) IN ('accepted', 'hired', 'completed')
+          OR LOWER(COALESCE(a.pipeline_stage, '')) = 'hired'
+          OR LOWER(COALESCE(a.interview_status, '')) IN ('completed', 'offered')
+        )
+      ORDER BY a.id DESC
+      LIMIT 20
+    `;
+
+    db.query(eligibilitySql, [reviewerUserId, companyId], (err, rows) => {
+      if (err) return reject(err);
+      resolve(rows || []);
+    });
+  }).catch((err) => {
+    console.error(err);
+    return null;
+  });
+
+  if (!eligibilityRows) {
+    return res.status(500).json({ message: "Failed to validate review eligibility" });
+  }
+
+  if (!eligibilityRows.length) {
+    return res.status(403).json({
+      message: "Only candidates with completed/hired activity for this company can post reviews"
+    });
+  }
+
+  let matchedEligibility = null;
+  if (Number.isFinite(jobId)) {
+    matchedEligibility = eligibilityRows.find((row) => Number(row.job_id) === Number(jobId)) || null;
+    if (!matchedEligibility) {
+      return res.status(403).json({
+        message: "You are not eligible to review this job under the selected company"
+      });
+    }
+  } else {
+    matchedEligibility = eligibilityRows[0];
+  }
+
+  const finalEmployerUserId = Number.isFinite(employerUserId)
+    ? employerUserId
+    : (matchedEligibility && Number(matchedEligibility.posted_by)) || null;
+  const finalJobId = (matchedEligibility && Number(matchedEligibility.job_id)) || null;
+
+  const duplicateRows = await new Promise((resolve, reject) => {
+    db.query(
+      `SELECT id
+       FROM company_reviews
+       WHERE company_id = ? AND reviewer_email = ? AND ((job_id IS NULL AND ? IS NULL) OR job_id = ?)
+       LIMIT 1`,
+      [companyId, String(reviewer.email || '').toLowerCase() || null, finalJobId, finalJobId],
+      (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows || []);
+      }
+    );
+  }).catch((err) => {
+    console.error(err);
+    return null;
+  });
+
+  if (!duplicateRows) {
+    return res.status(500).json({ message: "Failed to validate duplicate reviews" });
+  }
+
+  if (duplicateRows.length) {
+    return res.status(409).json({ message: "You have already posted a review for this company/job" });
+  }
+
   db.query(
     `INSERT INTO company_reviews
       (company_id, employer_user_id, job_id, reviewer_name, reviewer_role, reviewer_email, rating, message, approved)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       companyId,
-      Number.isFinite(employerUserId) ? employerUserId : null,
-      Number.isFinite(jobId) ? jobId : null,
-      name,
+      finalEmployerUserId,
+      finalJobId,
+      String(reviewer.name || "Candidate").slice(0, 120),
       role,
-      email || null,
+      String(reviewer.email || "").toLowerCase() || null,
       rating,
       message,
       0
@@ -328,7 +383,6 @@ exports.createCompanyReview = async (req, res) => {
         return res.status(500).json({ message: "Failed to save company review" });
       }
       res.status(201).json({ message: "Review submitted for approval" });
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     }
   );
 };

@@ -1,7 +1,10 @@
 const jwt = require("jsonwebtoken");
 
-// Shared JWT secret - reads from environment variable, fallback to 'secret123' for compatibility
-const JWT_SECRET = process.env.JWT_SECRET || "secret123";
+// JWT secret - REQUIRED from environment variable
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('Fatal: JWT_SECRET environment variable is not set. This is required for authentication to work.');
+}
 
 module.exports = (req, res, next) => {
   const authHeader = req.headers.authorization;

@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const uiToken = localStorage.getItem("token");
   const rawUser = localStorage.getItem("user");
   let uiUser = null;
@@ -40,7 +40,7 @@
     if (profileLink) profileLink.style.display = "inline-block";
     if (userInfo) {
       userInfo.classList.remove("hidden");
-      userInfo.innerText = `👤 ${uiUser.name || uiUser.email}`;
+      userInfo.innerText = `ðŸ‘¤ ${uiUser.name || uiUser.email}`;
     }
 
     // Admin only
@@ -60,7 +60,7 @@
         bellLink.href = "dashboard.html#shift-alerts";
         bellLink.className = "nav-bell";
         bellLink.setAttribute("aria-label", "Shift alerts");
-        bellLink.innerHTML = '<span class="nav-bell-icon">🔔</span>';
+        bellLink.innerHTML = '<span class="nav-bell-icon">ðŸ””</span>';
 
         shiftBadge = document.createElement("span");
         shiftBadge.className = "nav-badge hidden";
@@ -133,21 +133,21 @@
     anchor.addEventListener("click", (event) => {
       if (authOnlyPages.has(pageName) && !isLoggedIn) {
         event.preventDefault();
-        alert("Please login first");
+        showWarning("Please login first");
         window.location.href = "login.html";
         return;
       }
 
       if (pageName === "post-jobs.html" && !canPostJobs) {
         event.preventDefault();
-        alert("You need to login as employer or admin to post jobs");
+        showError("You need to login as employer or admin to post jobs");
         window.location.href = "login.html";
         return;
       }
 
       if (pageName === "employer.html" && !isEmployerUser) {
         event.preventDefault();
-        alert("This page is for employers only");
+        showError("This page is for employers only");
         window.location.href = "dashboard.html";
         return;
       }
@@ -160,7 +160,7 @@
 
       if (pageName === "admin.html" && !canAccessAdmin) {
         event.preventDefault();
-        alert("You need to login as admin to access this page");
+        showError("You need to login as admin to access this page");
         window.location.href = "login.html";
       }
     });

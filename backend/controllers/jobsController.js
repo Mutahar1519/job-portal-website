@@ -305,7 +305,6 @@ exports.getJobs = (req, res) => {
   });
 };
 
-<<<<<<< HEAD
 exports.getPortalStats = (req, res) => {
   const countJobsSql = "SELECT COUNT(*) AS total_jobs FROM jobs WHERE is_approved = 1";
   const countActiveJobsSql = "SELECT COUNT(*) AS active_jobs FROM jobs WHERE is_approved = 1 AND (application_deadline IS NULL OR application_deadline >= NOW())";
@@ -618,13 +617,6 @@ exports.getSalaryInsights = (req, res) => {
 exports.getJobById = (req, res) => {
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ message: "Invalid job id" });
-
-=======
-exports.getJobById = (req, res) => {
-  const id = Number(req.params.id);
-  if (!id) return res.status(400).json({ message: "Invalid job id" });
-
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   const params = [id];
   let sql = `
     SELECT j.*, c.name AS company_name, c.logo_url AS company_logo,
@@ -678,15 +670,12 @@ exports.addJob = (req, res) => {
   const imageUrl = req.file
     ? "/uploads/jobs/" + req.file.filename
     : (isValidExternalUrl ? bodyImageUrl : null);
-<<<<<<< HEAD
 
   const salaryMin = req.body.salary_min !== undefined && req.body.salary_min !== "" ? Math.max(0, Number(req.body.salary_min)) : null;
   const salaryMax = req.body.salary_max !== undefined && req.body.salary_max !== "" ? Math.max(0, Number(req.body.salary_max)) : null;
   const experienceLevel = (req.body.experience_level || "").trim().slice(0, 50);
   const isRemote = req.body.is_remote ? 1 : 0;
   const benefits = (req.body.benefits || "").trim().slice(0, 2000);
-=======
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 
   if (!title || !location || !jobType || !category || !description) {
     return res.status(400).json({ message: "All fields are required" });
@@ -724,7 +713,6 @@ exports.addJob = (req, res) => {
     return res.status(401).json({ message: "Login required" });
   }
 
-<<<<<<< HEAD
   const duplicateSql = `
     SELECT id, application_deadline
     FROM jobs
@@ -760,12 +748,6 @@ exports.addJob = (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
         if (!users.length) return res.status(404).json({ message: "User not found" });
         if (!users[0].verified) return res.status(403).json({ message: "Your employer account is pending admin verification. Once an admin approves your account you will be able to post jobs. Contact support@jobportal.com if you need help." });
-=======
-  db.query("SELECT verified FROM users WHERE id = ?", [userId], (err, users) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!users.length) return res.status(404).json({ message: "User not found" });
-    if (!users[0].verified) return res.status(403).json({ message: "Your employer account is pending admin verification. Once an admin approves your account you will be able to post jobs. Contact support@jobportal.com if you need help." });
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 
     const insertJob = async (companyId) => {
       const autoApprovalRaw = await getPlatformSetting("auto_approve_jobs", String(AUTO_APPROVAL_ENABLED));
@@ -789,14 +771,9 @@ exports.addJob = (req, res) => {
         `INSERT INTO jobs
           (title, location, job_type, category, description, is_premium, posted_by, company_id, is_approved,
            is_shift, shift_start, shift_end, shift_pay_cents, shift_fee_cents, shift_total_cents, shift_currency, shift_paid, shift_status,
-<<<<<<< HEAD
            application_deadline, moderation_status, moderation_score, moderation_reason, auto_approved_at, image_url,
            salary_min, salary_max, experience_level, is_remote, benefits)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-=======
-           application_deadline, moderation_status, moderation_score, moderation_reason, auto_approved_at, image_url)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
         ,[
           title,
           location,
@@ -821,7 +798,6 @@ exports.addJob = (req, res) => {
           moderation.score,
           moderation.reasonText,
           moderation.autoApproved ? new Date() : null,
-<<<<<<< HEAD
           imageUrl,
           Number.isFinite(salaryMin) ? salaryMin : null,
           Number.isFinite(salaryMax) ? salaryMax : null,
@@ -836,41 +812,7 @@ exports.addJob = (req, res) => {
           if (err) {
             // Fallback: only if the missing column is image_url (legacy schema without that column).
             // Any other ER_BAD_FIELD_ERROR (e.g. salary_min missing) should surface as a real error.
-            // Endpoint: Get job action history for employer (only their jobs)
-            exports.getJobHistory = (req, res) => {
-              const jobId = Number(req.params.id);
-              const userId = req.user?.id;
-              if (!jobId || !userId) return res.status(400).json({ message: "Invalid job or user" });
-              // Only allow if this user owns the job
-              db.query("SELECT id FROM jobs WHERE id = ? AND posted_by = ?", [jobId, userId], (err, jobs) => {
-                if (err) return res.status(500).json({ error: err.message });
-                if (!jobs.length) return res.status(403).json({ message: "Not authorized for this job" });
-                db.query(
-                  `SELECT l.*, u.name AS user_name, u.role AS user_role_label
-                   FROM job_action_logs l
-                   LEFT JOIN users u ON l.user_id = u.id
-                   WHERE l.job_id = ?
-                   ORDER BY l.created_at ASC`,
-                  [jobId],
-                  (logErr, logs) => {
-                    if (logErr) return res.status(500).json({ error: logErr.message });
-                    res.json(logs.map(l => ({
-                      ...l,
-                      details: l.details ? (() => { try { return JSON.parse(l.details); } catch { return l.details; } })() : null
-                    })));
-                  }
-                );
-              });
-            };
             if (err.code === "ER_BAD_FIELD_ERROR" && (err.message || "").includes("image_url")) {
-=======
-          imageUrl
-        ],
-        (err, result) => {
-          if (err) {
-            // Fallback: if image_url column doesn't exist yet, retry without it
-            if (err.code === "ER_BAD_FIELD_ERROR") {
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
               return db.query(
                 `INSERT INTO jobs
                   (title, location, job_type, category, description, is_premium, posted_by, company_id, is_approved,
@@ -988,36 +930,6 @@ exports.applyJob = (req, res) => {
   });
 };
 
-<<<<<<< HEAD
-/* === REPORT JOB === */
-exports.reportJob = (req, res) => {
-  const jobId = parseInt(req.params.id);
-  const userId = req.user?.id || null;
-  const { reason = "other", details = "" } = req.body;
-
-  const allowedReasons = ["spam", "misleading", "inappropriate", "duplicate", "scam", "other"];
-  const safeReason = allowedReasons.includes(reason) ? reason : "other";
-
-  // Create table if not exists, then insert
-  const ensureTable =
-    "CREATE TABLE IF NOT EXISTS job_reports (" +
-    "  id INT AUTO_INCREMENT PRIMARY KEY," +
-    "  job_id INT NOT NULL," +
-    "  user_id INT," +
-    "  reason VARCHAR(50) NOT NULL," +
-    "  details TEXT," +
-    "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
-    ")";
-
-  db.query(ensureTable, (err) => {
-    if (err) return res.status(500).json({ message: "DB error", error: err.message });
-    db.query(
-      "INSERT INTO job_reports (job_id, user_id, reason, details) VALUES (?, ?, ?, ?)",
-      [jobId, userId, safeReason, details.slice(0, 1000)],
-      (err) => {
-        if (err) return res.status(500).json({ message: "Failed to submit report", error: err.message });
-        res.json({ message: "Report submitted. Thank you." });
-=======
 /* ─── Report a job listing ──────────────────────────────────────── */
 const VALID_REPORT_REASONS = ["spam", "fake", "misleading", "inappropriate", "other"];
 
@@ -1064,12 +976,11 @@ exports.reportJob = (req, res) => {
           return res.status(500).json({ message: "Failed to submit report" });
         }
         res.json({ message: "Thank you — your report has been submitted and we'll review this listing." });
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
+
       }
     );
   });
 };
-<<<<<<< HEAD
 
 // ─── Saved Searches ───────────────────────────────────────────────────────────
 
@@ -1120,5 +1031,4 @@ exports.deleteSavedSearch = (req, res) => {
     }
   );
 };
-=======
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
+

@@ -3,7 +3,7 @@ const mysql = require("mysql2");
 const {
   DB_HOST = "localhost",
   DB_USER = "root",
-  DB_PASSWORD = "Mutahar04@",
+  DB_PASSWORD = "",
   DB_NAME = "job_portal",
   DB_CONNECTION_LIMIT = 10
 } = process.env;

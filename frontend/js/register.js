@@ -1,4 +1,4 @@
-document.getElementById("registerForm")?.addEventListener("submit", async (event) => {
+﻿document.getElementById("registerForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const name = document.getElementById("name")?.value.trim();
@@ -30,44 +30,44 @@ document.getElementById("registerForm")?.addEventListener("submit", async (event
   const phoneDigitsOnly = /^\d+$/;
 
   if (!name || !email || !password || !phone) {
-    alert("All fields are required");
+    showWarning("All fields are required");
     return;
   }
 
   if (!phoneDigitsOnly.test(phone)) {
-    alert("Phone number must contain only digits");
+    showError("Phone number must contain only digits");
     return;
   }
 
   if (companyPhone && !phoneDigitsOnly.test(companyPhone)) {
-    alert("Company phone must contain only digits");
+    showError("Company phone must contain only digits");
     return;
   }
 
   if (confirmPasswordInput && password !== confirmPassword) {
-    alert("Passwords do not match");
+    showError("Passwords do not match");
     return;
   }
 
   if (roleValue === "job_seeker" && (!country || !city)) {
-    alert("Country and city are required");
+    showWarning("Country and city are required");
     return;
   }
 
   if (roleValue === "employer" && (!companyName || !companyLocation)) {
-    alert("Company name and location are required");
+    showWarning("Company name and location are required");
     return;
   }
 
   const isValidHttpUrl = (value) => !value || /^https?:\/\/.{4,}/i.test(value);
 
   if (roleValue === "employer" && ((!idDocumentUrl && !idDocumentFile) || (!businessCertificateUrl && !businessCertificateFile) || !taxRegistrationNumber)) {
-    alert("For UK employer verification, provide: Passport or Driving Licence (URL or upload), Certificate of Incorporation or HMRC letter (URL or upload), and VAT Number or UTR.");
+    showError("For UK employer verification, provide: Passport or Driving Licence (URL or upload), Certificate of Incorporation or HMRC letter (URL or upload), and VAT Number or UTR.");
     return;
   }
 
   if (!isValidHttpUrl(companyWebsite) || !isValidHttpUrl(idDocumentUrl) || !isValidHttpUrl(businessCertificateUrl) || !isValidHttpUrl(authorizationLetterUrl) || !isValidHttpUrl(linkedinProfileUrl) || !isValidHttpUrl(proofOfAddressUrl)) {
-    alert("Please provide valid http(s) links for website and verification URLs");
+    showError("Please provide valid http(s) links for website and verification URLs");
     return;
   }
 
@@ -118,15 +118,15 @@ document.getElementById("registerForm")?.addEventListener("submit", async (event
     }
 
     if (!res.ok) {
-      alert((data && data.message) || "Registration failed");
+      showError((data && data.message) || "Registration failed");
       return;
     }
 
-    alert("Registration successful. Please check your email to verify your account.");
+    showSuccess("Registration successful. Please check your email to verify your account.");
     window.location.href = "login.html";
   } catch (err) {
     console.error(err);
-    alert("Server error");
+    showError("Server error");
   }
 });
 

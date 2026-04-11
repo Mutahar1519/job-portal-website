@@ -4,8 +4,12 @@ const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
 const db = require("../config/mysql");
+const { loginRateLimiter, registerRateLimiter, passwordResetRateLimiter } = require("../middleware/authRateLimiter");
+const { getPolicy } = require("../utils/uploadPolicy");
+const validate = require("../middleware/validate");
 
-<<<<<<< HEAD
+const verificationPolicy = getPolicy("verification");
+
 // Bootstrap: add photo_url to users table if missing.
 db.query(
   `SELECT 1 AS ok
@@ -25,22 +29,12 @@ db.query(
         console.warn("users.photo_url bootstrap:", alterErr.message);
       }
     });
-=======
-// Bootstrap: add photo_url to users table if missing
-db.query(
-  "ALTER TABLE users ADD COLUMN photo_url VARCHAR(255) NULL",
-  (err) => {
-    if (err && err.code !== "ER_DUP_FIELDNAME") {
-      console.warn("users.photo_url bootstrap:", err.message);
-    }
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   }
 );
 
 const {
   registerUser,
   loginUser,
-  verifyUser,
   getMe,
   updateMe,
   deleteMe,
@@ -66,14 +60,11 @@ if (!fs.existsSync(photoDir)) {
   fs.mkdirSync(photoDir, { recursive: true });
 }
 
-<<<<<<< HEAD
 const verificationDir = path.join(__dirname, "..", "uploads", "verifications");
 if (!fs.existsSync(verificationDir)) {
   fs.mkdirSync(verificationDir, { recursive: true });
 }
 
-=======
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 const photoStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, photoDir),
   filename: (req, file, cb) => {
@@ -91,7 +82,6 @@ const uploadPhoto = multer({
   }
 });
 
-<<<<<<< HEAD
 const verificationStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, verificationDir),
   filename: (req, file, cb) => {
@@ -102,16 +92,28 @@ const verificationStorage = multer.diskStorage({
 
 const uploadVerificationDocs = multer({
   storage: verificationStorage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: verificationPolicy.maxSizeMB * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const isImage = /^image\/(jpeg|png|webp)$/.test(file.mimetype);
-    const isPdf = file.mimetype === "application/pdf";
-    cb(isImage || isPdf ? null : new Error("Only PDF, JPEG, PNG, or WEBP files allowed"), isImage || isPdf);
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const mimeAllowed = new Set(verificationPolicy.allowedMimeTypes).has(file.mimetype);
+    const extAllowed = verificationPolicy.allowedExtensions.includes(ext);
+    const isAllowed = mimeAllowed || extAllowed;
+    cb(isAllowed ? null : new Error(`Only ${verificationPolicy.allowedExtensions.join(", ")} files allowed`), isAllowed);
   }
 });
 
 router.post(
   "/register",
+  registerRateLimiter,
+  validate({
+    body: {
+      name: { required: true, type: "string", minLength: 2, maxLength: 120 },
+      email: { required: true, type: "string", minLength: 5, maxLength: 255, pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
+      password: { required: true, type: "string", minLength: 6, maxLength: 255 },
+      role: { type: "string", enum: ["job_seeker", "employer", "admin"] },
+      accountType: { type: "string", enum: ["job_seeker", "employer", "admin"] }
+    }
+  }),
   uploadVerificationDocs.fields([
     { name: "id_document_file", maxCount: 1 },
     { name: "business_certificate_file", maxCount: 1 },
@@ -119,14 +121,47 @@ router.post(
   ]),
   registerUser
 );
-=======
-router.post("/register", registerUser);
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
-router.post("/login", loginUser);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
-router.post("/verify-email", verifyEmail);
-router.put("/verify/:userId", verifyUser);
+router.post(
+  "/login",
+  loginRateLimiter,
+  validate({
+    body: {
+      email: { required: true, type: "string", minLength: 5, maxLength: 255, pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
+      password: { required: true, type: "string", minLength: 1, maxLength: 255 }
+    }
+  }),
+  loginUser
+);
+router.post(
+  "/forgot-password",
+  passwordResetRateLimiter,
+  validate({
+    body: {
+      email: { required: true, type: "string", minLength: 5, maxLength: 255, pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ }
+    }
+  }),
+  forgotPassword
+);
+router.post(
+  "/reset-password",
+  passwordResetRateLimiter,
+  validate({
+    body: {
+      token: { required: true, type: "string", minLength: 10, maxLength: 255 },
+      password: { required: true, type: "string", minLength: 6, maxLength: 255 }
+    }
+  }),
+  resetPassword
+);
+router.post(
+  "/verify-email",
+  validate({
+    body: {
+      token: { required: true, type: "string", minLength: 10, maxLength: 255 }
+    }
+  }),
+  verifyEmail
+);
 router.get("/me", auth, getMe);
 router.put("/me", auth, updateMe);
 router.delete("/me", auth, deleteMe);
@@ -140,13 +175,6 @@ router.get("/:userId/public-profile", auth, getPublicProfile);
 router.get("/:userId/skills", auth, getUserSkills);
 router.post("/:userId/skills/:skillId/endorse", auth, endorseUserSkill);
 router.delete("/:userId/skills/:skillId/endorse", auth, removeSkillEndorsement);
-
-// Profile photo upload
-router.post("/photo", auth, uploadPhoto.single("photo"), (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No image file provided" });
-  const photoUrl = `/uploads/photos/${req.file.filename}`;
-  res.json({ photo_url: photoUrl });
-});
 
 // Profile photo upload
 router.post("/photo", auth, uploadPhoto.single("photo"), (req, res) => {

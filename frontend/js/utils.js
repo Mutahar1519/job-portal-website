@@ -1,4 +1,4 @@
-function toast(msg) {
+﻿function toast(msg) {
   const t = document.getElementById("toast");
   if (!t) { console.info("[toast]", msg); return; }
   t.innerText = msg;
@@ -6,7 +6,7 @@ function toast(msg) {
   setTimeout(() => { t.style.display = "none"; }, 2500);
 }
 
-/* Escape HTML — use on every user-supplied value in innerHTML to prevent XSS */
+/* Escape HTML â€” use on every user-supplied value in innerHTML to prevent XSS */
 function esc(str) {
   return String(str == null ? "" : str)
     .replace(/&/g, "&amp;")
@@ -25,8 +25,7 @@ function safeParseJson(value, label) {
   }
 }
 
-<<<<<<< HEAD
-/* 🔐 authFetch: defined in config.js as a var — available globally.
+/* ðŸ” authFetch: defined in config.js as a var â€” available globally.
    Do not redefine here. If config.js is not loaded, define a basic fallback. */
 if (typeof authFetch === "undefined") {
   // eslint-disable-next-line no-var
@@ -44,62 +43,9 @@ if (typeof authFetch === "undefined") {
       }
     });
   };
-<<<<<<< HEAD
-=======
-
-  if (!isFormData) {
-    baseHeaders["Content-Type"] = "application/json";
-  }
-
-  if (token) {
-    baseHeaders.Authorization = `Bearer ${token}`;
-  }
-
-  return fetch(url, {
-    ...options,
-    headers: {
-      ...baseHeaders
-    }
-  }).then(res => {
-    if (!res.ok && res.status === 401) {
-      console.error(`[authFetch] 401 Unauthorized for ${url}. Token may be expired or invalid.`);
-    }
-    return res;
-  });
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
-=======
-/* 🔐 authFetch fallback: only define if config.js did not provide one */
-if (!window.authFetch) {
-  window.authFetch = function fallbackAuthFetch(url, options = {}) {
-    const token = localStorage.getItem("token");
-    const isFormData = options.body instanceof FormData;
-    const method = String(options.method || "GET").toUpperCase();
-    const shouldSetJsonContentType = !isFormData && options.body != null && method !== "GET" && method !== "HEAD";
-    const baseHeaders = {
-      ...(shouldSetJsonContentType ? { "Content-Type": "application/json" } : {}),
-      ...(options.headers || {})
-    };
-
-    if (token && token.trim()) {
-      baseHeaders.Authorization = `Bearer ${token.trim()}`;
-    }
-
-    return fetch(url, {
-      ...options,
-      headers: {
-        ...baseHeaders
-      }
-    }).then(res => {
-      if (!res.ok && res.status === 401) {
-        console.error(`[authFetch] 401 Unauthorized for ${url}. Token may be expired or invalid.`);
-      }
-      return res;
-    });
-  };
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 }
 
-/* 🚪 Logout */
+/* ðŸšª Logout */
 document.getElementById("logoutBtn")?.addEventListener("click", () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
@@ -107,7 +53,7 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
 });
 
 
-/* 👤 Get logged user */
+/* ðŸ‘¤ Get logged user */
 function getUser() {
   const raw = localStorage.getItem("user");
   const user = safeParseJson(raw, "localStorage.user");

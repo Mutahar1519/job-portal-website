@@ -12,7 +12,7 @@ The token IS being sent to the backend, but JWT verification is failing. This ha
 ## ✅ What I've Fixed
 
 ### 1. **JWT Secret Consistency** (Already Done)
-- ✅ All files now use `JWT_SECRET = "secret123"`
+- ✅ All files now use `JWT_SECRET = process.env.JWT_SECRET`
 - ✅ No hardcoded secrets in code
 - ✅ Middleware consistent across all files
 
@@ -24,7 +24,7 @@ The token IS being sent to the backend, but JWT verification is failing. This ha
 - ✅ Better database error handling
 
 ### 3. **Fixed auth.js optionalAuth** (Just Now)
-- ✅ Was using hardcoded `"secret123"` instead of `JWT_SECRET` constant
+- ✅ Was using a hardcoded fallback instead of `JWT_SECRET` constant
 - ✅ Now uses consistent constant
 
 ## 🚀 How to Fix Now

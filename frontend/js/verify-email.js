@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const statusEl = document.getElementById("verifyStatus");
   const messageEl = document.getElementById("verifyMessage");
 

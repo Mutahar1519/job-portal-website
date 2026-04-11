@@ -21,6 +21,10 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:unit:simple": "node unit-tests/simple-auth-and-validation.test.js",
+    "test:unit:simple:split": "node unit-tests/simple/run-all.simple.test.js",
+    "test:unit:controllers": "node unit-tests/run-controller-unit-tests.js",
+    "test:unit:all": "npm run test:unit:simple:split && npm run test:unit:controllers",
     "start": "node start.js",
     "start:direct": "node server.js",
     "seed:demo": "node scripts/seedDemo.js",
@@ -31,6 +35,7 @@
   "test:preflight": "node scripts/preflight.js",
   "test:oauth-config": "node scripts/oauthConfigCheck.js",
   "test:go-live": "node scripts/goLiveGate.js",
+  "test:integration:api": "node integration-tests/validation-and-security.integration.test.js",
   "test:e2e": "playwright test",
   "test:e2e:ui": "playwright test --ui",
   "test:e2e:debug": "playwright test --debug"

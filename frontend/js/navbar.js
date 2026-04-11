@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const safeParseUser = () => {
     const raw = localStorage.getItem("user");
     if (!raw) return null;
@@ -55,8 +55,8 @@
     socialWrap.className = "footer-social-links";
     socialWrap.style.marginLeft = "10px";
     socialWrap.innerHTML =
-      ' | <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a> · ' +
-      '<a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a> · ' +
+      ' | <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a> Â· ' +
+      '<a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a> Â· ' +
       '<a href="https://x.com" target="_blank" rel="noopener noreferrer">X</a>';
 
     footerBottom.appendChild(socialWrap);
@@ -292,45 +292,18 @@
       paletteMenu.id = "paletteMenu";
       paletteMenu.className = "palette-menu";
       paletteMenu.setAttribute("role", "menu");
-<<<<<<< HEAD
       const isDarkNow = document.body.classList.contains("dark");
       paletteMenu.innerHTML = paletteOptions
-=======
-
-      const paletteButtons = paletteOptions
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
         .map((palette) => {
           const label = paletteLabels[palette] || palette;
           return `<button type="button" class="palette-option" role="menuitemradio" aria-checked="false" data-palette="${palette}"><span class="palette-swatch" aria-hidden="true"></span><span>${label}</span></button>`;
         })
-<<<<<<< HEAD
         .join("") +
         `<hr style="margin:6px 0;border:none;border-top:1px solid var(--border);">` +
         `<button type="button" class="palette-option" role="menuitemradio" aria-checked="false" data-highlight="mix"><span class="palette-swatch" aria-hidden="true"></span><span>Active: Mix Colors</span></button>` +
         `<button type="button" class="palette-option" role="menuitemradio" aria-checked="false" data-highlight="solid"><span class="palette-swatch" aria-hidden="true"></span><span>Active: Same Color</span></button>` +
         `<hr style="margin:6px 0;border:none;border-top:1px solid var(--border);">` +
-        `<button type="button" class="palette-option palette-dark-toggle" role="menuitemcheckbox" aria-checked="${isDarkNow}" data-palette="dark"><span class="palette-swatch" aria-hidden="true"></span><span>Dark Mode</span>${isDarkNow ? '<span style="margin-left:auto;font-size:12px;font-weight:700;">✓</span>' : ''}</button>`;
-=======
-        .join("");
-
-      const activeModeButtons = activeModeOptions
-        .map((mode) => {
-          const label = activeModeLabels[mode] || mode;
-          return `<button type="button" class="active-mode-option" role="menuitemradio" aria-checked="false" data-mode="${mode}">${label}</button>`;
-        })
-        .join("");
-
-      paletteMenu.innerHTML = `
-        <div class="palette-section">
-          <div class="palette-section-title">Palette</div>
-          ${paletteButtons}
-        </div>
-        <div class="palette-section">
-          <div class="palette-section-title">Nav highlight mode</div>
-          ${activeModeButtons}
-        </div>
-      `;
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
+        `<button type="button" class="palette-option palette-dark-toggle" role="menuitemcheckbox" aria-checked="${isDarkNow}" data-palette="dark"><span class="palette-swatch" aria-hidden="true"></span><span>Dark Mode</span>${isDarkNow ? '<span style="margin-left:auto;font-size:12px;font-weight:700;">âœ“</span>' : ''}</button>`;
       paletteSwitcher.appendChild(paletteMenu);
     }
 
@@ -440,7 +413,6 @@
     if (paletteMenu.dataset.paletteBound !== "true") {
       paletteMenu.dataset.paletteBound = "true";
       paletteMenu.addEventListener("click", (event) => {
-<<<<<<< HEAD
         const selectedButton = event.target.closest(".palette-option");
         if (!selectedButton || !selectedButton.classList.contains("palette-option")) return;
         const selectedPalette = selectedButton.dataset.palette;
@@ -449,21 +421,11 @@
         if (selectedHighlight) {
           applyNavHighlightMode(selectedHighlight);
           updatePaletteToggle(localStorage.getItem("palette") || "default");
-=======
-        const selectedPaletteButton = event.target.closest(".palette-option");
-        const selectedModeButton = event.target.closest(".active-mode-option");
-
-        if (selectedPaletteButton && selectedPaletteButton.classList.contains("palette-option")) {
-          const selectedPalette = selectedPaletteButton.dataset.palette;
-          applyPalette(selectedPalette || "default");
-          setActiveMode(getActiveMode());
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
           paletteSwitcher.classList.remove("open");
           paletteToggleBtn.setAttribute("aria-expanded", "false");
           return;
         }
 
-<<<<<<< HEAD
         if (selectedPalette === "dark") {
           // Toggle dark mode
           const isDark = document.body.classList.toggle("dark");
@@ -472,11 +434,11 @@
           selectedButton.setAttribute("aria-checked", isDark ? "true" : "false");
           const checkSpan = selectedButton.querySelector("span:last-child");
           if (checkSpan && checkSpan !== selectedButton.querySelector("span:nth-child(2)")) {
-            checkSpan.textContent = isDark ? "✓" : "";
+            checkSpan.textContent = isDark ? "âœ“" : "";
           } else if (isDark) {
             const ck = document.createElement("span");
             ck.style.cssText = "margin-left:auto;font-size:12px;font-weight:700;";
-            ck.textContent = "✓";
+            ck.textContent = "âœ“";
             selectedButton.appendChild(ck);
           }
           // Keep palette menu open for dark toggle
@@ -487,12 +449,6 @@
         updatePaletteToggle(localStorage.getItem("palette") || "default");
         paletteSwitcher.classList.remove("open");
         paletteToggleBtn.setAttribute("aria-expanded", "false");
-=======
-        if (selectedModeButton && selectedModeButton.classList.contains("active-mode-option")) {
-          setActiveMode(selectedModeButton.dataset.mode || "same");
-          return;
-        }
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
       });
     }
 

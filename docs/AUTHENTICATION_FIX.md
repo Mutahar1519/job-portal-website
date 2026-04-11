@@ -4,7 +4,7 @@
 Admin panel was getting `401 Unauthorized` errors on all API calls with message "Invalid token"
 
 ## Root Causes Fixed
-1. **JWT Secret Mismatch**: The unused `backend/utils/jwt.js` had secret `"SECRET_KEY_123"` while actual code used `"secret123"`
+1. **JWT Secret Mismatch**: The unused `backend/utils/jwt.js` had secret `"SECRET_KEY_123"` while runtime code used a different JWT secret configuration.
 2. **Inconsistent Token Verification**: Different middleware files sometimes used hardcoded secrets without a shared constant
 3. **Lack of Debugging**: No visibility into why tokens were failing
 
@@ -13,10 +13,10 @@ Admin panel was getting `401 Unauthorized` errors on all API calls with message 
 ### 1. Consolidated JWT Secret (`backend/utils/jwt.js`)
 - Changed from: `"SECRET_KEY_123"` (wrong, unused)
 - Changed to: Export both `generateToken()` and `JWT_SECRET` constant
-- Now consistently uses: `"secret123"`
+- Now consistently uses: `process.env.JWT_SECRET`
 
 ### 2. Updated All Middleware Files
-All files now import/define `JWT_SECRET = "secret123"`:
+All files now import/define `JWT_SECRET = process.env.JWT_SECRET`:
 - `backend/middleware/auth.js` ✅
 - `backend/middleware/adminAuth.js` ✅
 - `backend/middleware/optionalAuth.js` ✅
@@ -97,7 +97,7 @@ DATABASE_URL=mysql://...
 
 Then update code:
 ```javascript
-const JWT_SECRET = process.env.JWT_SECRET || "secret123";
+const JWT_SECRET = process.env.JWT_SECRET;
 ```
 
 ## Files Modified

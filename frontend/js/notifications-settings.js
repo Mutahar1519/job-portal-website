@@ -1,4 +1,4 @@
-// Notifications Settings Module
+﻿// Notifications Settings Module
 const NotificationsSettings = (() => {
   const API = window.API || "http://localhost:3000/api";
 
@@ -69,15 +69,15 @@ const NotificationsSettings = (() => {
       });
 
       if (response.ok) {
-        showToast("✅ Notification preferences saved", "success");
+        showToast("âœ… Notification preferences saved", "success");
         return true;
       } else {
-        showToast("❌ Failed to save preferences", "error");
+        showToast("âŒ Failed to save preferences", "error");
         return false;
       }
     } catch (err) {
       console.error("[Notifications] Save failed:", err);
-      showToast("❌ Error saving preferences", "error");
+      showToast("âŒ Error saving preferences", "error");
       return false;
     }
   };

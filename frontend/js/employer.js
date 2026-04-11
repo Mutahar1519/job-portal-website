@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const token = localStorage.getItem("token");
   if (!token) {
-    alert("Login required");
+    showWarning("Login required");
     window.location.href = "login.html";
     return;
   }
@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Only employers and admins can access this page
   if (!user.is_admin && user.role !== "employer") {
-    alert("This page is for employers only.");
+    showError("This page is for employers only.");
     window.location.href = "dashboard.html";
     return;
   }
@@ -90,7 +90,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const statApplications = document.getElementById("employerTotalApplications");
   const statSaves = document.getElementById("employerTotalSaves");
   const pipelineSummary = document.getElementById("pipelineSummary");
-<<<<<<< HEAD
   const bulkCsvFile = document.getElementById("bulkCsvFile");
   const bulkCsvMeta = document.getElementById("bulkCsvMeta");
   const bulkDryRunBtn = document.getElementById("bulkDryRunBtn");
@@ -103,21 +102,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const interviewStatuses = ["not_started", "scheduled", "completed", "offered", "rejected"];
   const formatInterviewStatus = (value) => String(value || "not_started").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-=======
-  const shiftPaymentModal = document.getElementById("shiftPaymentModal");
-  const shiftPaymentOptions = document.getElementById("shiftPaymentOptions");
-  const shiftPaymentSelectedText = document.getElementById("shiftPaymentSelectedText");
-  const shiftPaymentConfirmBtn = document.getElementById("shiftPaymentConfirm");
-  const shiftPaymentCancelBtn = document.getElementById("shiftPaymentCancel");
-  const shiftPaymentCloseBtn = document.getElementById("shiftPaymentClose");
-
-  const stages = ["new", "screening", "interview", "offer", "hired", "rejected"];
-  const shiftPaymentMethods = ["card", "applepay", "gpay", "paypal", "bank_transfer"];
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
   let applications = [];
   let filteredApplications = [];
   let activeApplicationId = null;
-<<<<<<< HEAD
   let employerJobsById = new Map();
   let parsedBulkRows = [];
   let notificationFilter = "unread";
@@ -145,10 +132,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       // ignore storage write errors
     }
   };
-=======
-  let shiftPaymentResolver = null;
-  let selectedShiftPaymentMethod = "card";
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
   const safeAuthFetch = window.authFetch
     ? window.authFetch
@@ -252,12 +235,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       const confirmData = await confirmRes.json().catch(() => ({}));
       if (!confirmRes.ok) {
-        alert(confirmData.message || "Payment confirmation failed");
+        showError(confirmData.message || "Payment confirmation failed");
       } else {
-        alert("Job re-boosted successfully ✅");
+        showSuccess("Job re-boosted successfully ✅");
       }
     } catch (err) {
-      alert("Payment confirmation failed");
+      showError("Payment confirmation failed");
     }
     window.history.replaceState({}, document.title, "employer.html");
   }
@@ -428,7 +411,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       column.innerHTML += `
         <article class="pipeline-card">
           <div class="pipeline-card__header">
-<<<<<<< HEAD
             <div style="display:flex;align-items:center;gap:8px;">
               <input type="checkbox" class="bulk-app-checkbox" data-app-id="${app.id}" ${checked} />
               <h4>${esc(app.full_name || app.user_name || "Candidate")}</h4>
@@ -439,15 +421,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               ${(function() { if (!app.is_shift) return ""; const status = (app.escrow_status || app.shift_status || "open").toLowerCase(); const label = status.replace(/_/g, " "); return `<span class="status-pill status-${status}">${label}</span>`; })()}
               ${tags}
               ${shortlisted}
-=======
-            <div>
-              <h4>${esc(candidate)}</h4>
-              <p class="meta">${esc(email)}</p>
-            </div>
-            <div class="status-stack">
-              <span class="status-pill status-${stage}">${esc(stage)}</span>
-              ${shiftBadge()}
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
             </div>
           </div>
           <p class="p-muted">Applied: ${app.created_at ? new Date(app.created_at).toLocaleDateString() : ""}</p>
@@ -527,7 +500,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const res = await safeAuthFetch(`${API}/employer/jobs`);
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to load jobs");
+        showError(data.message || "Failed to load jobs");
         return;
       }
 
@@ -554,7 +527,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       await loadApplications();
     } catch (err) {
       console.error(err);
-      alert("Failed to load jobs");
+      showError("Failed to load jobs");
     }
   };
 
@@ -599,7 +572,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const res = await safeAuthFetch(`${API}/employer/applications?jobId=${jobId}`);
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to load applications");
+        showError(data.message || "Failed to load applications");
         return;
       }
 
@@ -645,7 +618,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       writeSeenApplicationState(seenState);
     } catch (err) {
       console.error(err);
-      alert("Failed to load applications");
+      showError("Failed to load applications");
     }
   };
 
@@ -680,7 +653,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Bulk actions (demo: tagging, shortlisting, export, move stage, message)
   document.getElementById("bulkTagBtn")?.addEventListener("click", async () => {
-    if (!selectedApplicationIds.size) return alert("Select applications first");
+    if (!selectedApplicationIds.size) return showWarning("Select applications first");
     const tag = prompt("Enter tag to add to selected:");
     if (!tag) return;
     await Promise.all(Array.from(selectedApplicationIds).map(async (id) => {
@@ -698,7 +671,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderPipeline();
   });
   document.getElementById("bulkShortlistBtn")?.addEventListener("click", async () => {
-    if (!selectedApplicationIds.size) return alert("Select applications first");
+    if (!selectedApplicationIds.size) return showWarning("Select applications first");
     await Promise.all(Array.from(selectedApplicationIds).map(async (id) => {
       try {
         const res = await safeAuthFetch(`${API}/employer/applications/${id}/shortlist`, {
@@ -711,7 +684,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderPipeline();
   });
   document.getElementById("bulkExportBtn")?.addEventListener("click", () => {
-    if (!selectedApplicationIds.size) return alert("Select applications first");
+    if (!selectedApplicationIds.size) return showWarning("Select applications first");
     const rows = applications.filter(app => selectedApplicationIds.has(app.id)).map(app => [
       app.full_name || app.user_name || "",
       app.email || app.user_email || "",
@@ -732,9 +705,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     URL.revokeObjectURL(url);
   });
   document.getElementById("bulkMoveStageBtn")?.addEventListener("click", () => {
-    if (!selectedApplicationIds.size) return alert("Select applications first");
+    if (!selectedApplicationIds.size) return showWarning("Select applications first");
     const stage = prompt("Enter stage (new, screening, interview, offer, hired, rejected):");
-    if (!stage || !stages.includes(stage)) return alert("Invalid stage");
+    if (!stage || !stages.includes(stage)) return showWarning("Invalid stage");
     // In real impl, send to backend. Here, update locally for demo:
     applications.forEach(app => {
       if (selectedApplicationIds.has(app.id)) app.pipeline_stage = stage;
@@ -743,10 +716,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderPipeline();
   });
   document.getElementById("bulkMessageBtn")?.addEventListener("click", () => {
-    if (!selectedApplicationIds.size) return alert("Select applications first");
+    if (!selectedApplicationIds.size) return showWarning("Select applications first");
     const msg = prompt("Enter message to send to selected candidates:");
     if (!msg) return;
-    alert(`Message sent to ${selectedApplicationIds.size} candidates (demo only)`);
+    showSuccess(`Message sent to ${selectedApplicationIds.size} candidates (demo only)`);
   });
 
   const loadMessages = async (applicationId) => {
@@ -756,7 +729,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const res = await safeAuthFetch(`${API}/messages/applications/${applicationId}/messages`);
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to load messages");
+        showError(data.message || "Failed to load messages");
         return;
       }
 
@@ -781,7 +754,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     } catch (err) {
       console.error(err);
-      alert("Failed to load messages");
+      showError("Failed to load messages");
     }
   };
 
@@ -913,7 +886,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.message || "Failed to mark alerts as read");
+        showError(data.message || "Failed to mark alerts as read");
         return;
       }
       if (typeof toast === "function") {
@@ -921,7 +894,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       await loadApplicationNotifications();
     } catch (_err) {
-      alert("Failed to mark alerts as read");
+      showError("Failed to mark alerts as read");
     }
   };
 
@@ -933,12 +906,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || "Failed to mark alert as read");
+        showError(data.message || "Failed to mark alert as read");
         return;
       }
       await loadApplicationNotifications();
     } catch (_err) {
-      alert("Failed to mark alert as read");
+      showError("Failed to mark alert as read");
     }
   };
 
@@ -1020,7 +993,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const runBulkUpload = async (dryRun) => {
     if (!parsedBulkRows.length) {
-      alert("Please choose a CSV file first.");
+      showWarning("Please choose a CSV file first.");
       return;
     }
 
@@ -1063,7 +1036,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renewJobBtn?.addEventListener("click", async () => {
     const selectedJobId = jobSelect?.value;
     if (!selectedJobId) {
-      alert("Select a job first");
+      showWarning("Select a job first");
       return;
     }
 
@@ -1075,22 +1048,22 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.message || "Failed to renew job");
+        showError(data.message || "Failed to renew job");
         return;
       }
 
-      alert(data.message || "Job renewed");
+      showSuccess(data.message || "Job renewed");
       await loadJobs();
     } catch (err) {
       console.error(err);
-      alert("Failed to renew job");
+      showError("Failed to renew job");
     }
   });
 
   reboostJobBtn?.addEventListener("click", async () => {
     const selectedJobId = jobSelect?.value;
     if (!selectedJobId) {
-      alert("Select a job first");
+      showWarning("Select a job first");
       return;
     }
 
@@ -1103,13 +1076,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       const checkoutData = await checkoutRes.json().catch(() => ({}));
       if (!checkoutRes.ok || !checkoutData.url) {
-        alert(checkoutData.message || "Failed to start payment");
+        showError(checkoutData.message || "Failed to start payment");
         return;
       }
       window.location.href = checkoutData.url;
     } catch (err) {
       console.error(err);
-      alert("Failed to start payment");
+      showError("Failed to start payment");
     }
   });
   refreshMessages?.addEventListener("click", () => loadMessages(activeApplicationId));
@@ -1214,16 +1187,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
         const data = await res.json();
         if (!res.ok) {
-          alert(data.message || "Failed to accept shift");
+          showError(data.message || "Failed to accept shift");
           return;
         }
         const methodLabel = data.payment_method ? `\nPayment method: ${data.payment_method}` : "";
-        alert((data.message || "Shift accepted") + methodLabel);
+        showSuccess((data.message || "Shift accepted") + methodLabel);
         await loadApplications();
         return;
       } catch (err) {
         console.error(err);
-        alert("Failed to accept shift");
+        showError("Failed to accept shift");
         return;
       }
     }
@@ -1236,15 +1209,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
         const data = await res.json();
         if (!res.ok) {
-          alert(data.message || "Failed to confirm shift");
+          showError(data.message || "Failed to confirm shift");
           return;
         }
-        alert(data.message || "Shift confirmed");
+        showSuccess(data.message || "Shift confirmed");
         await loadApplications();
         return;
       } catch (err) {
         console.error(err);
-        alert("Failed to confirm shift");
+        showError("Failed to confirm shift");
         return;
       }
     }
@@ -1299,14 +1272,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          alert(data.message || "Failed to schedule interview");
+          showError(data.message || "Failed to schedule interview");
           return;
         }
-        alert(`Interview scheduled for ${candidate}`);
+        showSuccess(`Interview scheduled for ${candidate}`);
         await loadApplications();
       } catch (err) {
         console.error(err);
-        alert("Failed to schedule interview");
+        showError("Failed to schedule interview");
       }
       return;
     }
@@ -1328,13 +1301,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          alert(data.message || "Failed to order background check");
+          showError(data.message || "Failed to order background check");
           return;
         }
-        alert(`Background check ordered. Ref: ${data.reference_code || "N/A"}`);
+        showSuccess(`Background check ordered. Ref: ${data.reference_code || "N/A"}`);
       } catch (err) {
         console.error(err);
-        alert("Failed to order background check");
+        showError("Failed to order background check");
       }
       return;
     }
@@ -1359,13 +1332,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
         const data = await res.json();
         if (!res.ok) {
-          alert(data.message || "Failed to save evaluation");
+          showError(data.message || "Failed to save evaluation");
           return;
         }
         await loadApplications();
       } catch (err) {
         console.error(err);
-        alert("Failed to save evaluation");
+        showError("Failed to save evaluation");
       }
       return;
     }
@@ -1382,13 +1355,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
         const data = await res.json();
         if (!res.ok) {
-          alert(data.message || "Failed to update stage");
+          showError(data.message || "Failed to update stage");
           return;
         }
         await loadApplications();
       } catch (err) {
         console.error(err);
-        alert("Failed to update stage");
+        showError("Failed to update stage");
       }
     }
   });
@@ -1397,7 +1370,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     event.preventDefault();
 
     if (!activeApplicationId) {
-      alert("Select an application first");
+      showWarning("Select an application first");
       return;
     }
 
@@ -1411,14 +1384,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to send message");
+        showError(data.message || "Failed to send message");
         return;
       }
       messageInput.value = "";
       await loadMessages(activeApplicationId);
     } catch (err) {
       console.error(err);
-      alert("Failed to send message");
+      showError("Failed to send message");
     }
   });
 

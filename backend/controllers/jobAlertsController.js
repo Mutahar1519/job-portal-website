@@ -318,7 +318,6 @@ exports.listShiftNotifications = (req, res) => {
       ORDER BY n.created_at DESC
       LIMIT 50
     `;
-<<<<<<< HEAD
 
     db.query(sql, [req.user.id], (err, rows) => {
       if (err) {
@@ -331,19 +330,6 @@ exports.listShiftNotifications = (req, res) => {
     });
   };
 
-=======
-    db.query(sql, [req.user.id], (err, rows) => {
-      if (err) {
-        if ((err.code === "ER_BAD_FIELD_ERROR" || /Unknown column/i.test(err.message)) && includeDeadline) {
-          return tryWithDeadline(false);
-        }
-        return res.status(500).json({ error: err.message });
-      }
-      res.json(rows);
-    });
-  };
-
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   tryWithDeadline(true);
 };
 

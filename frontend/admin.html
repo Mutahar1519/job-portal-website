@@ -30,10 +30,7 @@
       <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
         <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
       </a>
-<<<<<<< HEAD
-=======
       <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
@@ -139,16 +136,12 @@
             <option value="Design">Design</option>
             <option value="Operations">Operations</option>
             <option value="General">General</option>
-<<<<<<< HEAD
             <option value="Other">Other (custom)</option>
           </select>
         </div>
         <div class="form-group" id="adminJobCategoryCustomWrap" style="display:none;">
           <label class="form-label" for="adminJobCategoryCustom">Custom Category</label>
           <input type="text" id="adminJobCategoryCustom" name="adminJobCategoryCustom" class="form-input" placeholder="Enter custom category" maxlength="100">
-=======
-          </select>
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
         </div>
         <div class="form-group" style="grid-column:1/-1;">
           <label class="form-label" for="adminJobDescription">Description</label>
@@ -279,8 +272,7 @@
           <p class="eyebrow">Reviews</p>
           <h3>Moderation queue</h3>
         </div>
-<<<<<<< HEAD
-        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+<div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
           <div class="admin-record-actions" style="gap:6px;">
             <button id="reviewSourcePortal" class="btn btn-ghost btn-sm" type="button" onclick="setReviewSourceFilter('portal')">Portal</button>
             <button id="reviewSourceCompany" class="btn btn-ghost btn-sm" type="button" onclick="setReviewSourceFilter('company')">Company</button>
@@ -291,15 +283,11 @@
             <button class="btn btn-outline" type="button" onclick="setReviewFilter('approved')">Published</button>
             <button class="btn btn-outline" type="button" onclick="setReviewFilter('hidden')">Hidden</button>
           </div>
-=======
-        <div class="admin-record-actions" style="gap:8px;">
-          <button class="btn btn-outline" type="button" onclick="setReviewSource('portal')">Portal</button>
-          <button class="btn btn-outline" type="button" onclick="setReviewSource('company')">Company</button>
-          <button class="btn btn-outline" type="button" onclick="setReviewSource('all')">All Sources</button>
-          <button class="btn btn-outline" type="button" onclick="setReviewFilter('pending')">Pending</button>
-          <button class="btn btn-outline" type="button" onclick="setReviewFilter('approved')">Published</button>
-          <button class="btn btn-outline" type="button" onclick="setReviewFilter('hidden')">Hidden</button>
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
+          <div class="admin-record-actions" style="gap:8px;">
+            <button class="btn btn-outline" type="button" onclick="setReviewVerified('all')">All Reviews</button>
+            <button class="btn btn-outline" type="button" onclick="setReviewVerified('verified')">Verified Only</button>
+            <button class="btn btn-outline" type="button" onclick="setReviewVerified('unverified')">Unverified Only</button>
+          </div>
         </div>
       </div>
       <div id="reviewQueue" class="admin-list"></div>
@@ -475,6 +463,7 @@
     </div>
     <div class="footer-bottom">&copy; 2026 JobPortal. All rights reserved.</div>
   </footer>
+  <script src="js/error-ui.js"></script>
   <script src="js/config.js"></script>
   <script src="js/navbar.js"></script>
   <script src="js/utils.js"></script>

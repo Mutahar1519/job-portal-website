@@ -1,4 +1,4 @@
-// Simple AI Chat Frontend
+﻿// Simple AI Chat Frontend
 // Connects to /api/chat and displays responses
 
 document.addEventListener("DOMContentLoaded", () => {

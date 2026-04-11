@@ -17,7 +17,7 @@ const getJobTypeLabel = (job) => {
 };
 
 const getSalaryLabel = (job) => {
-  if (job.salary_min && job.salary_max) return `$${Number(job.salary_min).toLocaleString()} – $${Number(job.salary_max).toLocaleString()}`;
+  if (job.salary_min && job.salary_max) return `$${Number(job.salary_min).toLocaleString()} â€“ $${Number(job.salary_max).toLocaleString()}`;
   if (job.salary_min) return `From $${Number(job.salary_min).toLocaleString()}`;
   if (job.salary_max) return `Up to $${Number(job.salary_max).toLocaleString()}`;
   const salary = job.salary || job.salary_range || job.pay_range;
@@ -43,7 +43,7 @@ const renderInsightList = (el, rows, labelKey) => {
       const label = sanitizeJobText(row[labelKey] || "Unspecified");
       const count = Number(row.job_count || 0);
       const salary = formatInsightMoney(row.avg_salary);
-      return `<li><span>${label}</span><span>${salary} · ${count} jobs</span></li>`;
+      return `<li><span>${label}</span><span>${salary} Â· ${count} jobs</span></li>`;
     })
     .join("");
 };
@@ -256,11 +256,7 @@ const renderJobCard = (job, options = {}) => {
       <p class="job-desc job-card-description">${description}</p>
 
       <div class="job-card-actions">
-<<<<<<< HEAD
         <a href="${buildJobDetailHref(job.id)}" class="btn btn-ghost job-action-btn" data-job-id="${job.id}">Details</a>
-=======
-        <a href="job.html?jobId=${job.id}&id=${job.id}" class="btn btn-ghost job-action-btn" data-job-id="${job.id}">Details</a>
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
         <a href="apply.html?jobId=${job.id}" class="apply-btn job-action-btn" data-job-id="${job.id}"><i class="fa-solid fa-rocket"></i> Apply Now</a>
         ${includeSaveButton ? `<button class="btn btn-outline save-btn" type="button" data-save-id="${job.id}" data-saved="${saved ? 1 : 0}">${saved ? "Saved" : "Save"}</button>` : ""}
       </div>
@@ -305,16 +301,11 @@ async function loadJobs() {
   const location = document.getElementById("locationFilter")?.value || "";
   const jobType = document.getElementById("typeFilter")?.value || "";
   const experience = document.getElementById("experienceFilter")?.value || "";
-<<<<<<< HEAD
   const salaryMin = document.getElementById("salaryMinFilter")?.value || "";
   const salaryMax = document.getElementById("salaryMaxFilter")?.value || "";
   const shiftMode = document.getElementById("shiftFilter")?.value || "";
   const activeWorkTypeBtn = document.querySelector("#workTypeFilters .work-type-btn.active");
   const workType = activeWorkTypeBtn ? activeWorkTypeBtn.dataset.workType || "" : "";
-=======
-  const salary = document.getElementById("salaryFilter")?.value || "";
-  const workType = document.getElementById("workType")?.value || "";
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
   const skeleton = document.getElementById("jobsSkeleton");
   const resultsCount = document.getElementById("jobsResultCount");
   const resultsHint = document.getElementById("jobsResultHint");
@@ -327,7 +318,6 @@ async function loadJobs() {
       skeleton.classList.remove("hidden");
     }
 
-<<<<<<< HEAD
     const params = new URLSearchParams();
     if (q) params.set("keyword", q);
     if (category) params.set("category", category);
@@ -351,14 +341,10 @@ async function loadJobs() {
     const res = await authFetch(`${API}/jobs${paramStr ? "?" + paramStr : ""}`);
     const jobs = await res.json();
     syncCategoryFilterOptionsFromJobs(jobs || []);
-=======
-    const jobs = await fetchJobsWithFallback();
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     const container = document.getElementById("jobs");
     container.innerHTML = "";
     if (skeleton) skeleton.classList.add("hidden");
 
-<<<<<<< HEAD
     // Secondary client-side filter (title/work-type keyword matching not sent to server)
     const filtered = (jobs || []).filter(job => {
       const locationValue = (job.location || "").toLowerCase();
@@ -367,28 +353,6 @@ async function loadJobs() {
         (job.work_type || "").toLowerCase().includes(workType.toLowerCase()) ||
         (workType === "Remote" && job.is_remote);
       return workTypeMatch;
-=======
-    const hasActiveFilters = !!(q || category || location || jobType || experience || salary || workType);
-
-    // Filter jobs client-side
-    let filtered = (jobs || []).filter(job => {
-      const titleValue = String(job.title || "").toLowerCase();
-      const categoryValue = String(job.category || "");
-      const titleMatch = !q || titleValue.includes(String(q).toLowerCase());
-      const categoryMatch = !category || categoryValue === category;
-      const locationValue = (job.location || "").toLowerCase();
-      const locationMatch = !location || locationValue.includes(location.toLowerCase());
-      const jobTypeValue = (job.job_type || job.jobType || "").toLowerCase();
-      const typeMatch = !jobType || jobTypeValue.includes(jobType.toLowerCase());
-      const experienceMatch = !experience || (job.description || "").toLowerCase().includes(experience);
-      const workTypeMatch = !workType
-        || (workType === "remote" && locationValue.includes("remote"))
-        || (workType === "hybrid" && locationValue.includes("hybrid"))
-        || (workType === "onsite" && !locationValue.includes("remote") && !locationValue.includes("hybrid"));
-      const salaryMatch = !salary || matchSalary(job, salary);
-
-      return titleMatch && categoryMatch && locationMatch && typeMatch && experienceMatch && workTypeMatch && salaryMatch;
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     });
 
     // Demo-safe fallback: if filters are too restrictive, show all jobs instead of an empty page.
@@ -435,11 +399,7 @@ async function loadJobs() {
       container.innerHTML += renderJobCard(job, { includeSaveButton: true, saved: !!job.is_saved });
     });
 
-<<<<<<< HEAD
     saveSearchState({ q, category, categoryCustom, location, jobType, experience, salaryMin, salaryMax, workType, shiftMode });
-=======
-    saveSearchState({ q, category, location, jobType, experience, salary, workType });
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     renderRecentSearches();
   } catch (err) {
     console.error("Error loading jobs:", err);
@@ -488,7 +448,7 @@ const matchSalaryRange = (job, salaryMin, salaryMax) => {
   const jobMax = job.salary_max != null ? Number(job.salary_max) : (job.shift_pay_cents ? Math.round(job.shift_pay_cents / 100) : null);
   const userMin = salaryMin ? Number(salaryMin) : null;
   const userMax = salaryMax ? Number(salaryMax) : null;
-  if (!jobMin && !jobMax) return !userMin; // no salary data — only exclude when user wants a minimum
+  if (!jobMin && !jobMax) return !userMin; // no salary data â€” only exclude when user wants a minimum
   if (userMin && jobMax !== null && jobMax < userMin) return false;
   if (userMax && jobMin !== null && jobMin > userMax) return false;
   return true;
@@ -521,7 +481,7 @@ const saveSearchState = (state) => {
   }
 };
 
-// ─── Saved Searches ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Saved Searches â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const loadSavedSearches = async () => {
   const token = localStorage.getItem("token");
@@ -576,7 +536,7 @@ const saveCurrentSearch = async () => {
       body: JSON.stringify({ name: name.trim(), filters: { q, location, jobType, shiftMode, experience, salaryMin, salaryMax } })
     });
     if (res.ok) {
-      alert("Search saved!");
+      showSuccess("Search saved!");
       loadSavedSearches();
     }
   } catch (_err) {}
@@ -592,13 +552,9 @@ const renderRecentSearches = () => {
   if (state.q) chips.push(state.q);
   if (state.category) chips.push(state.category);
   if (state.location) chips.push(state.location);
-<<<<<<< HEAD
   if (state.workType) chips.push(`Work type: ${state.workType}`);
   if (state.shiftMode === "shift") chips.push("Shift only");
   if (state.shiftMode === "non_shift") chips.push("Non-shift only");
-=======
-  if (state.workType) chips.push(state.workType.charAt(0).toUpperCase() + state.workType.slice(1));
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
   if (!chips.length) {
     container.innerHTML = "";
@@ -628,7 +584,7 @@ document.getElementById("jobs")?.addEventListener("click", async (event) => {
   const token = localStorage.getItem("token");
 
   if (!token) {
-    alert("Login required");
+    showWarning("Login required");
     return;
   }
 
@@ -638,13 +594,13 @@ document.getElementById("jobs")?.addEventListener("click", async (event) => {
     });
     const data = await res.json();
     if (!res.ok) {
-      alert(data.message || "Failed to update saved job");
+      showError(data.message || "Failed to update saved job");
       return;
     }
     await loadJobs();
   } catch (err) {
     console.error(err);
-    alert("Failed to update saved job");
+    showError("Failed to update saved job");
   }
 });
 
@@ -682,7 +638,6 @@ clearButton?.addEventListener("click", () => {
   document.getElementById("typeFilter").value = "";
   document.getElementById("shiftFilter").value = "";
   document.getElementById("experienceFilter").value = "";
-<<<<<<< HEAD
   const salaryMinEl = document.getElementById("salaryMinFilter");
   const salaryMaxEl = document.getElementById("salaryMaxFilter");
   if (salaryMinEl) salaryMinEl.value = "";
@@ -690,25 +645,15 @@ clearButton?.addEventListener("click", () => {
   document.querySelectorAll("#workTypeFilters .work-type-btn").forEach((button) => button.classList.remove("active"));
   const anyWorkTypeButton = document.querySelector('#workTypeFilters .work-type-btn[data-work-type=""]');
   anyWorkTypeButton?.classList.add("active");
-=======
-  document.getElementById("salaryFilter").value = "";
-  document.getElementById("workType").value = "";
-  document.querySelectorAll(".work-type-btn").forEach(b => b.classList.remove("active"));
-  document.querySelector('.work-type-btn[data-value=""]')?.classList.add("active");
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
   loadJobs();
 });
 
 const seedSearchState = () => {
-<<<<<<< HEAD
   if (!localStorage.getItem("token")) {
     localStorage.removeItem("jobSearchState");
   }
 
   const state = getSearchState();
-=======
-  let state = getSearchState();
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
   const query = new URLSearchParams(window.location.search).get("q");
   const isLoggedIn = !!localStorage.getItem("token");
 
@@ -749,7 +694,6 @@ const seedSearchState = () => {
   document.getElementById("typeFilter").value = state.jobType || "";
   document.getElementById("shiftFilter").value = state.shiftMode || "";
   document.getElementById("experienceFilter").value = state.experience || "";
-<<<<<<< HEAD
   const salaryMinEl = document.getElementById("salaryMinFilter");
   const salaryMaxEl = document.getElementById("salaryMaxFilter");
   if (salaryMinEl) salaryMinEl.value = state.salaryMin || "";
@@ -757,13 +701,6 @@ const seedSearchState = () => {
   document.querySelectorAll("#workTypeFilters .work-type-btn").forEach((button) => {
     const buttonWorkType = button.dataset.workType || "";
     button.classList.toggle("active", buttonWorkType === (state.workType || ""));
-=======
-  document.getElementById("salaryFilter").value = state.salary || "";
-  const savedWorkType = state.workType || "";
-  document.getElementById("workType").value = savedWorkType;
-  document.querySelectorAll(".work-type-btn").forEach(b => {
-    b.classList.toggle("active", b.getAttribute("data-value") === savedWorkType);
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
   });
   renderRecentSearches();
 };

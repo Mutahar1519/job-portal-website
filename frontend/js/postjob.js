@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+﻿document.addEventListener("DOMContentLoaded", () => {
   const DRAFT_KEY = "jobPostDraft.v1";
   const PENDING_PREMIUM_JOB_KEY = "pendingPremiumJob.v1";
   const form = document.getElementById("jobForm");
@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (!token || !currentUser) {
-    alert("Please login first");
+    showWarning("Please login first");
     window.location.href = "login.html";
     return;
   }
@@ -22,12 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const isEmployer = currentUser.role === "employer";
   const isAdmin = !!currentUser.is_admin || currentUser.role === "admin";
   if (!isEmployer && !isAdmin) {
-    alert("Only employers or admins can post jobs");
-<<<<<<< HEAD
-    window.location.href = "login.html";
-=======
-    window.location.href = "dashboard.html";
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
+    showError("Only employers or admins can post jobs");
+window.location.href = "login.html";
     return;
   }
 
@@ -209,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    alert("Your session expired or token became invalid. We saved your draft. Please login again.");
+    showSuccess("Your session expired or token became invalid. We saved your draft. Please login again.");
     window.location.href = "login.html?redirect=post-jobs.html";
   };
 
@@ -219,13 +215,13 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "POST",
         body: JSON.stringify({ sessionId, mode: "donation" })
       }).then(() => {
-        alert("Thanks for your support! ✅");
+        showError("Thanks for your support! âœ…");
         window.history.replaceState({}, document.title, "post-jobs.html");
       });
     }
 
     if (donationStatus === "cancel") {
-      alert("Donation canceled.");
+      showError("Donation canceled.");
       window.history.replaceState({}, document.title, "post-jobs.html");
     }
   }
@@ -246,30 +242,26 @@ document.addEventListener("DOMContentLoaded", () => {
           if (res.status === 401) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
-            alert("Your session expired during payment confirmation. Please login again.");
+            showError("Your session expired during payment confirmation. Please login again.");
             window.location.href = "login.html?redirect=post-jobs.html";
             return;
           }
-          alert(data.message || "Payment confirmation failed");
+          showError(data.message || "Payment confirmation failed");
           return;
         }
         clearPendingPremiumJob();
         localStorage.removeItem(DRAFT_KEY);
-        alert("Premium job created successfully ✅");
+        showSuccess("Premium job created successfully âœ…");
         window.history.replaceState({}, document.title, "post-jobs.html");
       });
     } else {
-      alert("Premium payment succeeded, but job details were missing. Please create the premium job again.");
+      showError("Premium payment succeeded, but job details were missing. Please create the premium job again.");
       window.history.replaceState({}, document.title, "post-jobs.html");
     }
   }
 
   const donationModal = document.getElementById("donationModal");
-<<<<<<< HEAD
-  const postPaymentModal = document.getElementById("postPaymentModal");
-=======
-  const postPaymentMethodSelect = document.getElementById("postPaymentMethod");
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
+const postPaymentModal = document.getElementById("postPaymentModal");
   let pendingPremiumJob = null;
   let donationContextMode = "post";
   let selectedPaymentMethod = "card";
@@ -372,15 +364,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await authFetch(`${API}/payments/create-donation-session`, {
         method: "POST",
-<<<<<<< HEAD
-        body: JSON.stringify({ context: "post", amount_cents: amountCents, payment_method: selectedPaymentMethod })
-=======
-        body: JSON.stringify({
-          context: "post",
-          amount_cents: amountCents,
-          payment_method: getSelectedPaymentMethod()
-        })
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
+body: JSON.stringify({ context: "post", amount_cents: amountCents, payment_method: selectedPaymentMethod })
       });
       const data = await readResponsePayload(res);
       if (res.status === 401) {
@@ -388,14 +372,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       if (!res.ok || !data?.url) {
-        alert(data.message || "Donation failed");
+        showError(data.message || "Donation failed");
         closeDonationModal();
         return;
       }
       window.location.href = data.url;
     } catch (err) {
       console.error(err);
-      alert("Donation failed");
+      showError("Donation failed");
       closeDonationModal();
     }
   };
@@ -403,23 +387,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const startPremiumCheckout = async (donationCents) => {
     stashPendingPremiumJob(pendingPremiumJob);
 
-<<<<<<< HEAD
-    try {
+try {
       const meRes = await authFetch(`${API}/users/me`);
       if (meRes.status === 401) {
         handleAuthFailure();
         return;
       }
-=======
-    const res = await authFetch(`${API}/payments/create-checkout-session`, {
-      method: "POST",
-      body: JSON.stringify({
-        mode: "create",
-        donation_cents: donationCents,
-        payment_method: getSelectedPaymentMethod()
-      })
-    });
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
       const res = await authFetch(`${API}/payments/create-checkout-session`, {
         method: "POST",
@@ -430,20 +403,20 @@ document.addEventListener("DOMContentLoaded", () => {
       if (res.status === 401) {
         const reason = String(data?.message || "");
         if (reason) {
-          alert(`Payment session failed: ${reason}`);
+          showError(`Payment session failed: ${reason}`);
         }
         handleAuthFailure();
         return;
       }
 
       if (res.status === 409) {
-        alert(data?.message || "A similar active job already exists. Please edit the existing job instead of reposting.");
+        showError(data?.message || "A similar active job already exists. Please edit the existing job instead of reposting.");
         closeDonationModal();
         return;
       }
 
       if (!res.ok || !data?.url) {
-        alert(data?.message || "Failed to start payment");
+        showError(data?.message || "Failed to start payment");
         closeDonationModal();
         return;
       }
@@ -451,7 +424,7 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = data.url;
     } catch (err) {
       console.error(err);
-      alert("Failed to start payment. Please try again.");
+      showError("Failed to start payment. Please try again.");
       closeDonationModal();
     }
   };
@@ -532,11 +505,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const resolvedCategory = resolveCategoryPayload();
     if (!resolvedCategory.category) {
-      alert("Please select a category");
+      showWarning("Please select a category");
       return;
     }
     if (resolvedCategory.category.toLowerCase() === "other" && !resolvedCategory.category_custom) {
-      alert("Please enter a custom category");
+      showWarning("Please enter a custom category");
       categoryCustomInput?.focus();
       return;
     }
@@ -550,7 +523,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const shiftPay = Number(shiftPayInput?.value || 0);
 
       if (!shiftStart || !shiftEnd || !shiftPay) {
-        alert("Shift start, end, and pay are required");
+        showWarning("Shift start, end, and pay are required");
         return;
       }
 
@@ -561,7 +534,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!jobData.title || !jobData.description || !jobData.location) {
-      alert("Please fill out all required fields");
+      showWarning("Please fill out all required fields");
       return;
     }
 
@@ -615,23 +588,23 @@ document.addEventListener("DOMContentLoaded", () => {
             banner.style.cssText = "background:#fef9c3;border:1px solid #fde047;color:#713f12;padding:16px 20px;border-radius:10px;margin-bottom:20px;font-size:0.95rem;line-height:1.6;";
             form.parentNode.insertBefore(banner, form);
           }
-          banner.innerHTML = `<strong>⚠️ Account not yet verified</strong><br>${data.message}`;
+          banner.innerHTML = `<strong>âš ï¸ Account not yet verified</strong><br>${data.message}`;
           banner.scrollIntoView({ behavior: "smooth", block: "center" });
         } else {
-          alert(data.message || "Failed to post job");
+          showError(data.message || "Failed to post job");
         }
         console.error("Job submission error:", data);
         return;
       }
 
-      alert("Job posted successfully ✅");
+      showSuccess("Job posted successfully âœ…");
       form.reset();
       localStorage.removeItem(DRAFT_KEY);
       if (shiftFields) shiftFields.style.display = "none";
       openDonationModal("post");
     } catch (err) {
       console.error("Job submission error:", err);
-      alert("Error posting job: " + err.message);
+      showError("Error posting job: " + err.message);
     }
   });
 });

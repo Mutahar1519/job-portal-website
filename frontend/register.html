@@ -33,10 +33,7 @@
         <a href="profile.html" class="nav-profile-chip" aria-label="Profile">
           <span class="nav-profile-avatar"><i class="fa-solid fa-user"></i></span>
         </a>
-<<<<<<< HEAD
-=======
         <button id="themeToggle" class="btn btn-ghost">&#127769;</button>
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
         <button id="logoutBtn" class="btn btn-outline">Logout</button>
   </nav>
 
@@ -55,6 +52,8 @@
           <h1 class="registration-title">Create Account</h1>
           <p class="registration-subtitle">Join the job community</p>
         </div>
+
+        <div id="oauthProviders" class="oauth-providers" style="display:none;"></div>
 
         <form id="registerForm" class="registration-form">
           <div class="form-group">
@@ -89,11 +88,7 @@
 
           <div class="form-group">
             <label for="phone" class="form-label">Phone number</label>
-<<<<<<< HEAD
             <input type="tel" id="phone" name="phone" class="form-input" inputmode="numeric" pattern="[0-9]+" maxlength="15" required>
-=======
-            <input type="tel" id="phone" name="phone" class="form-input" required>
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
           </div>
 
           <div class="form-group">
@@ -109,8 +104,7 @@
           <div id="jobSeekerFields" class="job-seeker-fields">
             <div class="form-group">
               <label for="country" class="form-label">Country</label>
-<<<<<<< HEAD
-              <select id="country" name="country" class="form-input" required>
+<select id="country" name="country" class="form-input" required>
                 <option value="">Select country</option>
                 <option value="United Kingdom">United Kingdom</option>
                 <option value="United States">United States</option>
@@ -126,13 +120,6 @@
               <select id="city" name="city" class="form-input" required>
                 <option value="">Select city</option>
               </select>
-=======
-              <input type="text" id="country" name="country" class="form-input" required>
-            </div>
-            <div class="form-group">
-              <label for="city" class="form-label">City</label>
-              <input type="text" id="city" name="city" class="form-input" required>
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
             </div>
           </div>
 
@@ -143,11 +130,7 @@
             </div>
             <div class="form-group">
               <label for="companyPhone" class="form-label">Company phone</label>
-<<<<<<< HEAD
-              <input type="tel" id="companyPhone" name="companyPhone" class="form-input" inputmode="numeric" pattern="[0-9]+" maxlength="15">
-=======
-              <input type="tel" id="companyPhone" name="companyPhone" class="form-input">
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
+<input type="tel" id="companyPhone" name="companyPhone" class="form-input" inputmode="numeric" pattern="[0-9]+" maxlength="15">
             </div>
             <div class="form-group">
               <label for="companyWebsite" class="form-label">Company website (optional)</label>
@@ -160,8 +143,7 @@
             <div class="form-group">
               <label for="companyAddress" class="form-label">Company address / house number</label>
               <input type="text" id="companyAddress" name="companyAddress" class="form-input">
-<<<<<<< HEAD
-            </div>
+</div>
             <div class="form-group">
               <label for="idDocumentUrl" class="form-label">UK Passport or Driving Licence (photo card) <span title="Upload a clear scan or photo of a valid UK passport or photocard driving licence."><i class="fa fa-info-circle"></i></span></label>
               <input type="url" id="idDocumentUrl" name="idDocumentUrl" class="form-input" placeholder="https://...">
@@ -189,31 +171,6 @@
             <div class="form-group">
               <label for="linkedinProfileUrl" class="form-label">LinkedIn profile URL (optional)</label>
               <input type="url" id="linkedinProfileUrl" name="linkedinProfileUrl" class="form-input" placeholder="https://...">
-=======
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
-            </div>
-          </div>
-
-          <button class="registration-btn">Register</button>
-        </form>
-
-<<<<<<< HEAD
-        <div id="oauthProviders" class="auth-oauth-block" style="margin-top:16px;"></div>
-=======
-        <div class="oauth-divider"><span>or sign up with</span></div>
-
-        <div class="oauth-buttons">
-          <a href="/api/auth/google" class="btn oauth-btn oauth-btn-google">
-            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" style="flex-shrink:0">
-              <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
-              <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-              <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
-              <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
-            </svg>
-            Continue with Google
-          </a>
-        </div>
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
       </div>
 
@@ -258,7 +215,7 @@
 
   <script src="js/config.js"></script>
   <script src="js/navbar.js"></script>
-  <script src="js/utils.js"></script>
+  <script src="js/utils.js"></script>`n    <script src="js/error-ui.js"></script>
   <script src="js/register.js"></script>
   <script src="js/support-chat.js"></script>
   <script src="js/auth-ui.js"></script>

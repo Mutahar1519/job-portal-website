@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", async () => {
+﻿document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token");
   if (!token) {
     window.location.href = "login.html";
@@ -128,17 +128,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const resolvePhotoUrl = (url) => {
     if (!url) return "";
     if (url.startsWith("data:") || url.startsWith("http")) return url;
-    // Relative path from backend (e.g. /uploads/photos/...) — prefix with API origin
+    // Relative path from backend (e.g. /uploads/photos/...) â€” prefix with API origin
     return `${apiOrigin}${url}`;
-<<<<<<< HEAD
   };
 
   const resolveResumeUrl = (url) => {
     if (!url) return "";
     if (url.startsWith("http://") || url.startsWith("https://")) return url;
     return `${apiOrigin}${url}`;
-=======
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   };
 
   const renderAvatar = (profile, displayName) => {
@@ -496,7 +493,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!file) return;
 
       if (file.size > 2 * 1024 * 1024) {
-        alert("Image must be under 2MB. Please choose a smaller file.");
+        showWarning("Image must be under 2MB. Please choose a smaller file.");
         photoFileInput.value = "";
         return;
       }
@@ -646,11 +643,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (window.toast) {
           window.toast("Profile updated");
         } else {
-          alert("Profile updated");
+          showSuccess("Profile updated");
         }
       } catch (err) {
         console.error(err);
-        alert(err.message || "Failed to update profile");
+        showError(err.message || "Failed to update profile");
       }
     };
 
@@ -698,7 +695,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     confirmDeleteBtn.addEventListener("click", async () => {
       const userEmail = user.email || localStorage.getItem("userEmail") || "";
       if (deleteConfirmInput.value.trim() !== userEmail) {
-        alert("Email does not match");
+        showError("Email does not match");
         return;
       }
 
@@ -730,7 +727,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       } catch (err) {
         console.error(err);
-        alert(err.message || "Failed to delete account");
+        showError(err.message || "Failed to delete account");
         confirmDeleteBtn.disabled = false;
         confirmDeleteBtn.textContent = "Delete Account Permanently";
       }
@@ -774,14 +771,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       } catch (err) {
         console.error(err);
-        alert("Failed to download data");
+        showError("Failed to download data");
       } finally {
         downloadDataBtn.disabled = false;
         downloadDataBtn.textContent = "Download Data";
       }
     });
   }
-<<<<<<< HEAD
 
   if (skillsForm) {
     skillsForm.addEventListener("submit", async (event) => {
@@ -798,7 +794,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       } catch (err) {
         console.error(err);
-        alert(err.message || "Failed to update skills");
+        showError(err.message || "Failed to update skills");
       }
     });
   }
@@ -818,7 +814,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
-            alert(data.message || "Failed to update endorsement");
+            showError(data.message || "Failed to update endorsement");
             return;
           }
 
@@ -829,7 +825,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
         } catch (err) {
           console.error(err);
-          alert("Failed to update endorsement");
+          showError("Failed to update endorsement");
         }
         return;
       }
@@ -847,11 +843,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         await updateSkillsApi(remaining);
       } catch (err) {
         console.error(err);
-        alert(err.message || "Failed to remove skill");
+        showError(err.message || "Failed to remove skill");
       }
     });
   }
-=======
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 });
 

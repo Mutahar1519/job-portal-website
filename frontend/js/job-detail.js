@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
-<<<<<<< HEAD
   const resolveJobId = () => {
     const candidates = [params.get("jobId"), params.get("id"), sessionStorage.getItem("lastJobId")];
 
@@ -15,10 +14,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   const jobId = resolveJobId();
-=======
-  const rawJobId = params.get("jobId") || params.get("id") || sessionStorage.getItem("lastJobId") || "";
-  const jobId = Number(rawJobId);
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
   const titleEl = document.getElementById("jobDetailTitle");
   const metaEl = document.getElementById("jobDetailMeta");
@@ -34,7 +29,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const shareBtn = document.getElementById("jobDetailShare");
   const similarEl = document.getElementById("jobDetailSimilar");
   const highlightsEl = document.getElementById("jobDetailHighlights");
-<<<<<<< HEAD
   const companyReviewsSection = document.getElementById("companyReviewsSection");
   const companyReviewsList = document.getElementById("companyReviewsList");
   const companyReviewForm = document.getElementById("companyReviewForm");
@@ -81,14 +75,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (!jobId) {
     setMissingState();
-=======
-  const companyReviewsEl = document.getElementById("jobCompanyReviews");
-  const companyReviewForm = document.getElementById("jobCompanyReviewForm");
-
-  if (!jobId) {
-    if (titleEl) titleEl.textContent = "Job not found";
-    if (descEl) descEl.textContent = "Missing job reference. Please return to jobs and open details again.";
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
     return;
   }
 
@@ -134,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     companyReviewsEl.innerHTML = reviews.map((review) => {
-      const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
+      const stars = "â˜…â˜…â˜…â˜…â˜…".slice(0, review.rating) + "â˜†â˜†â˜†â˜†â˜†".slice(0, 5 - review.rating);
       return `
         <article class="review-card">
           <div class="review-header">
@@ -174,7 +160,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const message = (document.getElementById("jobReviewMessage")?.value || "").trim();
 
       if (!name || !role || !rating || !message) {
-        alert("Please complete all review fields.");
+        showError("Please complete all review fields.");
         return;
       }
 
@@ -194,36 +180,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          alert(data.message || "Failed to submit review.");
+          showError(data.message || "Failed to submit review.");
           return;
         }
 
         companyReviewForm.reset();
-        alert("Thanks! Your review is pending approval.");
+        showError("Thanks! Your review is pending approval.");
       } catch (err) {
         console.error(err);
-        alert("Network error while submitting review.");
+        showError("Network error while submitting review.");
       }
     });
   };
 
   try {
-<<<<<<< HEAD
-<<<<<<< HEAD
     const job = await fetchJob(jobId);
     if (!job) {
       setMissingState();
-=======
-    const res = await authFetch(`${API}/jobs/${jobId}`);
-    const job = await res.json();
-    if (!res.ok || !job) {
-=======
-    const job = await fetchJobById(jobId);
-
-    if (!job) {
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
       if (titleEl) titleEl.textContent = "Job not found";
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
       return;
     }
 
@@ -331,7 +305,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <strong>${item.title}</strong>
                 <p class="p-muted"><i class="fa-solid fa-location-dot"></i> ${item.location || "Location not specified"}</p>
               </div>
-              <span class="mini-arrow">→</span>
+              <span class="mini-arrow">â†’</span>
             </a>
           `)
           .join("");
@@ -359,7 +333,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const handleSave = async () => {
         if (!token) {
-          alert("Login required");
+          showWarning("Login required");
           return;
         }
         const saved = saveBtn ? saveBtn.textContent === "Saved" : /Saved/i.test(saveTopBtn?.textContent || "");
@@ -368,13 +342,13 @@ document.addEventListener("DOMContentLoaded", async () => {
           const resp = await authFetch(`${API}/saved-jobs/${job.id}`, { method });
           const data = await resp.json();
           if (!resp.ok) {
-            alert(data.message || "Failed to update saved job");
+            showError(data.message || "Failed to update saved job");
             return;
           }
           syncSaveButtons(!saved);
         } catch (err) {
           console.error(err);
-          alert("Failed to update saved job");
+          showError("Failed to update saved job");
         }
       };
 
@@ -392,7 +366,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
           }
           await navigator.clipboard.writeText(pageUrl);
-          alert("Job link copied to clipboard");
+          showSuccess("Job link copied to clipboard");
         } catch (err) {
           console.error(err);
           prompt("Copy this link:", pageUrl);
@@ -400,7 +374,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     }
 
-<<<<<<< HEAD
     if (reportJobToggle && reportJobPanel) {
       reportJobToggle.addEventListener("click", () => {
         reportJobPanel.style.display = reportJobPanel.style.display === "none" || !reportJobPanel.style.display ? "block" : "none";
@@ -411,7 +384,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       reportJobForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!token) {
-          alert("Login required to report a listing");
+          showWarning("Login required to report a listing");
           return;
         }
 
@@ -426,15 +399,15 @@ document.addEventListener("DOMContentLoaded", async () => {
           });
           const data = await resp.json();
           if (!resp.ok) {
-            alert(data.message || "Failed to submit report");
+            showError(data.message || "Failed to submit report");
             return;
           }
-          alert(data.message || "Report submitted");
+          showSuccess(data.message || "Report submitted");
           reportJobForm.reset();
           reportJobPanel.style.display = "none";
         } catch (err) {
           console.error(err);
-          alert("Failed to submit report");
+          showError("Failed to submit report");
         }
       });
     }
@@ -466,65 +439,21 @@ document.addEventListener("DOMContentLoaded", async () => {
               });
               const data = await resp.json();
               if (!resp.ok) {
-                alert(data.message || "Failed to submit review");
+                showError(data.message || "Failed to submit review");
                 return;
               }
-              alert(data.message || "Review submitted for approval");
+              showSuccess(data.message || "Review submitted for approval");
               companyReviewForm.reset();
               if (companyReviewName && currentUser?.name) companyReviewName.value = currentUser.name;
               loadCompanyReviews(job.company_id, companyReviewsList);
             } catch (err) {
               console.error(err);
-              alert("Failed to submit review");
+              showError("Failed to submit review");
             }
           });
         }
       }
     }
-=======
-    // ── Report this listing ──────────────────────────────────────
-    const reportBtn    = document.getElementById("jobDetailReport");
-    const reportPanel  = document.getElementById("reportPanel");
-    const reportCancel = document.getElementById("reportCancel");
-    const reportSubmit = document.getElementById("reportSubmit");
-
-    reportBtn?.addEventListener("click", () => {
-      if (!localStorage.getItem("token")) {
-        alert("Please log in to report a listing.");
-        return;
-      }
-      reportPanel.style.display = reportPanel.style.display === "none" ? "block" : "none";
-    });
-
-    reportCancel?.addEventListener("click", () => {
-      reportPanel.style.display = "none";
-    });
-
-    reportSubmit?.addEventListener("click", async () => {
-      const reason = document.getElementById("reportReason")?.value;
-      const details = document.getElementById("reportDetails")?.value || "";
-      if (!reason) {
-        alert("Please select a reason.");
-        return;
-      }
-      try {
-        const res = await authFetch(`${API}/jobs/${jobId}/report`, {
-          method: "POST",
-          body: JSON.stringify({ reason, details })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          alert(data.message || "Failed to submit report.");
-          return;
-        }
-        alert(data.message || "Report submitted. Thank you.");
-        reportPanel.style.display = "none";
-      } catch (err) {
-        console.error(err);
-        alert("Server error — please try again.");
-      }
-    });
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
   } catch (err) {
     console.error(err);
     setMissingState("Job details unavailable");
@@ -548,7 +477,7 @@ async function loadCompanyReviews(companyId, container) {
     container.innerHTML = reviews
       .map((review) => {
         const name = review.reviewer_name || review.name || "Anonymous";
-        const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
+        const stars = "â˜…â˜…â˜…â˜…â˜…".slice(0, review.rating) + "â˜†â˜†â˜†â˜†â˜†".slice(0, 5 - review.rating);
         const created = review.created_at ? new Date(review.created_at).toLocaleDateString() : "";
         return `
           <article class="review-card" style="margin-bottom:12px;">

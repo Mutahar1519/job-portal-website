@@ -1,9 +1,9 @@
-document.getElementById("forgotPasswordForm")?.addEventListener("submit", async (event) => {
+﻿document.getElementById("forgotPasswordForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const email = document.getElementById("forgotEmail")?.value.trim();
   if (!email) {
-    alert("Email is required");
+    showWarning("Email is required");
     return;
   }
 
@@ -18,14 +18,14 @@ document.getElementById("forgotPasswordForm")?.addEventListener("submit", async 
 
     const data = await res.json();
     if (!res.ok) {
-      alert(data.message || "Failed to request reset");
+      showError(data.message || "Failed to request reset");
       return;
     }
 
-    alert(data.message || "If that email exists, a reset link was sent.");
+    showSuccess(data.message || "If that email exists, a reset link was sent.");
     window.location.href = "login.html";
   } catch (err) {
     console.error(err);
-    alert("Server error");
+    showError("Server error");
   }
 });

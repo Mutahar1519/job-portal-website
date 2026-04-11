@@ -5,8 +5,12 @@ const fs = require("fs");
 const multer = require("multer");
 const applicationsController = require("../controllers/applicationsController");
 const jobsController = require("../controllers/jobsController");
+const { getPolicy } = require("../utils/uploadPolicy");
 const { auth, optionalAuth } = require("../middleware/auth");
 const employerOnly = require("../middleware/employerOnly");
+
+const resumePolicy = getPolicy("resumes");
+const jobImagePolicy = getPolicy("jobImages");
 
 const uploadDir = path.join(__dirname, "..", "uploads", "cv");
 if (!fs.existsSync(uploadDir)) {
@@ -31,19 +35,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: resumePolicy.maxSizeMB * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = new Set([
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ]);
+    const allowed = new Set(resumePolicy.allowedMimeTypes);
     const ext = path.extname(file.originalname || "").toLowerCase();
-    const isAllowedExt = [".pdf", ".doc", ".docx"].includes(ext);
+    const isAllowedExt = resumePolicy.allowedExtensions.includes(ext);
     const isAllowed = allowed.has(file.mimetype) || isAllowedExt;
-    cb(isAllowed ? null : new Error("Only PDF, DOC, or DOCX files are allowed"), isAllowed);
-<<<<<<< HEAD
-=======
+    cb(isAllowed ? null : new Error(`Only ${resumePolicy.allowedExtensions.join(", ")} files are allowed`), isAllowed);
   }
 });
 
@@ -60,31 +58,13 @@ const jobImageStorage = multer.diskStorage({
 
 const uploadJobImage = multer({
   storage: jobImageStorage,
-  limits: { fileSize: 3 * 1024 * 1024 },
+  limits: { fileSize: jobImagePolicy.maxSizeMB * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const isImage = /^image\/(jpeg|png|webp)$/.test(file.mimetype);
-    cb(isImage ? null : new Error("Only JPEG, PNG, or WebP images are allowed"), isImage);
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
-  }
-});
-
-const jobImageStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, jobImageDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const name = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, name);
-  }
-});
-
-const uploadJobImage = multer({
-  storage: jobImageStorage,
-  limits: { fileSize: 3 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const isImage = /^image\/(jpeg|png|webp)$/.test(file.mimetype);
-    cb(isImage ? null : new Error("Only JPEG, PNG, or WebP images are allowed"), isImage);
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const mimeAllowed = new Set(jobImagePolicy.allowedMimeTypes).has(file.mimetype);
+    const extAllowed = jobImagePolicy.allowedExtensions.includes(ext);
+    const isImage = mimeAllowed || extAllowed;
+    cb(isImage ? null : new Error(`Only ${jobImagePolicy.allowedExtensions.join(", ")} files are allowed`), isImage);
   }
 });
 
@@ -105,14 +85,7 @@ router.post("/", auth, employerOnly, uploadJobImage.single("job_image"), jobsCon
 /* APPLY job */
 router.post("/:id/apply", auth, upload.single("cv"), applicationsController.applyJob);
 
-<<<<<<< HEAD
 /* REPORT job */
-=======
-/* CHECK if user has applied for job */
-router.get("/:id/check-application", auth, applicationsController.checkApplicationStatus);
-
-/* REPORT a job listing (auth required to prevent spam, but userId stored for audit) */
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 router.post("/:id/report", auth, jobsController.reportJob);
 
 module.exports = router;

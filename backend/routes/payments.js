@@ -4,6 +4,7 @@ const Stripe = require("stripe");
 const { auth } = require("../middleware/auth");
 const adminAuth = require("../middleware/adminAuth");
 const db = require("../config/mysql");
+const validate = require("../middleware/validate");
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
@@ -40,13 +41,37 @@ const getStripePaymentMethodTypes = (selectedMethod) => {
   return ["card"];
 };
 
+const getUserRoleFlags = (userId) =>
+  new Promise((resolve, reject) => {
+    db.query(
+      "SELECT role, is_admin FROM users WHERE id = ? LIMIT 1",
+      [userId],
+      (err, rows) => {
+        if (err) return reject(err);
+        if (!rows || !rows.length) return resolve(null);
+        resolve({ role: rows[0].role, is_admin: Number(rows[0].is_admin) === 1 });
+      }
+    );
+  });
+
 if (!STRIPE_SECRET_KEY) {
   console.warn("⚠️ STRIPE_SECRET_KEY is not set. Using mock payments.");
 }
 
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 
-router.post("/create-checkout-session", auth, async (req, res) => {
+router.post(
+  "/create-checkout-session",
+  auth,
+  validate({
+    body: {
+      mode: { required: true, type: "string", enum: ["create", "upgrade"] },
+      payment_method: { required: true, type: "string", enum: ALLOWED_PAYMENT_METHODS },
+      donation_cents: { type: "number", coerce: true, min: 0, max: MAX_DONATION_CENTS },
+      jobId: { type: "number", coerce: true, min: 1 }
+    }
+  }),
+  async (req, res) => {
 
   const { mode, jobId, donation_cents, payment_method } = req.body;
 
@@ -127,6 +152,7 @@ router.post("/create-checkout-session", auth, async (req, res) => {
       metadata: {
         mode,
         jobId: jobId ? String(jobId) : "",
+        user_id: String(req.user.id),
         selected_payment_method: selectedPaymentMethod
       }
     });
@@ -177,6 +203,7 @@ router.post("/create-checkout-session", auth, async (req, res) => {
           metadata: {
             mode,
             jobId: jobId ? String(jobId) : "",
+            user_id: String(req.user.id),
             selected_payment_method: "card"
           }
         });
@@ -194,9 +221,20 @@ router.post("/create-checkout-session", auth, async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Failed to create checkout session" });
   }
-});
+  }
+);
 
-router.post("/confirm", auth, async (req, res) => {
+router.post(
+  "/confirm",
+  auth,
+  validate({
+    body: {
+      sessionId: { required: true, type: "string", minLength: 3, maxLength: 255 },
+      mode: { required: true, type: "string", enum: ["create", "upgrade", "donation"] },
+      jobId: { type: "number", coerce: true, min: 1 }
+    }
+  }),
+  async (req, res) => {
   const { sessionId, mode, jobId, jobData } = req.body;
 
   if (!sessionId || !mode) {
@@ -209,6 +247,17 @@ router.post("/confirm", auth, async (req, res) => {
 
       if (session.payment_status !== "paid") {
         return res.status(400).json({ message: "Payment not completed" });
+      }
+
+      const metadata = session.metadata || {};
+      if (String(metadata.user_id || "") !== String(req.user.id)) {
+        return res.status(403).json({ message: "Session does not belong to current user" });
+      }
+      if (String(metadata.mode || "") !== String(mode)) {
+        return res.status(400).json({ message: "Session mode mismatch" });
+      }
+      if (mode === "upgrade" && String(metadata.jobId || "") !== String(jobId || "")) {
+        return res.status(400).json({ message: "Session job mismatch" });
       }
     }
 
@@ -234,6 +283,12 @@ router.post("/confirm", auth, async (req, res) => {
 
     if (mode === "create") {
       if (!jobData) return res.status(400).json({ message: "jobData is required" });
+
+      const roleInfo = await getUserRoleFlags(req.user.id);
+      if (!roleInfo) return res.status(404).json({ message: "User not found" });
+      if (!(roleInfo.is_admin || roleInfo.role === "employer")) {
+        return res.status(403).json({ message: "Employer access only" });
+      }
 
       const { title, location, job_type, category, description } = jobData;
       const userId = req.user.id;
@@ -276,26 +331,71 @@ router.post("/confirm", auth, async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Failed to confirm payment" });
   }
-});
+  }
+);
 
-router.post("/confirm-shift", auth, (req, res) => {
+router.post(
+  "/confirm-shift",
+  auth,
+  validate({
+    body: {
+      jobId: { required: true, type: "number", coerce: true, min: 1 }
+    }
+  }),
+  (req, res) => {
   const { jobId } = req.body;
   if (!jobId) return res.status(400).json({ message: "jobId is required" });
 
   db.query(
-    "UPDATE jobs SET shift_paid = 1 WHERE id = ?",
-    [jobId],
-    (err, result) => {
-      if (err) return res.status(500).json({ message: "Failed to update shift payment" });
-      if (result.affectedRows === 0) return res.status(404).json({ message: "Job not found" });
+    "SELECT role, is_admin FROM users WHERE id = ? LIMIT 1",
+    [req.user.id],
+    (userErr, userRows) => {
+      if (userErr) return res.status(500).json({ message: "Failed to check permissions" });
+      if (!userRows.length) return res.status(404).json({ message: "User not found" });
 
-      notifyShiftAlerts(jobId, { status: "paid", paidAt: new Date() });
-      res.json({ message: "Shift payment confirmed" });
+      const user = userRows[0];
+      const isAdmin = Number(user.is_admin) === 1;
+
+      db.query(
+        "SELECT id, posted_by FROM jobs WHERE id = ? LIMIT 1",
+        [jobId],
+        (jobErr, jobRows) => {
+          if (jobErr) return res.status(500).json({ message: "Failed to fetch job" });
+          if (!jobRows.length) return res.status(404).json({ message: "Job not found" });
+
+          if (!isAdmin && Number(jobRows[0].posted_by) !== Number(req.user.id)) {
+            return res.status(403).json({ message: "Not authorized to confirm this shift payment" });
+          }
+
+          db.query(
+            "UPDATE jobs SET shift_paid = 1 WHERE id = ?",
+            [jobId],
+            (err, result) => {
+              if (err) return res.status(500).json({ message: "Failed to update shift payment" });
+              if (result.affectedRows === 0) return res.status(404).json({ message: "Job not found" });
+
+              notifyShiftAlerts(jobId, { status: "paid", paidAt: new Date() });
+              res.json({ message: "Shift payment confirmed" });
+            }
+          );
+        }
+      );
     }
   );
-});
+  }
+);
 
-router.post("/create-donation-session", auth, async (req, res) => {
+router.post(
+  "/create-donation-session",
+  auth,
+  validate({
+    body: {
+      context: { required: true, type: "string", enum: ["apply", "post"] },
+      amount_cents: { required: true, type: "number", coerce: true, min: 1, max: MAX_DONATION_CENTS },
+      payment_method: { required: true, type: "string", enum: ALLOWED_PAYMENT_METHODS }
+    }
+  }),
+  async (req, res) => {
   const { context, amount_cents, payment_method } = req.body;
   const donationCents = Number(amount_cents || 0);
 
@@ -350,6 +450,7 @@ router.post("/create-donation-session", auth, async (req, res) => {
       metadata: {
         mode: "donation",
         context,
+        user_id: String(req.user.id),
         selected_payment_method: selectedPaymentMethod
       }
     });
@@ -379,6 +480,7 @@ router.post("/create-donation-session", auth, async (req, res) => {
           metadata: {
             mode: "donation",
             context,
+            user_id: String(req.user.id),
             selected_payment_method: "card"
           }
         });
@@ -396,6 +498,7 @@ router.post("/create-donation-session", auth, async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Failed to create donation session" });
   }
-});
+  }
+);
 
 module.exports = router;

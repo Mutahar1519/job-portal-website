@@ -1,11 +1,11 @@
-document.addEventListener("DOMContentLoaded", () => {
+﻿document.addEventListener("DOMContentLoaded", () => {
   if (document.getElementById("supportWidget")) return;
 
   const widget = document.createElement("div");
   widget.id = "supportWidget";
   widget.innerHTML = `
     <div class="support-toggle-wrap">
-      <button id="supportToggle" class="support-toggle" type="button" aria-label="Open support chat">💬</button>
+      <button id="supportToggle" class="support-toggle" type="button" aria-label="Open support chat">ðŸ’¬</button>
       <span id="supportUnreadBadge" class="support-unread-badge hidden">0</span>
     </div>
     <div id="supportPanel" class="support-panel hidden">
@@ -186,11 +186,11 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       supportSocket.on("connect", () => {
-        console.log("✅ Realtime connection established");
+        console.log("âœ… Realtime connection established");
       });
 
       supportSocket.on("connect_error", (error) => {
-        console.warn("⚠️ Realtime connection error:", error?.message);
+        console.warn("âš ï¸ Realtime connection error:", error?.message);
       });
 
       supportSocket.on("support:new-message", (payload) => {

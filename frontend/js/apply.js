@@ -1,4 +1,4 @@
-let jobId = null;
+﻿let jobId = null;
 let canSubmitApplication = true;
 let updateCvUi = () => {};
 
@@ -104,13 +104,13 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "POST",
         body: JSON.stringify({ sessionId: donationSession, mode: "donation" })
       }).then(() => {
-        alert("Thanks for your support! ✅");
+        showError("Thanks for your support! âœ…");
         window.history.replaceState({}, document.title, "apply.html");
       });
     }
 
     if (donationStatus === "cancel") {
-      alert("Donation canceled.");
+      showError("Donation canceled.");
       window.history.replaceState({}, document.title, "apply.html");
     }
   }
@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Check if jobId is missing or invalid
   if (!jobId) {
-    alert("Invalid job - No job ID provided");
+    showWarning("Invalid job - No job ID provided");
     window.location.href = "jobs.html";
     return;
   }
@@ -140,7 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
   jobId = parseInt(jobId, 10);
   
   if (isNaN(jobId) || jobId <= 0) {
-    alert("Invalid job - Job ID must be a valid number");
+    showWarning("Invalid job - Job ID must be a valid number");
     return;
   }
 
@@ -233,14 +233,14 @@ const startDonation = async (amountCents) => {
     });
     const data = await res.json();
     if (!res.ok || !data.url) {
-      alert(data.message || "Donation failed");
+      showError(data.message || "Donation failed");
       closeDonationModal();
       return;
     }
     window.location.href = data.url;
   } catch (err) {
     console.error(err);
-    alert("Donation failed");
+    showError("Donation failed");
     closeDonationModal();
   }
 };
@@ -278,18 +278,18 @@ document.getElementById("applyForm").addEventListener("submit", async (e) => {
 
   const token = localStorage.getItem("token");
   if (!token) {
-    alert("Login required to apply");
+    showWarning("Login required to apply");
     window.location.href = "login.html";
     return;
   }
 
   if (!jobId) {
-    alert("Invalid job");
+    showWarning("Invalid job");
     return;
   }
 
   if (!canSubmitApplication) {
-    alert("This job is no longer open for applications");
+    showError("This job is no longer open for applications");
     return;
   }
 
@@ -298,7 +298,7 @@ document.getElementById("applyForm").addEventListener("submit", async (e) => {
   const email = document.getElementById("email").value.trim();
   const phone = document.getElementById("phone").value.trim();
     if (!/^\d+$/.test(phone)) {
-      alert("Phone number must contain only digits");
+      showError("Phone number must contain only digits");
       return;
     }
 
@@ -306,7 +306,7 @@ document.getElementById("applyForm").addEventListener("submit", async (e) => {
   const cvFile = document.getElementById("cv").files[0];
   
   if (!coverLetter) {
-    alert("Cover letter is required");
+    showWarning("Cover letter is required");
     return;
   }
 
@@ -329,16 +329,16 @@ document.getElementById("applyForm").addEventListener("submit", async (e) => {
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message || "Application failed");
+      showError(data.message || "Application failed");
       return;
     }
 
-    alert("Application submitted successfully ✅");
+    showSuccess("Application submitted successfully âœ…");
     document.getElementById("applyForm").reset();
     updateCvUi(null);
     openDonationModal();
   } catch (err) {
     console.error(err);
-    alert("Server error");
+    showError("Server error");
   }
 });

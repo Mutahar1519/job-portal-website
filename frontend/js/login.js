@@ -1,4 +1,4 @@
-// ── OAuth callback handling ──────────────────────────────────────
+﻿// â”€â”€ OAuth callback handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // When Google/LinkedIn redirects back here, the URL has ?token=JWT&oauth=provider
 // or ?error=reason when something went wrong.
 (async () => {
@@ -71,11 +71,10 @@
   } catch { /* provider check optional */ }
 })();
 
-// ── Redirect if already logged in ───────────────────────────────
+// â”€â”€ Redirect if already logged in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const existingToken = localStorage.getItem("token");
 const existingUserRaw = localStorage.getItem("user");
 
-<<<<<<< HEAD
 async function completeOAuthLogin() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token");
@@ -107,15 +106,13 @@ async function completeOAuthLogin() {
     console.error(err);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    alert(err.message || "OAuth login failed");
+    showError(err.message || "OAuth login failed");
     return false;
   }
 }
 
 completeOAuthLogin();
 
-=======
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
 if (existingToken && existingUserRaw) {
   try {
     const existingUser = JSON.parse(existingUserRaw);
@@ -132,7 +129,7 @@ if (existingToken && existingUserRaw) {
 }
 
 document.getElementById("loginForm").addEventListener("submit", function (e) {
-  e.preventDefault(); // ⛔ stop page reload
+  e.preventDefault(); // â›” stop page reload
 
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
@@ -150,9 +147,9 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        alert("Login successful");
+        showSuccess("Login successful");
 
-        // Honour ?redirect= param (same-origin only — prevent open redirect)
+        // Honour ?redirect= param (same-origin only â€” prevent open redirect)
         const redirectParam = new URLSearchParams(window.location.search).get("redirect");
         if (redirectParam) {
           try {
@@ -162,7 +159,7 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
               return;
             }
           } catch {
-            // Malformed URL — fall through to role-based default
+            // Malformed URL â€” fall through to role-based default
           }
         }
 
@@ -174,11 +171,11 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
           window.location.href = "dashboard.html";
         }
       } else {
-        alert(data.message || "Login failed");
+        showError(data.message || "Login failed");
       }
     })
     .catch(err => {
       console.error(err);
-      alert("Server error");
+      showError("Server error");
     });
 });

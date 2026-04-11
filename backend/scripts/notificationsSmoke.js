@@ -8,7 +8,11 @@ const mysql = require("mysql2/promise");
 const nodemailer = require("nodemailer");
 
 const API_BASE = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
-const JWT_SECRET = process.env.JWT_SECRET || "secret123";
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is required to run notificationsSmoke.js");
+}
 
 function makeToken(user) {
   return jwt.sign(

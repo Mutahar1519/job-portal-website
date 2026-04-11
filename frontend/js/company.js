@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", async () => {
+﻿document.addEventListener("DOMContentLoaded", async () => {
   const form = document.getElementById("companyForm");
   const preview = document.getElementById("companyPreview");
   const modeLabel = document.getElementById("companyMode");
@@ -15,14 +15,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!publicCompanyId) {
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("Login required");
+      showWarning("Login required");
       window.location.href = "login.html";
       return;
     }
     try {
       const u = JSON.parse(localStorage.getItem("user") || "{}");
       if (!u.is_admin && u.role !== "employer") {
-        alert("Company profiles are managed by employers.");
+        showError("Company profiles are managed by employers.");
         window.location.href = "dashboard.html";
         return;
       }
@@ -62,13 +62,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     companyReviewsGrid.innerHTML = reviews.map((review) => {
-      const stars = "★★★★★".slice(0, review.rating) + "☆☆☆☆☆".slice(0, 5 - review.rating);
+      const stars = "â˜…â˜…â˜…â˜…â˜…".slice(0, review.rating) + "â˜†â˜†â˜†â˜†â˜†".slice(0, 5 - review.rating);
+      const verifiedBadge = Number(review.verified_review) === 1
+        ? '<span style="display:inline-block;margin-top:6px;padding:2px 8px;border-radius:999px;background:#dcfce7;color:#166534;border:1px solid #86efac;font-size:12px;font-weight:600;">Verified candidate review</span>'
+        : "";
       return `
         <article class="review-card">
           <div class="review-header">
             <div>
               <h3>${esc(review.name)}</h3>
               <p class="meta">${esc(review.role)}</p>
+              ${verifiedBadge}
             </div>
             <span class="review-stars">${stars}</span>
           </div>
@@ -96,26 +100,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     companyReviewForm.addEventListener("submit", async (event) => {
       event.preventDefault();
 
-      const name = (document.getElementById("companyReviewName")?.value || "").trim();
+      const token = localStorage.getItem("token");
+      if (!token) {
+        showWarning("Login required to submit a review.");
+        window.location.href = "login.html";
+        return;
+      }
+
       const role = (document.getElementById("companyReviewRole")?.value || "").trim();
       const rating = Number(document.getElementById("companyReviewRating")?.value || 0);
       const message = (document.getElementById("companyReviewMessage")?.value || "").trim();
+      const jobIdParam = Number(new URLSearchParams(window.location.search).get("jobId") || 0);
 
-      if (!name || !role || !rating || !message) {
-        alert("Please complete all review fields.");
+      if (!role || !rating || !message) {
+        showError("Please complete all review fields.");
         return;
       }
 
       try {
-        const res = await fetch(`${API}/reviews/company/${companyId}`, {
+        const payload = { role, rating, message };
+        if (jobIdParam > 0) payload.job_id = jobIdParam;
+
+        const res = await authFetch(`${API}/reviews/company/${companyId}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, role, rating, message })
+          body: JSON.stringify(payload)
         });
 
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          alert(data.message || "Failed to submit company review.");
+          showError(data.message || "Failed to submit company review.");
           return;
         }
 
@@ -123,11 +136,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (window.toast) {
           toast("Thanks! Your company review is pending approval.");
         } else {
-          alert("Thanks! Your company review is pending approval.");
+          showError("Thanks! Your company review is pending approval.");
         }
       } catch (err) {
         console.error(err);
-        alert("Network error while submitting review.");
+        showError("Network error while submitting review.");
       }
     });
   };
@@ -148,7 +161,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <div class="company-preview-card">
         ${logo}
         <h3>${data.name || ""}</h3>
-        <p class="p-muted">${data.industry || ""}${data.industry && data.location ? " • " : ""}${data.location || ""}</p>
+        <p class="p-muted">${data.industry || ""}${data.industry && data.location ? " â€¢ " : ""}${data.location || ""}</p>
         <div class="company-meta">
           ${data.website ? `<a href="${data.website}" target="_blank">${data.website}</a>` : ""}
           ${data.size ? `<span>${data.size}</span>` : ""}
@@ -246,7 +259,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const token = localStorage.getItem("token");
   if (!token) {
-    alert("Login required");
+    showWarning("Login required");
     window.location.href = "login.html";
     return;
   }
@@ -317,7 +330,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const payload = getPayload();
     if (!payload.name) {
-      alert("Company name is required");
+      showWarning("Company name is required");
       return;
     }
 
@@ -331,7 +344,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Failed to save company profile");
+        showError(data.message || "Failed to save company profile");
         return;
       }
 
@@ -342,20 +355,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const employerData = await employerRes.json();
       if (!employerRes.ok) {
-        alert(employerData.message || "Failed to save employer profile");
+        showError(employerData.message || "Failed to save employer profile");
         return;
       }
 
       if (window.toast) {
         toast(currentCompany ? "Company updated" : "Company created");
       } else {
-        alert(currentCompany ? "Company updated" : "Company created");
+        showSuccess(currentCompany ? "Company updated" : "Company created");
       }
       await loadMyCompany();
       await loadEmployerProfile();
     } catch (err) {
       console.error(err);
-      alert("Failed to save company profile");
+      showError("Failed to save company profile");
     }
   });
 });

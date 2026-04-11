@@ -39,8 +39,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const shiftAlertCount = document.getElementById("shiftAlertCount");
   const refreshShiftAlerts = document.getElementById("refreshShiftAlerts");
   const createShiftAlertBtn = document.getElementById("createShiftAlertBtn");
-<<<<<<< HEAD
-<<<<<<< HEAD
   const referralForm = document.getElementById("referralForm");
   const referralsList = document.getElementById("referralsList");
   const referralRewardsEarned = document.getElementById("referralRewardsEarned");
@@ -61,15 +59,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const alertCategoryCustomInput = document.getElementById("alertCategoryCustom");
   const alertTypeInput = document.getElementById("alertType");
   const alertFrequencyInput = document.getElementById("alertFrequency");
-=======
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
-=======
-  const shiftAlertBuilder = document.getElementById("shiftAlertBuilder");
-  const shiftAlertForm = document.getElementById("shiftAlertForm");
-  const cancelShiftAlertBtn = document.getElementById("cancelShiftAlertBtn");
-  const shiftAlertRules = document.getElementById("shiftAlertRules");
-  let editingShiftAlertId = null;
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
   if (!container) return;
 
@@ -79,10 +68,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   let interviewCountdownTicker = null;
   const INTERVIEW_REMINDER_KEY = "dashboardInterviewReminders.v1";
   const INTERVIEW_REMINDER_SETTINGS_KEY = "dashboardInterviewReminderSettings.v1";
-
-  const jobAlertsList = document.getElementById("jobAlerts");
-  const jobAlertCount = document.getElementById("jobAlertCount");
-  const refreshJobAlerts = document.getElementById("refreshJobAlerts");
 
   const jobAlertsList = document.getElementById("jobAlerts");
   const jobAlertCount = document.getElementById("jobAlertCount");
@@ -687,11 +672,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!jobAlertsList) return;
     try {
       const res = await authFetch(`${API}/job-alerts/job-notifications`);
-<<<<<<< HEAD
-      const data = await readResponsePayload(res);
-=======
-      const data = await res.json();
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
+const data = await readResponsePayload(res);
       if (!res.ok) {
         jobAlertsList.innerHTML = "<p class=\"empty-state\">Failed to load job alerts.</p>";
         return;
@@ -703,8 +684,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
-<<<<<<< HEAD
-  const formatCentsToUsd = (cents) => {
+const formatCentsToUsd = (cents) => {
     const value = Number(cents || 0) / 100;
     return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -1205,91 +1185,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       referralsList.innerHTML = "<p class=\"empty-state\">Server error.</p>";
     }
   };
-
-=======
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
-  try {
-    const res = await authFetch(`${API}/applications/my`);
-    const apps = await readResponsePayload(res);
-
-    if (!res.ok) {
-      container.innerHTML = "<p class=\"empty-state\">Failed to load applications</p>";
-      return;
-    }
-
-    allApps = apps || [];
-    setStats(allApps);
-    applyFilters();
-  } catch (err) {
-    console.error(err);
-    container.innerHTML = "<p class=\"empty-state\">Server error</p>";
-  }
-
-  await loadSavedJobs();
-  await loadAlerts();
-  await loadShiftAlerts();
-  await loadMyInterviews();
-  await loadMyBackgroundChecks();
-  await loadReferrals();
-  await loadReferralRewards();
-  loadRecommendations(); // non-blocking — recommendations load async
-
-  searchInput?.addEventListener("input", applyFilters);
-  statusFilter?.addEventListener("change", applyFilters);
-  sortBy?.addEventListener("change", applyFilters);
-
-  await loadJobAlerts();
-
-  refreshJobAlerts?.addEventListener("click", loadJobAlerts);
-
-<<<<<<< HEAD
-  const initialReminderSettings = readReminderSettings();
-  applyReminderSettingsToUi(initialReminderSettings);
-
-  interviewReminderEnabledInput?.addEventListener("change", () => {
-    const current = readReminderSettings();
-    const next = writeReminderSettings({
-      enabled: !!interviewReminderEnabledInput.checked,
-      leadMinutes: current.leadMinutes
-    });
-    applyReminderSettingsToUi(next);
-  });
-
-  interviewReminderSaveBtn?.addEventListener("click", () => {
-    const leadMinutes = Number(interviewReminderLeadTimeInput?.value || 30);
-    const next = writeReminderSettings({
-      enabled: !!interviewReminderEnabledInput?.checked,
-      leadMinutes
-    });
-    applyReminderSettingsToUi(next);
-    if (typeof window.toast === "function") {
-      const label = next.enabled
-        ? `Interview reminders enabled (${next.leadMinutes} min lead)`
-        : "Interview reminders disabled";
-      window.toast(label);
-    }
-  });
-
-  myInterviewsContainer?.addEventListener("click", async (event) => {
-    const target = event.target.closest("[data-action]");
-    if (!target) return;
-
-    const action = target.getAttribute("data-action");
-    const interviewId = target.getAttribute("data-interview-id");
-    if (!interviewId) return;
-
-    if (action === "download-ics") {
-      await downloadInterviewIcs(interviewId);
-      return;
-    }
-
-    if (action === "copy-invite-link") {
-      await copyInterviewInviteLink(interviewId);
-    }
-  });
-
-=======
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   savedContainer?.addEventListener("click", async (event) => {
     const button = event.target.closest(".save-btn");
     if (!button) return;
@@ -1365,7 +1260,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         body: JSON.stringify(payload)
       });
       if (!res.ok) {
-        alert(data?.message || data?.error || `Failed to create alert (HTTP ${res.status})`);
+        showError(data?.message || data?.error || `Failed to create alert (HTTP ${res.status})`);
         return;
       }
 
@@ -1396,7 +1291,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           method: "DELETE"
         });
         if (!res.ok) {
-          alert(data?.message || data?.error || `Failed to delete alert (HTTP ${res.status})`);
+          showError(data?.message || data?.error || `Failed to delete alert (HTTP ${res.status})`);
           return;
         }
         await loadAlerts();
@@ -1423,7 +1318,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           body: JSON.stringify(payload)
         });
         if (!res.ok) {
-          alert(data?.message || data?.error || `Failed to update alert (HTTP ${res.status})`);
+          showError(data?.message || data?.error || `Failed to update alert (HTTP ${res.status})`);
           return;
         }
         await loadAlerts();
@@ -1436,8 +1331,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   refreshShiftAlerts?.addEventListener("click", loadShiftAlerts);
 
-<<<<<<< HEAD
-  createShiftAlertBtn?.addEventListener("click", () => {
+createShiftAlertBtn?.addEventListener("click", () => {
     const panel = document.getElementById("alerts-panel");
     panel?.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -1455,76 +1349,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         alertLocationInput.focus();
       }
     }, 100);
-=======
-  createShiftAlertBtn?.addEventListener("click", async () => {
-    if (!shiftAlertBuilder) return;
-    if (shiftAlertBuilder.style.display === "none") {
-      resetShiftAlertBuilder();
-      shiftAlertBuilder.style.display = "block";
-    } else {
-      shiftAlertBuilder.style.display = "none";
-      resetShiftAlertBuilder();
-    }
-    if (shiftAlertBuilder.style.display === "block") {
-      document.getElementById("shiftAlertKeyword")?.focus();
-    }
-  });
-
-  cancelShiftAlertBtn?.addEventListener("click", () => {
-    if (shiftAlertBuilder) shiftAlertBuilder.style.display = "none";
-    resetShiftAlertBuilder();
-  });
-
-  shiftAlertForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const payload = {
-      keyword: (document.getElementById("shiftAlertKeyword")?.value || "").trim(),
-      location: (document.getElementById("shiftAlertLocation")?.value || "").trim(),
-      category: (document.getElementById("shiftAlertCategory")?.value || "").trim(),
-      job_type: "Shift",
-      frequency: (document.getElementById("shiftAlertFrequency")?.value || "daily").trim()
-    };
-
-    if (!payload.keyword && !payload.location && !payload.category) {
-      alert("Please add at least one filter (keyword, location, or category).");
-      return;
-    }
-
-    try {
-      const isEdit = Number.isFinite(Number(editingShiftAlertId));
-      const targetUrl = isEdit
-        ? `${API}/job-alerts/${editingShiftAlertId}`
-        : `${API}/job-alerts`;
-
-      const method = isEdit ? "PUT" : "POST";
-      const body = isEdit
-        ? { ...payload, is_active: 1 }
-        : payload;
-
-      const res = await authFetch(targetUrl, {
-        method,
-        body: JSON.stringify(body)
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data.message || "Failed to create shift alert");
-        return;
-      }
-
-      if (window.toast) {
-        toast(isEdit ? "Shift alert updated." : "Shift alert preference saved.");
-      }
-      resetShiftAlertBuilder();
-      if (shiftAlertBuilder) shiftAlertBuilder.style.display = "none";
-      await loadAlerts();
-      await loadShiftAlerts();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to create shift alert");
-    }
->>>>>>> d748585d6ba176664da923b31c34be130ff010e7
   });
 
   shiftAlertRules?.addEventListener("click", async (event) => {

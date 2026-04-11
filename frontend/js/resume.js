@@ -1,7 +1,7 @@
-document.addEventListener("DOMContentLoaded", async () => {
+﻿document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token");
   if (!token) {
-    alert("Login required");
+    showWarning("Login required");
     window.location.href = "login.html";
     return;
   }
@@ -170,13 +170,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const file = fileInput?.files?.[0];
     if (!file) {
-      alert("Select a resume file (PDF, DOC, or DOCX)");
+      showWarning("Select a resume file (PDF, DOC, or DOCX)");
       return;
     }
 
     const selectedExt = getFileExtension(file.name);
     if (!["pdf", "doc", "docx"].includes(selectedExt)) {
-      alert("Only PDF, DOC, or DOCX files are allowed.");
+      showError("Only PDF, DOC, or DOCX files are allowed.");
       setUploadFeedback("Unsupported file type. Please upload PDF, DOC, or DOCX.");
       return;
     }
@@ -196,13 +196,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!res.ok) {
         const message = data?.message || `Upload failed (HTTP ${res.status})`;
         if (res.status === 401) {
-          alert("Your session expired. Please login again.");
+          showError("Your session expired. Please login again.");
           setStatus("Login required.");
           setUploadFeedback("Session expired. Please login and retry upload.");
           return;
         }
 
-        alert(message);
+        showError(message);
         setStatus("Upload failed.");
         setUploadFeedback(message);
         return;
