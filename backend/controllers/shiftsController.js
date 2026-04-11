@@ -34,8 +34,7 @@ exports.acceptShiftApplication = (req, res) => {
 
   const selectedPaymentMethod = normalizePaymentMethod(req.body && req.body.payment_method);
   if (!selectedPaymentMethod) {
-    return res.status(400).json({ message: "Invalid payment method. Allowed: " + ALLOWED_PAYMENT_METHODS.join(", ") });
-  }
+    return res.status(400).json({ message: "Invalid payment method" });
   }
 
   const sql = `

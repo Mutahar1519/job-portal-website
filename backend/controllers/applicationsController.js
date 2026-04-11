@@ -1,113 +1,10 @@
-db.query(
 const db = require("../config/mysql");
-const {
-  canSendNotification,
-  sendApplicationUpdateEmail
-} = require("./notificationsController");
 const { sendMail } = require("../utils/mailer");
 
-
-  `CREATE TABLE IF NOT EXISTS employer_application_notifications (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    employer_user_id INT NOT NULL,
-    application_id INT NOT NULL,
-    job_id INT NOT NULL,
-    message VARCHAR(255) NOT NULL,
-    is_read TINYINT(1) NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_employer_app_notifications_user (employer_user_id),
-    INDEX idx_employer_app_notifications_read (employer_user_id, is_read),
-    INDEX idx_employer_app_notifications_created (created_at)
-  )`,
-  (err) => {
-    if (err) {
-      console.warn("employer_application_notifications bootstrap failed:", err.message);
-    }
-  }
-);
 const isMissingColumnError = (err) => {
   return !!err && (err.code === "ER_BAD_FIELD_ERROR" || /Unknown column/i.test(err.message || ""));
 };
 
-<<<<<<< HEAD
-const escapeIcsText = (value) => {
-  return String(value || "")
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\r\n|\n|\r/g, "\\n");
-};
-
-const isDigitsOnly = (value) => /^\d+$/.test(String(value || ""));
-const ALLOWED_COUNTRIES = new Set([
-  "United Kingdom",
-  "United States",
-  "Canada",
-  "Australia",
-  "India",
-  "Pakistan",
-  "United Arab Emirates"
-]);
-
-const formatIcsDate = (dateValue) => {
-  const d = new Date(dateValue);
-  if (Number.isNaN(d.valueOf())) return "";
-
-  const pad = (v) => String(v).padStart(2, "0");
-  return (
-    `${d.getUTCFullYear()}` +
-    `${pad(d.getUTCMonth() + 1)}` +
-    `${pad(d.getUTCDate())}` +
-    "T" +
-    `${pad(d.getUTCHours())}` +
-    `${pad(d.getUTCMinutes())}` +
-    `${pad(d.getUTCSeconds())}` +
-    "Z"
-  );
-};
-
-const buildInterviewIcs = (interview) => {
-  const startAt = new Date(interview.scheduled_at);
-  const durationMinutes = Number(interview.duration_minutes || 30);
-  const endAt = new Date(startAt.getTime() + Math.max(15, durationMinutes) * 60 * 1000);
-  const nowStamp = formatIcsDate(new Date());
-  const startStamp = formatIcsDate(startAt);
-  const endStamp = formatIcsDate(endAt);
-  const uid = `interview-${interview.id}@jobportal.local`;
-  const summary = escapeIcsText(`Interview - ${interview.job_title || "Job Opportunity"}`);
-  const descriptionParts = [
-    `Employer: ${interview.employer_name || "Unknown"}`,
-    `Meeting type: ${interview.meeting_type || "video"}`,
-    interview.meeting_link ? `Meeting link: ${interview.meeting_link}` : "",
-    interview.notes ? `Notes: ${interview.notes}` : ""
-  ].filter(Boolean);
-  const description = escapeIcsText(descriptionParts.join("\n"));
-  const location = escapeIcsText(
-    interview.meeting_type === "onsite"
-      ? interview.job_location || "Onsite"
-      : interview.meeting_link || "Online"
-  );
-
-  return [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//JobPortal//Interview Scheduler//EN",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    "BEGIN:VEVENT",
-    `UID:${uid}`,
-    `DTSTAMP:${nowStamp}`,
-    `DTSTART:${startStamp}`,
-    `DTEND:${endStamp}`,
-    `SUMMARY:${summary}`,
-    `DESCRIPTION:${description}`,
-    `LOCATION:${location}`,
-    "END:VEVENT",
-    "END:VCALENDAR"
-  ].join("\r\n");
-};
-
-=======
 /* Email employer + applicant after a successful application */
 const sendApplicationEmails = async ({ userId, jobId, fullName, applicantEmail, coverLetter }) => {
   // Lookup job title and employer email in one query
@@ -185,7 +82,6 @@ exports.checkApplicationStatus = (req, res) => {
   );
 };
 
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 /* APPLY FOR A JOB */
 exports.applyJob = (req, res) => {
   const userId = req.user.id;
@@ -222,16 +118,8 @@ exports.applyJob = (req, res) => {
     return res.status(400).json({ message: "Phone is too long" });
   }
 
-  if (phone && !isDigitsOnly(phone)) {
-    return res.status(400).json({ message: "Phone must contain only digits" });
-  }
-
   if (country && country.length > 100) {
     return res.status(400).json({ message: "Country is too long" });
-  }
-
-  if (country && !ALLOWED_COUNTRIES.has(country)) {
-    return res.status(400).json({ message: "Please select a valid country from the dropdown list" });
   }
 
   const runJobLookup = (includeDeadlineColumn, callback) => {
@@ -275,7 +163,7 @@ exports.applyJob = (req, res) => {
         "pending",
         "new"
       ],
-      (insertErr, insertResult) => {
+      (insertErr) => {
         if (insertErr) {
           if (insertErr.code === "ER_DUP_ENTRY") {
             return res.status(400).json({ message: "You have already applied for this job" });
@@ -283,53 +171,6 @@ exports.applyJob = (req, res) => {
           console.error(insertErr);
           return res.status(500).json({ message: "Failed to submit application" });
         }
-
-        const applicationId = insertResult && insertResult.insertId ? Number(insertResult.insertId) : null;
-
-        db.query(
-          `SELECT j.title AS job_title, j.id AS job_id, j.posted_by AS employer_user_id,
-                  u.email AS employer_email, u.name AS employer_name
-           FROM jobs j
-           LEFT JOIN users u ON u.id = j.posted_by
-           WHERE j.id = ?
-           LIMIT 1`,
-          [jobId],
-          (notifyLookupErr, notifyRows) => {
-            if (!notifyLookupErr && notifyRows && notifyRows.length) {
-              const employer = notifyRows[0];
-              if (employer.employer_user_id && employer.employer_email) {
-                canSendNotification(employer.employer_user_id, "application_status_update", (prefErr, enabled) => {
-                  if (prefErr || !enabled) return;
-                  const applicationsUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/employer.html`;
-                  sendApplicationUpdateEmail(
-                    employer.employer_user_id,
-                    employer.employer_email,
-                    employer.job_title || "your job",
-                    applicationsUrl,
-                    "new_application"
-                  ).catch((mailErr) => {
-                    console.warn("[applications] employer application email failed:", mailErr.message);
-                  });
-                });
-              }
-
-              if (employer.employer_user_id) {
-                const safeTitle = String(employer.job_title || "your job").slice(0, 140);
-                const inAppMessage = `New application received for ${safeTitle}`;
-                if (!applicationId) return;
-                db.query(
-                  `INSERT INTO employer_application_notifications (employer_user_id, application_id, job_id, message)
-                   VALUES (?, ?, ?, ?)`,
-                  [employer.employer_user_id, applicationId, Number(jobId), inAppMessage],
-                  () => {
-                    // Best-effort: keep application submission successful even if notification insert fails.
-                  }
-                );
-              }
-
-            }
-          }
-        );
 
         res.status(201).json({ message: "Application submitted successfully" });
 
@@ -414,9 +255,9 @@ exports.getMyApplications = (req, res) => {
 /* LIST ALL APPLICATIONS (ADMIN) */
 exports.getAdminApplications = (req, res) => {
   const sql = `
-    SELECT a.id, a.status, a.pipeline_stage, a.created_at,
-           COALESCE(NULLIF(TRIM(a.full_name), ''), u.name, 'Candidate') AS applicant_name,
-           u.id AS user_id,
+    SELECT a.id, a.status, a.pipeline_stage, a.cover_letter, a.cv_path, a.created_at,
+           a.full_name, a.email, a.phone, a.country,
+           u.id AS user_id, u.name AS user_name, u.email AS user_email,
            j.id AS job_id, j.title AS job_title
     FROM applications a
     JOIN users u ON a.user_id = u.id
@@ -429,13 +270,7 @@ exports.getAdminApplications = (req, res) => {
       console.error(err);
       return res.status(500).json({ message: "Failed to load applications" });
     }
-    const safeRows = (results || []).map((row) => ({
-      ...row,
-      user_ref: `U${String(row.user_id || '').padStart(6, '0')}`,
-      job_ref: `J${String(row.job_id || '').padStart(6, '0')}`
-    }));
-
-    res.json(safeRows);
+    res.json(results);
   });
 };
 
@@ -462,131 +297,7 @@ exports.updateApplicationStatus = (req, res) => {
         return res.status(404).json({ message: "Application not found" });
       }
 
-      db.query(
-        `SELECT a.user_id, COALESCE(NULLIF(a.email, ''), u.email) AS recipient_email, j.title AS job_title
-         FROM applications a
-         JOIN users u ON u.id = a.user_id
-         JOIN jobs j ON j.id = a.job_id
-         WHERE a.id = ?
-         LIMIT 1`,
-        [id],
-        (lookupErr, rows) => {
-          if (lookupErr || !rows.length || !rows[0].recipient_email) return;
-
-          const app = rows[0];
-          canSendNotification(app.user_id, "application_status_update", (prefErr, enabled) => {
-            if (prefErr || !enabled) return;
-
-            const appUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/dashboard`;
-            sendApplicationUpdateEmail(
-              app.user_id,
-              app.recipient_email,
-              app.job_title || "your application",
-              appUrl,
-              status
-            ).catch((mailErr) => {
-              console.warn("[applications] status email send failed:", mailErr.message);
-            });
-          });
-        }
-      );
-
       res.json({ message: "Status updated" });
-    }
-  );
-};
-
-exports.getMyInterviews = (req, res) => {
-  const userId = req.user.id;
-
-  db.query(
-    `SELECT i.id, i.application_id, i.job_id, i.scheduled_at, i.duration_minutes,
-            i.meeting_type, i.meeting_link, i.notes, i.status, i.created_at,
-            j.title AS job_title, j.location AS job_location,
-            u.name AS employer_name
-     FROM interviews_scheduled i
-     JOIN jobs j ON j.id = i.job_id
-     JOIN users u ON u.id = i.employer_user_id
-     WHERE i.candidate_user_id = ?
-     ORDER BY i.scheduled_at DESC`,
-    [userId],
-    (err, rows) => {
-      if (err) {
-        if (err.code === "ER_NO_SUCH_TABLE") {
-          return res.json([]);
-        }
-        return res.status(500).json({ message: "Failed to load interviews", error: err.message });
-      }
-      return res.json(rows || []);
-    }
-  );
-};
-
-exports.getMyBackgroundChecks = (req, res) => {
-  const userId = req.user.id;
-
-  db.query(
-    `SELECT bc.id, bc.application_id, bc.job_id, bc.provider, bc.package_name, bc.status,
-            bc.reference_code, bc.result_summary, bc.notes, bc.ordered_at, bc.completed_at, bc.created_at,
-            j.title AS job_title, j.location AS job_location,
-            u.name AS employer_name
-     FROM background_checks bc
-     JOIN jobs j ON j.id = bc.job_id
-     JOIN users u ON u.id = bc.employer_user_id
-     WHERE bc.candidate_user_id = ?
-     ORDER BY bc.created_at DESC`,
-    [userId],
-    (err, rows) => {
-      if (err) {
-        if (err.code === "ER_NO_SUCH_TABLE") {
-          return res.json([]);
-        }
-        return res.status(500).json({ message: "Failed to load background checks", error: err.message });
-      }
-      return res.json(rows || []);
-    }
-  );
-};
-
-exports.downloadMyInterviewIcs = (req, res) => {
-  const userId = req.user.id;
-  const interviewId = Number(req.params.id);
-
-  if (!interviewId) {
-    return res.status(400).json({ message: "Invalid interview" });
-  }
-
-  db.query(
-    `SELECT i.id, i.scheduled_at, i.duration_minutes, i.meeting_type, i.meeting_link, i.notes,
-            i.candidate_user_id, i.employer_user_id,
-            j.title AS job_title, j.location AS job_location,
-            u.name AS employer_name
-     FROM interviews_scheduled i
-     JOIN jobs j ON j.id = i.job_id
-     JOIN users u ON u.id = i.employer_user_id
-     WHERE i.id = ?
-       AND (i.candidate_user_id = ? OR i.employer_user_id = ?)
-     LIMIT 1`,
-    [interviewId, userId, userId],
-    (err, rows) => {
-      if (err) {
-        if (err.code === "ER_NO_SUCH_TABLE") {
-          return res.status(409).json({ message: "Interview scheduling table not found. Run backend/sql/interview-scheduling.sql migration." });
-        }
-        return res.status(500).json({ message: "Failed to generate calendar file", error: err.message });
-      }
-
-      if (!rows.length) {
-        return res.status(404).json({ message: "Interview not found" });
-      }
-
-      const interview = rows[0];
-      const ics = buildInterviewIcs(interview);
-      const safeFileName = `interview-${interview.id}.ics`;
-
-      res.setHeader("Content-Type", "text/calendar; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename=\"${safeFileName}\"`);
-      return res.status(200).send(ics);
     }
   );
 };

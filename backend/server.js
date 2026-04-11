@@ -1,111 +1,10 @@
-<<<<<<< HEAD
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, ".env") });
-const http = require("http");
-=======
 require("dotenv").config();
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 const express = require("express");
 const cors = require("cors");
-const jwt = require("jsonwebtoken");
-const { Server } = require("socket.io");
+const path = require("path");
 const db = require("./config/mysql");
-const chatController = require("./controllers/chatController");
 
 const app = express();
-const httpServer = http.createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: true,
-    credentials: true
-  }
-});
-
-chatController.setRealtimeEmitter(io);
-
-io.use((socket, next) => {
-  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
-  if (!token) {
-    socket.user = null;
-    return next();
-  }
-
-  try {
-    socket.user = jwt.verify(token, process.env.JWT_SECRET || "secret123");
-    return next();
-  } catch (_err) {
-    socket.user = null;
-    return next();
-  }
-});
-
-io.on("connection", (socket) => {
-  if (socket.user?.id) {
-    socket.join(`support-user:${socket.user.id}`);
-    socket.join(`employer-user:${socket.user.id}`); // For employer real-time updates
-  }
-
-  if (socket.user?.is_admin) {
-    socket.join("support-admin");
-  }
-
-  socket.on("support:join-ticket", (ticketId) => {
-    const normalized = String(ticketId || "").trim();
-    if (normalized) {
-      socket.join(`support-ticket:${normalized}`);
-    }
-  });
-
-  socket.on("support:leave-ticket", (ticketId) => {
-    const normalized = String(ticketId || "").trim();
-    if (normalized) {
-      socket.leave(`support-ticket:${normalized}`);
-    }
-  });
-});
-
-// Utility to emit employer events
-function emitEmployerUpdate(userId, event, payload) {
-  if (userId && io) {
-    io.to(`employer-user:${userId}`).emit(event, payload);
-  }
-}
-
-// Patch employerController to emit real-time events on application and stats changes
-const employerController = require("./controllers/employerController");
-const origUpdatePipelineStage = employerController.updatePipelineStage;
-employerController.updatePipelineStage = function(req, res) {
-  const userId = req.user?.id;
-  origUpdatePipelineStage.call(this, req, {
-    ...res,
-    json: function(data) {
-      if (userId) {
-        emitEmployerUpdate(userId, "employer:application-updated", { applicationId: req.params.id });
-        emitEmployerUpdate(userId, "employer:stats-updated", {});
-      }
-      return res.json(data);
-    }
-  });
-};
-
-const origSaveEvaluation = employerController.saveEvaluation;
-if (origSaveEvaluation) {
-  employerController.saveEvaluation = function(req, res) {
-    const userId = req.user?.id;
-    origSaveEvaluation.call(this, req, {
-      ...res,
-      json: function(data) {
-        if (userId) {
-          emitEmployerUpdate(userId, "employer:application-updated", { applicationId: req.params.id });
-          emitEmployerUpdate(userId, "employer:stats-updated", {});
-        }
-        return res.json(data);
-      }
-    });
-  };
-}
-
-// Patch job creation and deletion if needed (not shown here)
 
 const PORT = Number(process.env.PORT || 3000);
 const NODE_ENV = process.env.NODE_ENV || "development";
@@ -258,12 +157,6 @@ const messagesRoutes = require("./routes/messages");
 const employerRoutes = require("./routes/employer");
 const shiftsRoutes = require("./routes/shifts");
 const authRoutes = require("./routes/auth");
-<<<<<<< HEAD
-const notificationsRoutes = require("./routes/notifications");
-const recommendationsRoutes = require("./routes/recommendations");
-const referralsRoutes = require("./routes/referrals");
-=======
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
 app.use("/api/jobs", jobsRoutes);
 app.use("/api/users", usersRoutes);
@@ -280,12 +173,6 @@ app.use("/api/messages", messagesRoutes);
 app.use("/api/employer", employerRoutes);
 app.use("/api/shifts", shiftsRoutes);
 app.use("/api/auth", authRoutes);
-<<<<<<< HEAD
-app.use("/api/notifications", notificationsRoutes);
-app.use("/api/recommendations", recommendationsRoutes);
-app.use("/api/referrals", referralsRoutes);
-=======
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 
 runSchemaChecks();
 
@@ -333,22 +220,6 @@ app.use((err, req, res, next) => {
   res.status(500).sendFile(path.join(__dirname, "../frontend/500.html"));
 });
 
-<<<<<<< HEAD
-const PORT = Number(process.env.PORT) || 3000;
-
-const server = httpServer.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-});
-
-server.on("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    console.error(`❌ Port ${PORT} is already in use. Stop the existing server or set PORT to a different value.`);
-  } else {
-    console.error("❌ Server failed to start:", err);
-  }
-  process.exit(1);
-=======
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
->>>>>>> 46123c6f49ef56229259ec1006b560ffd663fbb0
 });
